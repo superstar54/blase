@@ -7,7 +7,10 @@ Python module for drawing and rendering ASE (Atomic Simulation Environment) atom
 
 For the introduction of ASE , please visit https://wiki.fysik.dtu.dk/ase/index.html
 
-* Support all file-formats using by ASE, including cif, xyz, cube, pdb, json, VASP-out and son.
+* Support all file-formats using by ASE, including cif, xyz, cube, pdb, json, VASP-out and so on.
+* Ball & stick
+* Polyhedral
+* Meta ball
 * GPU rendering and HPC jobs
 
 
@@ -142,7 +145,26 @@ write_blender(atoms, display=False, **kwargs)
 <img src="examples/figs/testcube.png" width="500"/>
 
 
+#### Polyhedra
+A example to draw polyhedra.
 
+```python
+from ase.io import read, write
+from blase.tools import write_blender
+
+atoms = read('tio2.cif')
+kwargs = {'show_unit_cell': 1, 
+          'engine': 'BLENDER_WORKBENCH',
+          'radii': 0.6,
+          'bond_cutoff': 1.0,
+          'search_pbc': {'search_dict': {'Ti': ['O']}},
+          'polyhedra_dict': {'Ti': ['O']},
+          'outfile': 'figs/test-search-bonds',
+          }
+write_blender(atoms, **kwargs)
+
+```
+<img src="examples/figs/test-search-bonds.png" width="500"/>
 
 #### Set different kind of atoms for the same element
 ````python
@@ -223,4 +245,6 @@ bobj.draw_atoms(bsdf_inputs = bsdf_inputs)
 ### To do
 
 
+* improve speed for searching molecule on the boundary
+* add panel to manipulate the atoms interactively
 * add animation

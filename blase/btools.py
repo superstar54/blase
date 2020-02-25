@@ -4,6 +4,11 @@ from mathutils import Matrix
 from scipy.spatial.transform import Rotation as R
 ######################################################
 
+def clean_default():
+    bpy.data.cameras.remove(bpy.data.cameras['Camera'])
+    bpy.data.lights.remove(bpy.data.lights['Light'])
+    bpy.data.objects.remove(bpy.data.objects['Cube'])
+
 
 def clean_objects():
     for item in bpy.data.objects:
@@ -23,8 +28,8 @@ def removeAll():
         bpy.data.collections.remove(coll)
 
 # draw bonds
-def bond_source():
-    bpy.ops.mesh.primitive_cylinder_add()
+def bond_source(vertices = 16):
+    bpy.ops.mesh.primitive_cylinder_add(vertices = vertices)
     cyli = bpy.context.view_layer.objects.active
     me = cyli.data
     verts = []
@@ -62,7 +67,7 @@ def atom_source():
 
 
 
-def atom_mesh_from_instance(centers, radius, source):
+def sphere_mesh_from_instance(centers, radius, source):
     verts = []
     faces = []
     vert0, face0 = source
@@ -80,7 +85,7 @@ def atom_mesh_from_instance(centers, radius, source):
             face = [x+ i*nvert for x in face]
             faces.append(face)
     return verts, faces
-def bond_mesh_from_instance(centers, normals, lengths, scale, source):
+def cylinder_mesh_from_instance(centers, normals, lengths, scale, source):
     verts = []
     faces = []
     vert0, face0 = source
@@ -92,12 +97,15 @@ def bond_mesh_from_instance(centers, normals, lengths, scale, source):
         length = lengths[i]
         # normal = normal/np.linalg.norm(normal)
         vec = np.cross([0.0000014159, 0.000001951, 1], normal)
+        # print(center, normal, vec)
         vec = vec/np.linalg.norm(vec)
-        ang = np.arcsin(np.linalg.norm(vec))
+        # print(vec)
+        # ang = np.arcsin(np.linalg.norm(vec))
         ang = np.arccos(normal[2])
         vec = -1*ang*vec
         r = R.from_rotvec(vec)
         matrix = r.as_dcm()
+        # print(vec, ang)
         for vert in vert0:
             vert = vert*[scale, scale, length]
             vert = vert.dot(matrix)

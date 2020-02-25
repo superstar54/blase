@@ -15,6 +15,7 @@ import bpy
 from mathutils import Vector, Matrix
 import os
 import numpy as np
+from ase import Atoms, Atom
 from ase.io.utils import PlottingVariables, cell_to_lines
 from ase.constraints import FixAtoms
 from ase.utils import basestring
@@ -23,9 +24,9 @@ from ase.build import molecule, bulk
 from ase.data import covalent_radii, atomic_numbers
 from ase.data.colors import jmol_colors
 from math import pi, sqrt, radians, acos, atan2
-from skimage import measure
-from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs
-from blase.btools import bond_source, bond_mesh_from_instance, removeAll
+from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_polyhedra_kinds, search_pbc
+from blase.btools import bond_source, cylinder_mesh_from_instance, clean_default
+import time
 
 
 class Blase():
@@ -70,9 +71,12 @@ class Blase():
         'balltypes': None,
         'radii': None, 
         'colors': None,
+        'make_real': False,
         'kind_props': None,
         'bond_cutoff': None,  # 
-        'bondlist': [],  # [[atom1, atom2], ... ] pairs of bonding atoms
+        'bond_list': [],  # [[atom1, atom2], ... ] pairs of bonding atoms
+        'polyhedra_dict': {},
+        'search_pbc': None,
         'resolution_x': 1000,
         'cube': None,
         'highlight': None, # highlight atoms
@@ -86,7 +90,7 @@ class Blase():
         'outfile': 'bout',
         }  
 
-    def __init__(self, images, rotations=None, scale=1,
+    def __init__(self, images, name = None, rotations=None, scale=1,
                               **parameters):
         for k, v in self.default_settings.items():
             setattr(self, k, parameters.pop(k, v))
@@ -101,6 +105,11 @@ class Blase():
         #
         self.images = images
         self.atoms = images[0]
+        if self.search_pbc:
+            self.atoms = search_pbc(self.atoms, cutoff=1.0, search_dict = self.search_pbc['search_dict'], remove_dict = None)
+        self.name = name
+        if not self.name:
+            self.name = self.atoms.symbols.formula.format('abc')
         self.natoms = len(self.atoms)
         self.positions = self.atoms.positions*scale
         self.numbers = self.atoms.get_atomic_numbers()
@@ -135,7 +144,7 @@ class Blase():
         elif isinstance(self.radii, dict):
             for kind in self.radii:
                 self.atom_kinds[kind]['radius'] *= self.radii[kind]*scale
-        
+        # print(self.atom_kinds)
         # disp = atoms.get_celldisp().flatten()
         self.cell_vertices = None
         if self.show_unit_cell > 0:
@@ -176,10 +185,9 @@ class Blase():
         if not self.ortho_scale:
             if self.w > self.h:
                 self.ortho_scale = self.w + 1
-                # self.resolution_y = 
             else:
                 self.ortho_scale = self.h + 1
-        # print(self.bbox)
+        print(self.w, self.h, self.ortho_scale)
         #
         constr = self.atoms.constraints
         self.constrainatoms = []
@@ -199,7 +207,7 @@ class Blase():
             }
         # ------------------------------------------------------------------------
         # remove all objects, Select objects by type
-        removeAll()
+        clean_default()
         # 'AtomProp'.
         ALL_FRAMES = []
         # A list of ALL balls which are put into the scene
@@ -207,18 +215,19 @@ class Blase():
         # COLLECTION
         # Before we start to draw the atoms, we first create a collection for the
         # atomic structure. All atoms (balls) are put into this collection.
-        filename = 'ase'
-        self.coll_structure_name = os.path.basename(filename)
+        self.coll_structure_name = os.path.basename(self.name)
         self.scene = bpy.context.scene
         self.coll_structure = bpy.data.collections.new(self.coll_structure_name)
         self.scene.collection.children.link(self.coll_structure)
         self.coll_cell = bpy.data.collections.new('cell')
         self.coll_atom_kinds = bpy.data.collections.new('atoms')
         self.coll_bond_kinds = bpy.data.collections.new('bonds')
+        self.coll_polyhedra_kinds = bpy.data.collections.new('polyhedras')
         self.coll_isosurface = bpy.data.collections.new('isosurfaces')
         self.coll_structure.children.link(self.coll_cell)
         self.coll_structure.children.link(self.coll_atom_kinds)
         self.coll_structure.children.link(self.coll_bond_kinds)
+        self.coll_structure.children.link(self.coll_polyhedra_kinds)
         self.coll_structure.children.link(self.coll_isosurface)
         # ------------------------------------------------------------------------
         # DRAWING THE ATOMS
@@ -264,12 +273,14 @@ class Blase():
         camera_data = bpy.data.cameras.new("Camera")
         camera_data.lens = self.camera_lens
         camera_data.dof.aperture_fstop = self.fstop
+        camera_data.type = self.camera_type
         camera = bpy.data.objects.new("Camera", camera_data)
         camera.location = Vector(self.camera_loc)
         if self.camera_type == 'ORTHO':
             camera.location = [target[0], target[1], self.camera_loc[2]]
         bpy.data.cameras['Camera'].type = self.camera_type
         if self.ortho_scale and self.camera_type == 'ORTHO':
+            print('add_camera: ', self.ortho_scale)
             bpy.data.cameras['Camera'].ortho_scale = self.ortho_scale
         bpy.context.collection.objects.link(camera)
         self.look_at(camera, target, roll = radians(0))
@@ -356,7 +367,7 @@ class Blase():
         if not bsdf_inputs:
             bsdf_inputs = self.material_styles_dict[material_style]
         for kind, datas in self.atom_kinds.items():
-            print('atoms: ', kind)
+            tstart = time.time()
             material = bpy.data.materials.new('atom_kind_{0}'.format(kind))
             material.diffuse_color = np.append(datas['color'], datas['transmit'])
             # material.blend_method = 'BLEND'
@@ -385,22 +396,34 @@ class Blase():
             else:
                 bpy.ops.mesh.primitive_uv_sphere_add(radius = datas['radius']) #, segments=32, ring_count=16)
                 ball = bpy.context.view_layer.objects.active
+                ball.name = 'atom_kind_{0}'.format(kind)
                 ball.data.materials.append(material)
+                bpy.ops.object.shade_smooth()
+                ball.hide_set(True)
                 mesh = bpy.data.meshes.new('mesh_kind_{0}'.format(kind) )
                 obj_atom = bpy.data.objects.new('atom_kind_{0}'.format(kind), mesh )
                 # Associate the vertices
                 obj_atom.data.from_pydata(datas['positions'], [], [])
-                bpy.context.view_layer.objects.active = obj_atom
                 # Make the object parent of the cube
-                bpy.ops.object.shade_smooth()
                 ball.parent = obj_atom
                 # Make the object dupliverts
                 obj_atom.instance_type = 'VERTS'
-                ball.hide_set(True)
+                # bpy.context.view_layer.objects.active = obj_atom
+                # obj_atom.select_set(True)
+                # bpy.data.objects['atom_kind_{0}'.format(kind)].select_set(True)
                 self.STRUCTURE.append(obj_atom)
                 self.coll_atom_kinds.objects.link(obj_atom)
+            print('atoms: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+        if self.make_real:
+            tstart = time.time()
+            bpy.ops.object.select_by_type(extend=False, type='MESH')
+            bpy.ops.object.duplicates_make_real()
+            for kind in self.atom_kinds:
+                bpy.data.objects.remove(bpy.data.objects['atom_kind_{0}'.format(kind)])
+            print('make_real: {0:10.2f} s'.format(time.time() - tstart))
 
-    def draw_bonds(self, bond_rcutoff= 1.0, bsdf_inputs = None, material_style = 'blase'):
+
+    def draw_bonds(self, bond_cutoff= 1.0, bsdf_inputs = None, material_style = 'blase'):
         '''
         Draw atom bonds
         '''
@@ -409,14 +432,16 @@ class Blase():
         if not bsdf_inputs:
             bsdf_inputs = self.material_styles_dict[material_style]
         if self.bond_cutoff:
-            self.bondlist = get_bondpairs(self.atoms, cutoff = self.bond_cutoff)
+            self.bond_list = get_bondpairs(self.atoms, cutoff = self.bond_cutoff)
         #
-        bond_kinds = get_bond_kinds(self.atoms, self.bondlist)
+        ts = time.time()
+        bond_kinds = get_bond_kinds(self.atoms, self.bond_list)
+        print('get_bond_kinds: {0:10.2f} s'.format(time.time() - ts))
         # import pprint
         # pprint.pprint(bond_kinds)
         source = bond_source()
         for kind, datas in bond_kinds.items():
-            print('bonds: ', kind)
+            tstart = time.time()
             material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
             material.diffuse_color = np.append(self.atom_kinds[kind]['color'], self.atom_kinds[kind]['transmit'])
             # material.blend_method = 'BLEND'
@@ -428,7 +453,7 @@ class Blase():
             datas['materials'] = material
             #
             # print(datas['normals'])
-            verts, faces = bond_mesh_from_instance(datas['centers'], datas['normals'], datas['lengths'], self.bondlinewidth, source)
+            verts, faces = cylinder_mesh_from_instance(datas['centers'], datas['normals'], datas['lengths'], self.bondlinewidth, source)
             # print(datas['vertices'][0])
             # bpy.ops.mesh.primitive_uv_sphere_add(radius = datas['radius'])
             # create new mesh structure
@@ -441,7 +466,6 @@ class Blase():
             obj_bond.data = mesh
             obj_bond.data.materials.append(material)
             bpy.ops.object.shade_smooth()
-
             # mesh = bpy.data.meshes.new('mesh_kind_{0}'.format(kind) )
             # obj_bond = bpy.data.objects.new('bond_kind_{0}'.format(kind), mesh )
             # # Associate the vertices
@@ -452,6 +476,72 @@ class Blase():
             # Make the object dupliverts
             self.STRUCTURE.append(obj_bond)
             self.coll_bond_kinds.objects.link(obj_bond)
+            print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+    def draw_polyhedras(self, polyhedra_dict= None, bsdf_inputs = None, material_style = 'plastic'):
+        '''
+        Draw polyhedras
+        '''
+       
+        ib = 0
+        if not bsdf_inputs:
+            bsdf_inputs = self.material_styles_dict[material_style]
+        #
+        tstart = time.time()
+        if polyhedra_dict:
+            self.polyhedra_dict = polyhedra_dict
+        self.polyhedra_kinds = get_polyhedra_kinds(self.atoms, cutoff = 1.0, polyhedra_dict = self.polyhedra_dict)
+        print('get_polyhedra_kinds: {0:1.2f} s'.format(time.time() - tstart))
+        # import pprint
+        # pprint.pprint(polyhedra_kinds)
+        source = bond_source(vertices=4)
+        for kind, datas in self.polyhedra_kinds.items():
+            tstart = time.time()
+            material = bpy.data.materials.new('polyhedra_kind_{0}'.format(kind))
+            material.diffuse_color = np.append(self.atom_kinds[kind]['color'], datas['transmit'])
+            # material.blend_method = 'BLEND'
+            material.use_nodes = True
+            principled_node = material.node_tree.nodes['Principled BSDF']
+            principled_node.inputs['Alpha'].default_value = self.polyhedra_kinds[kind]['transmit']
+            for key, value in bsdf_inputs.items():
+                principled_node.inputs[key].default_value = value
+            datas['materials'] = material
+            #
+            # create new mesh structure
+            mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
+            # mesh.from_pydata(self.polyhedra_kinds[kind]['vertices'], self.polyhedra_kinds[kind]['edges'], self.polyhedra_kinds[kind]['faces'])  
+            mesh.from_pydata(datas['vertices'], [], datas['faces'])  
+            mesh.update()
+            for f in mesh.polygons:
+                f.use_smooth = True
+            obj_polyhedra = bpy.data.objects.new("polyhedra_kind_{0}".format(kind), mesh)
+            obj_polyhedra.data = mesh
+            obj_polyhedra.data.materials.append(material)
+            bpy.ops.object.shade_smooth()
+            #---------------------------------------------------
+            material = bpy.data.materials.new('polyhedra_edge_kind_{0}'.format(kind))
+            material.diffuse_color = np.append(datas['edge_cylinder']['color'], datas['edge_cylinder']['transmit'])
+            # material.blend_method = 'BLEND'
+            material.use_nodes = True
+            principled_node = material.node_tree.nodes['Principled BSDF']
+            principled_node.inputs['Alpha'].default_value = datas['transmit']
+            for key, value in bsdf_inputs.items():
+                principled_node.inputs[key].default_value = value
+            datas['edge_cylinder']['materials'] = material
+            verts, faces = cylinder_mesh_from_instance(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.001, source)
+            # print(verts)
+            mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
+            mesh.from_pydata(verts, [], faces)  
+            mesh.update()
+            for f in mesh.polygons:
+                f.use_smooth = True
+            obj_edge = bpy.data.objects.new("edge_kind_{0}".format(kind), mesh)
+            obj_edge.data = mesh
+            obj_edge.data.materials.append(material)
+            bpy.ops.object.shade_smooth()
+            self.STRUCTURE.append(obj_polyhedra)
+            self.coll_polyhedra_kinds.objects.link(obj_polyhedra)
+            self.coll_polyhedra_kinds.objects.link(obj_edge)
+            print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
     def draw_isosurface(self, volume, level,
                         closed_edges = False, gradient_direction = 'descent',
@@ -463,6 +553,7 @@ class Blase():
         Parameters: 
 
         """
+        from skimage import measure
         cell = self.cell
         self.cell_vertices.shape = (2, 2, 2, 3)
         cell_origin = self.cell_vertices[0,0,0]
@@ -602,6 +693,9 @@ class Blase():
             bpy.ops.export_scene.obj(filename)
         if filename.split('.')[-1] == 'x3d':
             bpy.ops.export_scene.x3d(filename)
+        if filename.split('.')[-1] == 'xyz':
+            self.export_xyz(filename)
+
     def render_move_camera(self, filename, loc1, loc2, n):
         # render settings
         from blase.tools import getEquidistantPoints
@@ -615,7 +709,7 @@ class Blase():
         # render settings
         for i in range(0, self.nimages):
             atom_kinds = get_atom_kinds(self.images[i])
-            # bond_kinds = get_bond_kinds(self.images[i], self.bondlist, self.nbins)
+            # bond_kinds = get_bond_kinds(self.images[i], self.bond_list, self.nbins)
             for kind, datas in atom_kinds.items():
                 obj_atom = bpy.data.objects['atom_kind_{0}'.format(kind)]
                 nverts = len(obj_atom.data.vertices)
@@ -633,7 +727,15 @@ class Blase():
             #             obj_bond.data.vertices[j].keyframe_insert('co', frame=i)
         self.scene.frame_start = 1
         self.scene.frame_end = self.nimages
-
-
-
+    def export_xyz(self, filename):
+        '''
+        '''
+        atoms = Atoms()
+        for kind, datas in self.atom_kinds.items():
+            obj_atom = bpy.data.objects['atom_kind_{0}'.format(kind)]
+            nverts = len(obj_atom.data.vertices)
+            for j in range(nverts):
+                atom = Atom(self.atom_kinds[kind]['element'], obj_atom.data.vertices[j].co)
+                atoms.append(atom)
+        atoms.write(filename)
 

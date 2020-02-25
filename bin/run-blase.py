@@ -20,12 +20,15 @@ def main():
     bobj.draw_cell()
     bobj.draw_atoms()
     bobj.draw_bonds()
+    bobj.draw_polyhedras()
     for function in bobj.functions:
         name, paras = function
         getattr(bobj, name)(**paras)
     # if bobj.'run_render':
     # bobj.load_frames()
+    
     bobj.render()
+    # bobj.export('h2o.xyz')
     print('\n Finished!')
 
 #

@@ -9,8 +9,7 @@ kwargs = {'show_unit_cell': 1,
           'functions': [['draw_isosurface', {'volume': data, 'level': -0.002}],
                         ['draw_isosurface', {'volume': data, 'level': 0.002, 'color': (0.0, 0.0, 1.0)}]],
           'rotations': [[90, '-x'], [30, 'y']],
-          # 'display': True,
-          # 'display': True,	
+          'display': True,
           'outfile': 'figs/testcube'}
 
 write_blender(atoms, **kwargs)

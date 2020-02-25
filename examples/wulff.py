@@ -21,5 +21,6 @@ kwargs = {
           'camera_lens': 100,  #
           'camera_target': atoms.get_center_of_mass(), #
           'radii': 1.0, 
+          'display': True,
           'outfile': 'figs/wulff'}   
 write_blender(atoms, **kwargs)
