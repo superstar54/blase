@@ -7,11 +7,14 @@ from pprint import pprint
 from ase.data import covalent_radii
 
 atoms = bulk('Pt')
+atoms = search_pbc(atoms)
+print(atoms)
+view(atoms)
 kwargs = {'show_unit_cell': 1, 
           # 'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
           'radii': 0.6,
-          # 'display': True,
+          'display': True,
           'search_pbc': True,
           'outfile': 'figs/test-search-pbc',
           }
-write_blender(atoms, **kwargs)
+# write_blender(atoms, **kwargs)

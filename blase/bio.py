@@ -24,8 +24,10 @@ from ase.build import molecule, bulk
 from ase.data import covalent_radii, atomic_numbers
 from ase.data.colors import jmol_colors
 from math import pi, sqrt, radians, acos, atan2
-from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_polyhedra_kinds, search_pbc
+from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_polyhedra_kinds
+from blase import tools
 from blase.btools import bond_source, cylinder_mesh_from_instance, clean_default
+from blase.connectivity import ConnectivityList
 import time
 
 
@@ -76,7 +78,8 @@ class Blase():
         'bond_cutoff': None,  # 
         'bond_list': [],  # [[atom1, atom2], ... ] pairs of bonding atoms
         'polyhedra_dict': {},
-        'search_pbc': None,
+        'search_pbc': {'bonds_dict': {}, 'molecule_list': {}},
+        'search_molecule': {'search_list': None},
         'resolution_x': 1000,
         'cube': None,
         'highlight': None, # highlight atoms
@@ -106,7 +109,8 @@ class Blase():
         self.images = images
         self.atoms = images[0]
         if self.search_pbc:
-            self.atoms = search_pbc(self.atoms, cutoff=1.0, search_dict = self.search_pbc['search_dict'], remove_dict = None)
+            cl = ConnectivityList(self.atoms, cutoffs = 1.2, **self.search_pbc)
+            self.atoms = cl.build()
         self.name = name
         if not self.name:
             self.name = self.atoms.symbols.formula.format('abc')

@@ -34,79 +34,80 @@ class ConnectivityList:
       output = cl.get_connectivity(pairs)
     """
 
-    def __init__(self, atoms, cutoffs, pbc = True, bonds_dict = {}, molecule_list = []):
+    def __init__(self, atoms, cutoffs, search_dict = None, remove_dict = None):
         self.atoms = atoms
         self.natoms = len(atoms)
         self.cell = atoms.cell
         self.cutoffs = cutoffs
-        self.pbc = pbc
-        self.molecule_list = []
-        self.molecule_dict = {}
+        self.remove_dict = remove_dict
+        self.search_dict = search_dict
+        self.add_list = {}
+        # print(images)
         self.flags = {}
         self.origin = {}
-        self.add_total = 0
         for i in range(self.natoms):
             self.flags[i] = ['000']
             self.origin[i] = [i, [0, 0, 0]]
+        newatoms = Atoms()
+        for x in [0, -1, 1]:
+            for y in [0, -1, 1]:
+                for z in [0, -1, 1]:
+                    temp = self.atoms.copy()
+                    t = x*self.cell[0] + y*self.cell[1] + z*self.cell[2]
+                    # print(x, y, z, t)
+                    temp.translate(t)
+                    newatoms = newatoms + temp
         #
-        self.bonds_dict = {}
-        formula = self.atoms.symbols.formula
-        eles = formula.count()
-        keys = list(eles.keys())
-        for ele in eles:
-            ligands = keys.copy()
-            ligands.remove(ele)
-            self.bonds_dict[ele] = ligands
-            self.molecule_dict[ele] = []
-        for key, value in bonds_dict.items():
-            # print(key, value)
-            if value[1] == 0:
-                self.bonds_dict[key] = value
-            if value[1] == -1:
-                for ele in value[0]:
-                    self.bonds_dict[key].remove(ele)
-        for eles in molecule_list:
-            # print(eles)
-            # print(self.molecule_dict[eles[0]])
-            self.molecule_dict[eles[0]] = self.molecule_dict[eles[0]] + [eles[1]]
-            self.molecule_dict[eles[1]] = self.molecule_dict[eles[1]] + [eles[0]]
-            # self.molecule_dict[value[0]] += self.molecule_dict + [ele] + value[1:]
-        print(self.bonds_dict)
-        print(self.molecule_dict)
-        #
-    def build(self, atoms = None, pbc = None, bonds_dict = None, molecule_dict = None):
+    def build(self, atoms = None, search_list = None):
         """
         """
-        self.add = 0
-        tstart = time.time()
-        if self.pbc:
-            self.search_pbc()
-        # view(self.atoms)
-        print('Start searching: ')
-        self.search_bond(bonds_dict = self.bonds_dict)
-        self.search_molecule(molecule_dict = self.molecule_dict)
-        self.search_bond(bonds_dict = self.bonds_dict)
-        print('Search ConnectivityList time: {0:1.2f} s, add {1} atoms'.format(time.time() - tstart, self.add_total))
-        self.atoms.pbc = [False, False, False]
-        print(self.atoms)
+        self.search_pbc()
+        # view(atoms)
+        # print(atoms)
+        self.search_bond()
+        # print(atoms)
         return self.atoms
-    def search_molecule(self, molecule_dict):
-        # print('Search molecule: ')
+
+
+    
+    def search_molecule(self, atoms, cutoff=1.2, search_list = None):
         # atoms = atoms*[3, 3, 3]
-        flag = True
-        i = 0
-        while flag:
-            self.search_bond(bonds_dict = molecule_dict)
-            i += 1
-            if self.add == 0: flag = False
+        tstart = time.time()
+        natoms = len(atoms)
+        # print(natoms)
+        cell = atoms.cell
+        # view(atoms)
+        if not search_list:
+            formula = atoms.symbols.formula
+            eles = formula.count()
+            search_list = list(eles.keys())
+        tstart = time.time()
+        cl = ConnectivityList(cutoffs = 1.2, search_list = search_list)
+        cl.build(atoms, search_list)
+        print(cl.groups)
+        print('time: {0:1.2f} s'.format(time.time() - tstart))
+        mask = list(range(natoms))
+        tstart = time.time()
+        for i in range(natoms):
+            # print(i)
+            if atoms[i].symbol in search_list:
+                for group in cl.groups:
+                    if i in group:
+                        mask = mask + group
+        print('time: {0:1.2f} s'.format(time.time() - tstart))
+        mask = list(set(mask) - set(range(natoms)))
+        # print(mask)
         # view(atoms[mask])
+        atoms = atoms + atoms[mask]
+        return atoms
+    
     def search_pbc(self, atoms = None, cutoff=1e-6):
         """
         Two modes:
         (1) Search atoms bonded to kind
-        bonds_dict: {'kind': ligands}
+        search_dict: {'kind': ligands}
         """
-        # print('Search pbc: ')
+        from ase import Atom
         tstart = time.time()
         # loop center atoms
         if not atoms:
@@ -127,50 +128,54 @@ class ConnectivityList:
                     if self.origin[ind][1] not in self.flags[self.origin[ind][0]]:
                         key = '{0}{1}{2}'.format(self.origin[ind][1][0], self.origin[ind][1][1], self.origin[ind][1][2])
                         self.flags[self.origin[ind][0]].append(key)
-        # print('search_pbc time: {0:1.2f} s'.format(time.time() - tstart))
+        print('search_pbc time: {0:1.2f} s'.format(time.time() - tstart))
         # print(self.origin)
         self.atoms = atoms
         return atoms
-    def search_bond(self, atoms = None, cutoff=1.0, bonds_dict = None):
+    def search_bond(self, atoms = None, cutoff=1.0):
         # search bonds
         # view(atoms)
         # search bonds out of unit cell
-        # print('Search bonds: ')
-        # print(bonds_dict)
         tstart = time.time()
         if not atoms:
             atoms = self.atoms
+        if not self.search_dict:
+            self.search_dict = {}
+            formula = atoms.symbols.formula
+            eles = formula.count()
+            keys = list(eles.keys())
+            for ele in eles:
+                self.search_dict[ele] = keys.copy()
+                self.search_dict[ele].remove(ele)
+        if self.remove_dict:
+            for kind, eles in self.remove_dict.items():
+                for ele in eles:
+                    self.search_dict[kind].remove(ele)
         #
-        self.add = 0
         newatoms = atoms.copy()
         cutoffs = cutoff * covalent_radii[atoms.numbers]
         nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True)
         nl.update(atoms)
-        for kind, ligand in bonds_dict.items():
+        for kind, ligand in self.search_dict.items():
             inds = [atom.index for atom in atoms if atom.symbol == kind]
             for ind in inds:
                 indices, offsets = nl.get_neighbors(ind)
-                # print(kind, ind, indices)
                 for a2, offset in zip(indices, offsets):
                     flag = abs(offset[0]) + abs(offset[1]) + abs(offset[2])
                     if atoms[a2].symbol in ligand and flag > 0:
                         offset0 = [self.origin[a2][1][i] + offset[i] for i in range(3)]
                         key = '{0}{1}{2}'.format(offset0[0], offset0[1], offset0[2])
-                        # print(a2, key)
                         if key not in self.flags[self.origin[a2][0]]:
                             self.flags[self.origin[a2][0]].append(key)
                             temp_pos = atoms[a2].position + np.dot(offset, atoms.cell)
                             newatoms = newatoms + Atom(atoms[a2].symbol, temp_pos)
                             ind = len(newatoms) - 1
                             self.origin[ind] = [self.origin[a2][0], [self.origin[a2][1][i] + offset[i] for i in range(3)]]
-                            self.add += 1
-            # print(kind, ligand, self.add)
         #
-        # print('search_bond time: {0:1.2f} s'.format(time.time() - tstart))
+        print('search_bond time: {0:1.2f} s'.format(time.time() - tstart))
         # newatoms.pbc = [False, False, False]
-        # print('add atoms: ', self.add)
         self.atoms = newatoms
-        self.add_total += self.add
+
         return newatoms
 
 
@@ -180,14 +185,10 @@ if __name__ == "__main__":
     from ase.visualize import view
     from ase.data import covalent_radii
     # atoms = read('../examples/tio2.cif')
-    # atoms = read('../examples/perovskite.cif')
-    atoms = read('../examples/anthraquinone.cif')
-    # print(atoms)
-    # cl = ConnectivityList(atoms, cutoffs = 1.2, bonds_dict = {'O': [['Ti'], -1]})
-    # cl = ConnectivityList(atoms, cutoffs = 1.2,  bonds_dict = {'I': [['Pb'], -1]}, molecule_list = [['C', 'N']])
-    cl = ConnectivityList(atoms, cutoffs = 1.2, molecule_list = [['C', 'C'], ['C', 'O']])
-    # cl = ConnectivityList(atoms, cutoffs = 1.2)
-    atoms = cl.build()
-    # print(atoms)
+    atoms = read('../examples/perovskite.cif')
     # view(atoms)
+    cl = ConnectivityList(atoms, cutoffs = 1.2, search_dict = {'Ti':['O']})
+    atoms = cl.build()
+    view(atoms)
+    # inds = cl.get_connectivity([1, 10])
 

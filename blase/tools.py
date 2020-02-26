@@ -10,119 +10,6 @@ import pprint
 import time
 
 
-def search_molecule(atoms, cutoff=1.2, search_list = None):
-    from blase.connectivity import ConnectivityList
-    # atoms = atoms*[3, 3, 3]
-    natoms = len(atoms)
-    # print(natoms)
-    cell = atoms.cell
-    newatoms = Atoms()
-    for x in [0, -1, 1]:
-        for y in [0, -1 , 1]:
-        # for y in [0]:
-            for z in [0, -1, 1]:
-            # for z in [0]:
-                temp = atoms.copy()
-                t = x*cell[0] + y*cell[1] + z*cell[2]
-                print(x, y, z, t)
-                temp.translate(t)
-                newatoms = newatoms + temp
-    # view(newatoms)
-    tstart = time.time()
-    cl = ConnectivityList(cutoffs = 1.2, search_list = search_list)
-    cl.build(newatoms)
-    print(cl.groups)
-    print('time: {0:1.2f} s'.format(time.time() - tstart))
-    mask = list(range(natoms))
-    tstart = time.time()
-    if not search_list:
-        formula = atoms.symbols.formula
-        eles = formula.count()
-        search_list = list(eles.keys())
-    for i in range(natoms):
-        # print(i)
-        if atoms[i].symbol in search_list:
-            for group in cl.groups:
-                if i in group:
-                    mask = mask + group
-    print('time: {0:1.2f} s'.format(time.time() - tstart))
-    mask = list(set(mask) - set(range(natoms)))
-    # print(mask)
-    # view(newatoms[mask])
-    atoms = atoms + newatoms[mask]
-
-    return atoms
-
-def search_pbc(atoms, cutoff=1.0, search_dict = None, remove_dict = None):
-    """
-    Two modes:
-    (1) Search atoms bonded to kind
-    search_dict: {'kind': ligands}
-    """
-    from ase import Atom
-    from ase.data import covalent_radii
-    from ase.neighborlist import NeighborList
-    from ase.visualize import view
-    
-    # loop center atoms
-    newatoms = atoms.copy()
-    newatoms.pbc = [False, False, False]
-    # atoms on the boundary, duplicate with pbc
-    for i in range(3):
-        natoms = len(newatoms)
-        positions = newatoms.get_scaled_positions()
-        for j in range(natoms):
-            flag = 0.5 - positions[j, i]
-            flag1 = abs(positions[j, i] % 1)
-            if abs(flag1) <  1e-6:
-                flag = flag/abs(flag)
-                # print(j, i, flag1, flag)
-                temp_pos = positions[j].dot(newatoms.cell) + flag*newatoms.cell[i]
-                # print(positions[j])
-                # print(temp_pos)
-                newatoms = newatoms + Atom(newatoms[j].symbol, temp_pos)
-        # view(newatoms)
-    # search bonds
-    # view(newatoms)
-    # search bonds out of unit cell
-    if not search_dict:
-        search_dict = {}
-        formula = newatoms.symbols.formula
-        eles = formula.count()
-        keys = list(eles.keys())
-        for ele in eles:
-            search_dict[ele] = keys.copy()
-            search_dict[ele].remove(ele)
-    if remove_dict:
-        for kind, eles in remove_dict.items():
-            for ele in eles:
-                search_dict[kind].remove(ele)
-    print('search list: ', search_dict)
-    #
-    atoms = newatoms.copy()
-    atoms.pbc = [True, True, True]
-    # view(atoms)
-    cutoffs = cutoff * covalent_radii[atoms.numbers]
-    nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True)
-    nl.update(atoms)
-    polyhedra_kinds = {}
-    for kind, ligand in search_dict.items():
-        # print(kind, ligand)
-        inds = [atom.index for atom in atoms if atom.symbol == kind]
-        for ind in inds:
-            vertice = []
-            # print(ind, len(newatoms))
-            indices, offsets = nl.get_neighbors(ind)
-            for a2, offset in zip(indices, offsets):
-                flag = abs(offset[0]) + abs(offset[1]) + abs(offset[2])
-                if newatoms[a2].symbol in ligand and flag > 0:
-                    # print(a2, offset)
-                    temp_pos = newatoms[a2].position + np.dot(offset, newatoms.cell)
-                    newatoms = newatoms + Atom(newatoms[a2].symbol, temp_pos)
-    newatoms.pbc = [False, False, False]
-    return newatoms
-
-
 def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
     """
     Get all pairs of bonding atoms
@@ -211,7 +98,15 @@ def get_bond_kinds(atoms, bondlist):
     for bond in bondlist:
         inds, offset = bond
         R = np.dot(offset, atoms.cell)
-        center0 = atoms.positions[inds[0]] + atoms.positions[inds[1]]
+        pos0 = atoms.positions[inds[0]]
+        pos1 = atoms.positions[inds[1]] + R
+        center0 = (pos0 + pos1)/2.0
+        if pos0[2] > pos1[2]:
+            vec = pos0 - pos1
+        else:
+            vec = pos1 - pos0
+        length = np.linalg.norm(vec)
+        nvec = vec/length
         # kinds = [atoms[ind].symbol for ind in [a, b]]
         i = 0
         for ind in inds:
@@ -227,18 +122,10 @@ def get_bond_kinds(atoms, bondlist):
                 bond_kinds[kind]['number'] = number
                 bond_kinds[kind]['color'] = color
                 bond_kinds[kind]['transmit'] = 1.0
-            #
-            center = (0.5 * (center0 + (-1)**i*R) + atoms[ind].position)/2.0
-            if atoms.positions[ind][2] > center[2]:
-                vec = atoms.positions[ind] - center
-            else:
-                vec = center - atoms.positions[ind]
-            length = np.linalg.norm(vec)
-            nvec = vec/length
-            bond_kinds[kind]['lengths'].append(length)
+            center = (center0 + atoms[ind].position)/2.0
             bond_kinds[kind]['centers'].append(center)
+            bond_kinds[kind]['lengths'].append(length/4.0)
             bond_kinds[kind]['normals'].append(nvec)
-            i += 1
     # pprint.pprint(bond_kinds)
     return bond_kinds
 

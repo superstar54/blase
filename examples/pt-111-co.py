@@ -14,8 +14,8 @@ add_adsorbate(atoms, adsorbate, 1.8, 'ontop')
 # view(atoms)
 
 kwargs = {'show_unit_cell': 0, 
-          'radii': 1.0,
-          # 'bond_cutoff': 1.0,
+          'radii': 0.6,
+          'bond_cutoff': 1.0,
           'display': True,
           'make_real': True,
           'outfile': 'figs/pt-111-co',
