@@ -183,6 +183,26 @@ write_blender(atoms, **kwargs)
 ```
 <img src="examples/figs/test-search-molecule.png" width="500"/>
 
+#### Cut surface
+A example to cut (110) surface, with distance from origin to be d.
+```python
+from ase.build import bulk
+from blase.tools import write_blender
+
+atoms = bulk('Pt', cubic = True)
+atoms = atoms*[6, 6, 6]
+
+kwargs = {'show_unit_cell': 1, 
+          'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
+          'radii': 1.0,
+          # 'display': True,
+          'boundary_list': [{'d': 10.0, 'index': [1, 1, 0]}],
+          'outfile': 'figs/test-boundary',
+          }
+write_blender(atoms, **kwargs)
+```
+<img src="examples/figs/test-boundary.png" width="500"/>
+
 
 
 
@@ -264,6 +284,6 @@ bobj.draw_atoms(bsdf_inputs = bsdf_inputs)
 
 ### To do
 
-
+* cut boundary for isosurface
 * add panel to manipulate the atoms interactively
 * add animation

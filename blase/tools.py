@@ -231,7 +231,7 @@ def euler_from_vector(normal, s = 'zxy'):
     vec = -1*ang*vec
     # print(vec)
     r = R.from_rotvec(vec)
-    euler = r.as_euler(s)
+    euler = r.as_euler()
     return euler
 
 

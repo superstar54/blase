@@ -28,6 +28,7 @@ from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_polyh
 from blase import tools
 from blase.btools import bond_source, cylinder_mesh_from_instance, clean_default
 from blase.connectivity import ConnectivityList
+from blase.boundary import Boundary
 import time
 
 
@@ -80,6 +81,7 @@ class Blase():
         'polyhedra_dict': {},
         'search_pbc': {'bonds_dict': {}, 'molecule_list': {}},
         'search_molecule': {'search_list': None},
+        'boundary_list': [],
         'resolution_x': 1000,
         'cube': None,
         'highlight': None, # highlight atoms
@@ -111,6 +113,9 @@ class Blase():
         if self.search_pbc:
             cl = ConnectivityList(self.atoms, cutoffs = 1.2, **self.search_pbc)
             self.atoms = cl.build()
+        if self.boundary_list:
+            bd = Boundary(self.atoms, self.boundary_list)
+            self.atoms = bd.build()
         self.name = name
         if not self.name:
             self.name = self.atoms.symbols.formula.format('abc')
