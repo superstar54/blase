@@ -6,7 +6,7 @@ from pprint import pprint
 from ase.data import covalent_radii
 
 
-atoms = read('perovskite.xyz')
+atoms = read('datas/perovskite.xyz')
 atoms.pbc = [False, False, False]
 # atoms = atoms*[2, 2, 2]
 kind_props = {
@@ -22,7 +22,7 @@ kwargs = {'show_unit_cell': 1,
           'bond_cutoff': 1.0,
           # 'bond_list': bond_list,
           # 'kind_props': kind_props,
-          # 'display': True,
+          'display': True,
           # 'world': True,
           'polyhedra_list': {'Pb': ['I']},
           'outfile': 'figs/test-polyhedra',

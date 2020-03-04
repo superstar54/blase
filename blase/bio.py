@@ -4,9 +4,6 @@
 Part of code based on ase.io.pov, 
 https://wiki.fysik.dtu.dk/ase/dev/_modules/ase/io/pov.html
 
-Part of the utils from
- https://github.com/yuki-koyama/blender-cli-rendering
-
 """
 
 # ###################################################################
@@ -30,6 +27,7 @@ from blase.btools import bond_source, cylinder_mesh_from_instance, clean_default
 from blase.connectivity import ConnectivityList
 from blase.boundary import Boundary
 import time
+
 
 
 class Blase():
@@ -67,8 +65,8 @@ class Blase():
         'textures': None,  # length of atoms list of texture names
         'engine': 'BLENDER_EEVEE', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
         'transmits': None,  # transmittance of the atoms
-        'show_unit_cell': 0,
-        'celllinewidth': 0.05,  # radius of the cylinders representing the cell
+        'show_unit_cell': False,
+        'celllinewidth': 0.025,  # radius of the cylinders representing the cell
         'bbox': None,
         'bondlinewidth': 0.10,  # radius of the cylinders representing bonds
         'balltypes': None,
@@ -79,8 +77,8 @@ class Blase():
         'bond_cutoff': None,  # 
         'bond_list': [],  # [[atom1, atom2], ... ] pairs of bonding atoms
         'polyhedra_dict': {},
-        'search_pbc': {'bonds_dict': {}, 'molecule_list': {}},
-        'search_molecule': {'search_list': None},
+        'search_pbc': False, #{'bonds_dict': {}, 'molecule_list': {}},
+        'search_molecule': False, #{'search_list': None},
         'boundary_list': [],
         'resolution_x': 1000,
         'cube': None,
@@ -94,6 +92,8 @@ class Blase():
         'num_samples': 128,
         'outfile': 'bout',
         }  
+    #
+    
 
     def __init__(self, images, name = None, rotations=None, scale=1,
                               **parameters):
@@ -156,7 +156,7 @@ class Blase():
         # print(self.atom_kinds)
         # disp = atoms.get_celldisp().flatten()
         self.cell_vertices = None
-        if self.show_unit_cell > 0:
+        if self.show_unit_cell:
             cell_vertices = np.empty((2, 2, 2, 3))
             for c1 in range(2):
                 for c2 in range(2):
@@ -173,7 +173,7 @@ class Blase():
             for i in range(3):
                 P1 = (self.positions[:, i] - R).min(0)
                 P2 = (self.positions[:, i] + R).max(0)
-                if self.show_unit_cell > 0:
+                if self.show_unit_cell:
                     C1 = (self.cell_vertices[:, i] - self.celllinewidth).min(0)
                     C2 = (self.cell_vertices[:, i] + self.celllinewidth).max(0)
                     P1 = min(P1, C1)
@@ -314,54 +314,69 @@ class Blase():
         lamp.data.use_nodes = True
         lamp.data.node_tree.nodes['Emission'].inputs['Strength'].default_value = 0.1
         self.STRUCTURE.append(lamp)
-    #
-    def draw_cylinder(self, p1, p2, material, radius = 0.1):
-        """
-        Draw cylinder connect two points.
-        """
-        diff = tuple([c2-c1 for c2, c1 in zip(p1, p2)])
-        center = tuple([(c2+c1)/2 for c2, c1 in zip(p1, p2)])
-        magnitude = pow(sum([(c2-c1)**2
-                        for c1, c2 in zip(p1, p2)]), 0.5)
-        # Euler rotation calculation, (Vector from mathutils, acos from math)
-        bpy.ops.mesh.primitive_cylinder_add(radius=radius, depth=magnitude, location=center)
-        phi = atan2(diff[1], diff[0])
-        theta = acos(diff[2]/magnitude)
-        bpy.context.object.rotation_euler[1] = theta
-        bpy.context.object.rotation_euler[2] = phi
-        cylinder = bpy.context.view_layer.objects.active
-        cylinder.active_material = material
-        return cylinder
+
     #========================================================
     def draw_cell(self, ):
         """
         Draw unit cell
         """
         if self.cell_vertices is not None:
-            self.cell_vertices.shape = (2, 2, 2, 3)
             # build materials
             material = bpy.data.materials.new('cell')
             material.name = 'cell'
             material.diffuse_color = (0.8, 0.25, 0.25, 1.0)
+            # draw points
+            bpy.ops.mesh.primitive_uv_sphere_add(radius = self.celllinewidth) #, segments=32, ring_count=16)
+            sphere = bpy.context.view_layer.objects.active
+            sphere.name = 'sphere_cell'
+            sphere.data.materials.append(material)
+            bpy.ops.object.shade_smooth()
+            sphere.hide_set(True)
+            mesh = bpy.data.meshes.new('mesh_cell' )
+            obj_cell = bpy.data.objects.new('point_cell', mesh )
+            # Associate the vertices
+            obj_cell.data.from_pydata(self.cell_vertices, [], [])
+            # Make the object parent of the cube
+            sphere.parent = obj_cell
+            # Make the object dupliverts
+            obj_cell.instance_type = 'VERTS'
+            # self.STRUCTURE.append(obj_cell)
+            self.coll_cell.objects.link(obj_cell)
             #
-            ic = 0
-            for c in range(3):
-                for j in ([0, 0], [1, 0], [1, 1], [0, 1]):
-                    # print('cell: ', ic)
-                    parts = []
-                    for i in range(2):
-                        j.insert(c, i)
-                        parts.append(self.cell_vertices[tuple(j)])
-                        del j[c]
+            # edges
+            edges = [[0, 1], [0, 2], [0, 4], 
+                     [1, 3], [1, 5], [2, 3], 
+                     [2, 6], [3, 7], [4, 5], 
+                     [4, 6], [5, 7], [6, 7],
+            ]
+            self.cell_edges = {'lengths': [], 
+                          'centers': [],
+                          'normals': []}
+            for e in edges:
+                center = (self.cell_vertices[e[0]] + self.cell_vertices[e[1]])/2.0
+                vec = self.cell_vertices[e[0]] - self.cell_vertices[e[1]]
+                length = np.linalg.norm(vec)
+                nvec = vec/length
+                # print(center, nvec, length)
+                self.cell_edges['lengths'].append(length/2.0)
+                self.cell_edges['centers'].append(center)
+                self.cell_edges['normals'].append(nvec)
+            #
+            source = bond_source(vertices=4)
+            verts, faces = cylinder_mesh_from_instance(self.cell_edges['centers'], self.cell_edges['normals'], self.cell_edges['lengths'], self.celllinewidth, source)
+            # print(verts)
+            mesh = bpy.data.meshes.new("mesh_cell")
+            mesh.from_pydata(verts, [], faces)  
+            mesh.update()
+            for f in mesh.polygons:
+                f.use_smooth = True
+            obj_edge = bpy.data.objects.new("edge_cell", mesh)
+            obj_edge.data = mesh
+            obj_edge.data.materials.append(material)
+            bpy.ops.object.shade_smooth()
+            self.coll_cell.objects.link(obj_edge)
 
-                    distance = np.linalg.norm(parts[1] - parts[0])
-                    if distance < 1e-12:
-                        continue
-                    #
-                    cylinder = self.draw_cylinder(parts[0], parts[1], material, radius = self.celllinewidth)
-                    self.STRUCTURE.append(cylinder)
-                    self.coll_cell.objects.link(cylinder)
-                    ic += 1
+            
     #
     def draw_atoms(self, bsdf_inputs = None, material_style = 'blase'):
         '''
@@ -404,17 +419,17 @@ class Blase():
                 self.coll_atom_kinds.objects.link(obj_atom)
             else:
                 bpy.ops.mesh.primitive_uv_sphere_add(radius = datas['radius']) #, segments=32, ring_count=16)
-                ball = bpy.context.view_layer.objects.active
-                ball.name = 'atom_kind_{0}'.format(kind)
-                ball.data.materials.append(material)
+                sphere = bpy.context.view_layer.objects.active
+                sphere.name = 'sphere_atom_kind_{0}'.format(kind)
+                sphere.data.materials.append(material)
                 bpy.ops.object.shade_smooth()
-                ball.hide_set(True)
+                sphere.hide_set(True)
                 mesh = bpy.data.meshes.new('mesh_kind_{0}'.format(kind) )
                 obj_atom = bpy.data.objects.new('atom_kind_{0}'.format(kind), mesh )
                 # Associate the vertices
                 obj_atom.data.from_pydata(datas['positions'], [], [])
                 # Make the object parent of the cube
-                ball.parent = obj_atom
+                sphere.parent = obj_atom
                 # Make the object dupliverts
                 obj_atom.instance_type = 'VERTS'
                 # bpy.context.view_layer.objects.active = obj_atom
@@ -443,6 +458,7 @@ class Blase():
         if self.bond_cutoff:
             self.bond_list = get_bondpairs(self.atoms, cutoff = self.bond_cutoff)
         #
+        print(self.bond_list)
         ts = time.time()
         bond_kinds = get_bond_kinds(self.atoms, self.bond_list)
         print('get_bond_kinds: {0:10.2f} s'.format(time.time() - ts))
@@ -748,3 +764,9 @@ class Blase():
                 atoms.append(atom)
         atoms.write(filename)
 
+class ObjAse(bpy.types.PropertyGroup):
+    element: bpy.props.StringProperty()
+    index: bpy.props.IntProperty()
+    x: bpy.props.FloatProperty()
+    y: bpy.props.FloatProperty()
+    z: bpy.props.FloatProperty()

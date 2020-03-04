@@ -18,7 +18,7 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
     from ase.data import covalent_radii
     from ase.neighborlist import NeighborList
     cutoffs = cutoff * covalent_radii[atoms.numbers]
-    nl = NeighborList(cutoffs=cutoffs, self_interaction=False)
+    nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True)
     nl.update(atoms)
     bondpairs = []
     natoms = len(atoms)
@@ -94,22 +94,26 @@ def get_bond_kinds(atoms, bondlist):
     The radius of bonds is determined by nbins.
     mesh.from_pydata(vertices, [], faces)
     '''
+    # view(atoms)
     bond_kinds = {}
     for bond in bondlist:
         inds, offset = bond
         R = np.dot(offset, atoms.cell)
-        pos0 = atoms.positions[inds[0]]
-        pos1 = atoms.positions[inds[1]] + R
-        center0 = (pos0 + pos1)/2.0
-        if pos0[2] > pos1[2]:
-            vec = pos0 - pos1
+        # print(inds, offset)
+        pos = [atoms.positions[inds[0]],
+               atoms.positions[inds[1]] + R]
+        # print(pos)
+        center0 = (pos[0] + pos[1])/2.0
+        if pos[0][2] > pos[1][2]:
+            vec = pos[0] - pos[1]
         else:
-            vec = pos1 - pos0
+            vec = pos[1] - pos[0]
+        # print(vec)
         length = np.linalg.norm(vec)
         nvec = vec/length
         # kinds = [atoms[ind].symbol for ind in [a, b]]
-        i = 0
-        for ind in inds:
+        for i in range(1):
+            ind  = inds[i]
             kind = atoms[ind].symbol
             if kind not in bond_kinds.keys():
                 lengths = []
@@ -122,7 +126,7 @@ def get_bond_kinds(atoms, bondlist):
                 bond_kinds[kind]['number'] = number
                 bond_kinds[kind]['color'] = color
                 bond_kinds[kind]['transmit'] = 1.0
-            center = (center0 + atoms[ind].position)/2.0
+            center = (center0 + pos[i])/2.0
             bond_kinds[kind]['centers'].append(center)
             bond_kinds[kind]['lengths'].append(length/4.0)
             bond_kinds[kind]['normals'].append(nvec)
@@ -196,6 +200,7 @@ def get_polyhedra_kinds(atoms, cutoff=1.2, polyhedra_dict = {}):
                     vec = polyhedra_kinds[kind]['vertices'][e[0]] - polyhedra_kinds[kind]['vertices'][e[1]]
                     length = np.linalg.norm(vec)
                     nvec = vec/length
+                    # print(center, nvec, length)
                     polyhedra_kinds[kind]['edge_cylinder']['lengths'].append(length/2.0)
                     polyhedra_kinds[kind]['edge_cylinder']['centers'].append(center)
                     polyhedra_kinds[kind]['edge_cylinder']['normals'].append(nvec)

@@ -6,7 +6,7 @@ from pprint import pprint
 from ase.data import covalent_radii
 
 
-atoms = read('perovskite.cif')
+atoms = read('datas/perovskite.cif')
 atoms = atoms*[2, 2, 2]
 # view(atoms)
 
