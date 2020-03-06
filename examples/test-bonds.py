@@ -18,8 +18,7 @@ kwargs = {'name': 'tio2',
           'bond_list': bond_list,
           'display': True,
           # 'search_pbc': {'bonds_dict': {'O': [['Ti'], -1]}},
-          'search_pbc': False,
-          # 'polyhedra_dict': {'Ti': ['O']},
+          'polyhedra_dict': {'Ti': ['O']},
           'outfile': 'figs/test-search-bonds',
           }
 write_blender(atoms, **kwargs)

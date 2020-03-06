@@ -15,9 +15,9 @@ kwargs = {'show_unit_cell': 1,
 from blase.bio import Blase
 
 bobj = Blase(atoms, **kwargs)
-# bobj.draw_cell()
-bobj.draw_atoms()
-bobj.draw_bonds()
+# draw_cell(bobj)
+draw_atoms(bobj)
+draw_bonds(bobj)
 # bobj.render()
 # bobj.export('h2o.xyz')
 print('\n Finished!')

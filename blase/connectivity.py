@@ -179,15 +179,15 @@ if __name__ == "__main__":
     from ase.build import molecule, bulk
     from ase.visualize import view
     from ase.data import covalent_radii
-    # atoms = read('../examples/tio2.cif')
+    atoms = read('../examples/datas/tio2.cif')
     # atoms = read('../examples/perovskite.cif')
-    atoms = read('../examples/anthraquinone.cif')
+    # atoms = read('../examples/datas/anthraquinone.cif')
     # print(atoms)
-    # cl = ConnectivityList(atoms, cutoffs = 1.2, bonds_dict = {'O': [['Ti'], -1]})
+    cl = ConnectivityList(atoms, cutoffs = 1.2, bonds_dict = {'O': [['Ti'], -1]})
     # cl = ConnectivityList(atoms, cutoffs = 1.2,  bonds_dict = {'I': [['Pb'], -1]}, molecule_list = [['C', 'N']])
-    cl = ConnectivityList(atoms, cutoffs = 1.2, molecule_list = [['C', 'C'], ['C', 'O']])
+    # cl = ConnectivityList(atoms, cutoffs = 1.2, molecule_list = [['C', 'C'], ['C', 'O']])
     # cl = ConnectivityList(atoms, cutoffs = 1.2)
     atoms = cl.build()
     # print(atoms)
-    # view(atoms)
+    view(atoms)
 

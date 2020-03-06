@@ -8,7 +8,7 @@ atoms.rotate(90, 'y')
 kwargs = {'show_unit_cell': 0, 
           'radii': 0.6, 
           'bond_cutoff': 1.0,
-          'display': True,
+          # 'display': True,
           'outfile': 'figs/h2o',
           }
 write_blender(atoms, **kwargs)

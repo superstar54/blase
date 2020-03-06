@@ -7,7 +7,7 @@ from ase.data import covalent_radii
 
 
 atoms = read('datas/perovskite.xyz')
-atoms.pbc = [False, False, False]
+# atoms.pbc = [False, False, False]
 # atoms = atoms*[2, 2, 2]
 kind_props = {
 'Ti': {'radius': 0.6, 'color': [0/255.0, 191/255.0, 56/255.0]},
@@ -24,7 +24,7 @@ kwargs = {'show_unit_cell': 1,
           # 'kind_props': kind_props,
           'display': True,
           # 'world': True,
-          'polyhedra_list': {'Pb': ['I']},
+          'polyhedra_dict': {'Pb': ['I']},
           'outfile': 'figs/test-polyhedra',
           }
 write_blender(atoms, **kwargs)

@@ -23,7 +23,7 @@ from ase.data.colors import jmol_colors
 from math import pi, sqrt, radians, acos, atan2
 from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_polyhedra_kinds
 from blase import tools
-from blase.btools import bond_source, cylinder_mesh_from_instance, clean_default
+from blase.btools import draw_cell, draw_atoms, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 from blase.connectivity import ConnectivityList
 from blase.boundary import Boundary
 import time
@@ -75,7 +75,7 @@ class Blase():
         'make_real': False,
         'kind_props': None,
         'bond_cutoff': None,  # 
-        'bond_list': [],  # [[atom1, atom2], ... ] pairs of bonding atoms
+        'bond_list': {},  # [[atom1, atom2], ... ] pairs of bonding atoms
         'polyhedra_dict': {},
         'search_pbc': False, #{'bonds_dict': {}, 'molecule_list': {}},
         'search_molecule': False, #{'search_list': None},
@@ -91,15 +91,17 @@ class Blase():
         'gpu': True,
         'num_samples': 128,
         'outfile': 'bout',
+        'build_collection': True,
         }  
     #
     
 
-    def __init__(self, images, name = None, rotations=None, scale=1,
+    def __init__(self, images, name = None, rotations=None, scale=1, debug = False,
                               **parameters):
         for k, v in self.default_settings.items():
             setattr(self, k, parameters.pop(k, v))
         #
+        self.debug = debug
         if not isinstance(images, list):
             images = [images]
         self.nimages = len(images)
@@ -111,8 +113,11 @@ class Blase():
         self.images = images
         self.atoms = images[0]
         if self.search_pbc:
-            cl = ConnectivityList(self.atoms, cutoffs = 1.2, **self.search_pbc)
+            print(self.search_pbc)
+            cl = ConnectivityList(self.atoms, cutoffs = self.bond_cutoff, **self.search_pbc)
             self.atoms = cl.build()
+            # view(self.atoms)
+            print(self.atoms)
         if self.boundary_list:
             bd = Boundary(self.atoms, self.boundary_list)
             self.atoms = bd.build()
@@ -126,8 +131,12 @@ class Blase():
         self.cell = self.atoms.get_cell()*scale
         self.celllinewidth = self.celllinewidth*scale
         self.bondlinewidth = self.bondlinewidth*scale
+        #------------------------------------------------------------
+        # atom_kinds
         self.atom_kinds = get_atom_kinds(self.atoms, self.kind_props)
         self.nkinds = len(self.atom_kinds)
+        if self.debug:
+            print(self.atom_kinds)
         #
         if isinstance(self.colors, dict):
             for kind in self.colors:
@@ -153,7 +162,16 @@ class Blase():
         elif isinstance(self.radii, dict):
             for kind in self.radii:
                 self.atom_kinds[kind]['radius'] *= self.radii[kind]*scale
-        # print(self.atom_kinds)
+        #------------------------------------------------------------
+        # bond_kinds
+        if not self.bond_list and self.bond_cutoff:
+            self.bond_list = get_bondpairs(self.atoms, cutoff = self.bond_cutoff)
+        # print(self.bond_list)
+        self.bond_kinds = get_bond_kinds(self.atoms, self.atom_kinds, self.bond_list)
+        #------------------------------------------------------------
+        self.polyhedra_kinds = get_polyhedra_kinds(self.atoms, self.atom_kinds, self.bond_list, polyhedra_dict = self.polyhedra_dict)
+        #------------------------------------------------------------
+        # cell 
         # disp = atoms.get_celldisp().flatten()
         self.cell_vertices = None
         if self.show_unit_cell:
@@ -224,20 +242,23 @@ class Blase():
         # COLLECTION
         # Before we start to draw the atoms, we first create a collection for the
         # atomic structure. All atoms (balls) are put into this collection.
-        self.coll_structure_name = os.path.basename(self.name)
-        self.scene = bpy.context.scene
-        self.coll_structure = bpy.data.collections.new(self.coll_structure_name)
-        self.scene.collection.children.link(self.coll_structure)
-        self.coll_cell = bpy.data.collections.new('cell')
-        self.coll_atom_kinds = bpy.data.collections.new('atoms')
-        self.coll_bond_kinds = bpy.data.collections.new('bonds')
-        self.coll_polyhedra_kinds = bpy.data.collections.new('polyhedras')
-        self.coll_isosurface = bpy.data.collections.new('isosurfaces')
-        self.coll_structure.children.link(self.coll_cell)
-        self.coll_structure.children.link(self.coll_atom_kinds)
-        self.coll_structure.children.link(self.coll_bond_kinds)
-        self.coll_structure.children.link(self.coll_polyhedra_kinds)
-        self.coll_structure.children.link(self.coll_isosurface)
+        if self.build_collection:
+            self.coll_structure_name = os.path.basename(self.name) + '_blase'
+            self.scene = bpy.context.scene
+            self.coll_structure = bpy.data.collections.new(self.coll_structure_name)
+            self.scene.collection.children.link(self.coll_structure)
+            self.coll_instancer = bpy.data.collections.new('instancers')
+            self.coll_cell = bpy.data.collections.new('cell')
+            self.coll_atom_kinds = bpy.data.collections.new('atoms')
+            self.coll_bond_kinds = bpy.data.collections.new('bonds')
+            self.coll_polyhedra_kinds = bpy.data.collections.new('polyhedras')
+            self.coll_isosurface = bpy.data.collections.new('isosurfaces')
+            self.coll_structure.children.link(self.coll_instancer)
+            self.coll_structure.children.link(self.coll_cell)
+            self.coll_structure.children.link(self.coll_atom_kinds)
+            self.coll_structure.children.link(self.coll_bond_kinds)
+            self.coll_structure.children.link(self.coll_polyhedra_kinds)
+            self.coll_structure.children.link(self.coll_isosurface)
         # ------------------------------------------------------------------------
         # DRAWING THE ATOMS
         bpy.ops.object.select_all(action='DESELECT')
@@ -315,317 +336,7 @@ class Blase():
         lamp.data.node_tree.nodes['Emission'].inputs['Strength'].default_value = 0.1
         self.STRUCTURE.append(lamp)
 
-    #========================================================
-    def draw_cell(self, ):
-        """
-        Draw unit cell
-        """
-        if self.cell_vertices is not None:
-            # build materials
-            material = bpy.data.materials.new('cell')
-            material.name = 'cell'
-            material.diffuse_color = (0.8, 0.25, 0.25, 1.0)
-            # draw points
-            bpy.ops.mesh.primitive_uv_sphere_add(radius = self.celllinewidth) #, segments=32, ring_count=16)
-            sphere = bpy.context.view_layer.objects.active
-            sphere.name = 'sphere_cell'
-            sphere.data.materials.append(material)
-            bpy.ops.object.shade_smooth()
-            sphere.hide_set(True)
-            mesh = bpy.data.meshes.new('mesh_cell' )
-            obj_cell = bpy.data.objects.new('point_cell', mesh )
-            # Associate the vertices
-            obj_cell.data.from_pydata(self.cell_vertices, [], [])
-            # Make the object parent of the cube
-            sphere.parent = obj_cell
-            # Make the object dupliverts
-            obj_cell.instance_type = 'VERTS'
-            # self.STRUCTURE.append(obj_cell)
-            self.coll_cell.objects.link(obj_cell)
-            #
-            # edges
-            edges = [[0, 1], [0, 2], [0, 4], 
-                     [1, 3], [1, 5], [2, 3], 
-                     [2, 6], [3, 7], [4, 5], 
-                     [4, 6], [5, 7], [6, 7],
-            ]
-            self.cell_edges = {'lengths': [], 
-                          'centers': [],
-                          'normals': []}
-            for e in edges:
-                center = (self.cell_vertices[e[0]] + self.cell_vertices[e[1]])/2.0
-                vec = self.cell_vertices[e[0]] - self.cell_vertices[e[1]]
-                length = np.linalg.norm(vec)
-                nvec = vec/length
-                # print(center, nvec, length)
-                self.cell_edges['lengths'].append(length/2.0)
-                self.cell_edges['centers'].append(center)
-                self.cell_edges['normals'].append(nvec)
-            #
-            source = bond_source(vertices=4)
-            verts, faces = cylinder_mesh_from_instance(self.cell_edges['centers'], self.cell_edges['normals'], self.cell_edges['lengths'], self.celllinewidth, source)
-            # print(verts)
-            mesh = bpy.data.meshes.new("mesh_cell")
-            mesh.from_pydata(verts, [], faces)  
-            mesh.update()
-            for f in mesh.polygons:
-                f.use_smooth = True
-            obj_edge = bpy.data.objects.new("edge_cell", mesh)
-            obj_edge.data = mesh
-            obj_edge.data.materials.append(material)
-            bpy.ops.object.shade_smooth()
-            self.coll_cell.objects.link(obj_edge)
-
-            
-    #
-    def draw_atoms(self, bsdf_inputs = None, material_style = 'blase'):
-        '''
-        Draw atoms
-        bsdf_inputs: dict
-            The key and value for principled_bsdf node
-        material_style: string
-            Select materials type from ['blase', 'glass', 'ceramic', 'plastic'].
-        '''
-        # build materials
-        self.materials = []
-        if not bsdf_inputs:
-            bsdf_inputs = self.material_styles_dict[material_style]
-        for kind, datas in self.atom_kinds.items():
-            tstart = time.time()
-            material = bpy.data.materials.new('atom_kind_{0}'.format(kind))
-            material.diffuse_color = np.append(datas['color'], datas['transmit'])
-            # material.blend_method = 'BLEND'
-            material.use_nodes = True
-            principled_node = material.node_tree.nodes['Principled BSDF']
-            principled_node.inputs['Alpha'].default_value = datas['transmit']
-            for key, value in bsdf_inputs.items():
-                principled_node.inputs[key].default_value = value
-            datas['materials'] = material
-            #
-            # print(datas['positions'][0])
-            if datas['balltype'] == 'meta':
-                print('metaball', kind)
-                mbdata = bpy.data.metaballs.new('atom_kind'.format(kind))
-                mbdata.render_resolution = 0.1
-                mbdata.resolution = 0.2
-                obj_atom = bpy.data.objects.new('meta_atom_kind'.format(kind), mbdata)
-                obj_atom.data.materials.append(material)
-                for co in datas['positions']:
-                    mbele = mbdata.elements.new(type = 'BALL')
-                    mbele.co = co
-                    mbele.radius = datas['radius']*2.0
-                    mbele.stiffness = 1.0
-                self.STRUCTURE.append(obj_atom)
-                self.coll_atom_kinds.objects.link(obj_atom)
-            else:
-                bpy.ops.mesh.primitive_uv_sphere_add(radius = datas['radius']) #, segments=32, ring_count=16)
-                sphere = bpy.context.view_layer.objects.active
-                sphere.name = 'sphere_atom_kind_{0}'.format(kind)
-                sphere.data.materials.append(material)
-                bpy.ops.object.shade_smooth()
-                sphere.hide_set(True)
-                mesh = bpy.data.meshes.new('mesh_kind_{0}'.format(kind) )
-                obj_atom = bpy.data.objects.new('atom_kind_{0}'.format(kind), mesh )
-                # Associate the vertices
-                obj_atom.data.from_pydata(datas['positions'], [], [])
-                # Make the object parent of the cube
-                sphere.parent = obj_atom
-                # Make the object dupliverts
-                obj_atom.instance_type = 'VERTS'
-                # bpy.context.view_layer.objects.active = obj_atom
-                # obj_atom.select_set(True)
-                # bpy.data.objects['atom_kind_{0}'.format(kind)].select_set(True)
-                self.STRUCTURE.append(obj_atom)
-                self.coll_atom_kinds.objects.link(obj_atom)
-            print('atoms: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
-        if self.make_real:
-            tstart = time.time()
-            bpy.ops.object.select_by_type(extend=False, type='MESH')
-            bpy.ops.object.duplicates_make_real()
-            for kind in self.atom_kinds:
-                bpy.data.objects.remove(bpy.data.objects['atom_kind_{0}'.format(kind)])
-            print('make_real: {0:10.2f} s'.format(time.time() - tstart))
-
-
-    def draw_bonds(self, bond_cutoff= 1.0, bsdf_inputs = None, material_style = 'blase'):
-        '''
-        Draw atom bonds
-        '''
-       
-        ib = 0
-        if not bsdf_inputs:
-            bsdf_inputs = self.material_styles_dict[material_style]
-        if self.bond_cutoff:
-            self.bond_list = get_bondpairs(self.atoms, cutoff = self.bond_cutoff)
-        #
-        print(self.bond_list)
-        ts = time.time()
-        bond_kinds = get_bond_kinds(self.atoms, self.bond_list)
-        print('get_bond_kinds: {0:10.2f} s'.format(time.time() - ts))
-        # import pprint
-        # pprint.pprint(bond_kinds)
-        source = bond_source()
-        for kind, datas in bond_kinds.items():
-            tstart = time.time()
-            material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
-            material.diffuse_color = np.append(self.atom_kinds[kind]['color'], self.atom_kinds[kind]['transmit'])
-            # material.blend_method = 'BLEND'
-            material.use_nodes = True
-            principled_node = material.node_tree.nodes['Principled BSDF']
-            principled_node.inputs['Alpha'].default_value = self.atom_kinds[kind]['transmit']
-            for key, value in bsdf_inputs.items():
-                principled_node.inputs[key].default_value = value
-            datas['materials'] = material
-            #
-            # print(datas['normals'])
-            verts, faces = cylinder_mesh_from_instance(datas['centers'], datas['normals'], datas['lengths'], self.bondlinewidth, source)
-            # print(datas['vertices'][0])
-            # bpy.ops.mesh.primitive_uv_sphere_add(radius = datas['radius'])
-            # create new mesh structure
-            mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
-            mesh.from_pydata(verts, [], faces)  
-            mesh.update()
-            for f in mesh.polygons:
-                f.use_smooth = True
-            obj_bond = bpy.data.objects.new("bond_kind_{0}".format(kind), mesh)
-            obj_bond.data = mesh
-            obj_bond.data.materials.append(material)
-            bpy.ops.object.shade_smooth()
-            # mesh = bpy.data.meshes.new('mesh_kind_{0}'.format(kind) )
-            # obj_bond = bpy.data.objects.new('bond_kind_{0}'.format(kind), mesh )
-            # # Associate the vertices
-            # obj_bond.data.from_pydata(datas['vertices'], [], datas['faces'])
-            # # Link the object to the scene and set it active
-            # bpy.context.view_layer.objects.active = obj_bond
-            # Make the object parent of the cube
-            # Make the object dupliverts
-            self.STRUCTURE.append(obj_bond)
-            self.coll_bond_kinds.objects.link(obj_bond)
-            print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
-    def draw_polyhedras(self, polyhedra_dict= None, bsdf_inputs = None, material_style = 'plastic'):
-        '''
-        Draw polyhedras
-        '''
-       
-        ib = 0
-        if not bsdf_inputs:
-            bsdf_inputs = self.material_styles_dict[material_style]
-        #
-        tstart = time.time()
-        if polyhedra_dict:
-            self.polyhedra_dict = polyhedra_dict
-        self.polyhedra_kinds = get_polyhedra_kinds(self.atoms, cutoff = 1.0, polyhedra_dict = self.polyhedra_dict)
-        print('get_polyhedra_kinds: {0:1.2f} s'.format(time.time() - tstart))
-        # import pprint
-        # pprint.pprint(polyhedra_kinds)
-        source = bond_source(vertices=4)
-        for kind, datas in self.polyhedra_kinds.items():
-            tstart = time.time()
-            material = bpy.data.materials.new('polyhedra_kind_{0}'.format(kind))
-            material.diffuse_color = np.append(self.atom_kinds[kind]['color'], datas['transmit'])
-            # material.blend_method = 'BLEND'
-            material.use_nodes = True
-            principled_node = material.node_tree.nodes['Principled BSDF']
-            principled_node.inputs['Alpha'].default_value = self.polyhedra_kinds[kind]['transmit']
-            for key, value in bsdf_inputs.items():
-                principled_node.inputs[key].default_value = value
-            datas['materials'] = material
-            #
-            # create new mesh structure
-            mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
-            # mesh.from_pydata(self.polyhedra_kinds[kind]['vertices'], self.polyhedra_kinds[kind]['edges'], self.polyhedra_kinds[kind]['faces'])  
-            mesh.from_pydata(datas['vertices'], [], datas['faces'])  
-            mesh.update()
-            for f in mesh.polygons:
-                f.use_smooth = True
-            obj_polyhedra = bpy.data.objects.new("polyhedra_kind_{0}".format(kind), mesh)
-            obj_polyhedra.data = mesh
-            obj_polyhedra.data.materials.append(material)
-            bpy.ops.object.shade_smooth()
-            #---------------------------------------------------
-            material = bpy.data.materials.new('polyhedra_edge_kind_{0}'.format(kind))
-            material.diffuse_color = np.append(datas['edge_cylinder']['color'], datas['edge_cylinder']['transmit'])
-            # material.blend_method = 'BLEND'
-            material.use_nodes = True
-            principled_node = material.node_tree.nodes['Principled BSDF']
-            principled_node.inputs['Alpha'].default_value = datas['transmit']
-            for key, value in bsdf_inputs.items():
-                principled_node.inputs[key].default_value = value
-            datas['edge_cylinder']['materials'] = material
-            verts, faces = cylinder_mesh_from_instance(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.001, source)
-            # print(verts)
-            mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
-            mesh.from_pydata(verts, [], faces)  
-            mesh.update()
-            for f in mesh.polygons:
-                f.use_smooth = True
-            obj_edge = bpy.data.objects.new("edge_kind_{0}".format(kind), mesh)
-            obj_edge.data = mesh
-            obj_edge.data.materials.append(material)
-            bpy.ops.object.shade_smooth()
-            self.STRUCTURE.append(obj_polyhedra)
-            self.coll_polyhedra_kinds.objects.link(obj_polyhedra)
-            self.coll_polyhedra_kinds.objects.link(obj_edge)
-            print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
-
-    def draw_isosurface(self, volume, level,
-                        closed_edges = False, gradient_direction = 'descent',
-                        color=(0.85, 0.80, 0.25) , transmit=1.0,
-                        verbose = False, step_size = 1, 
-                        bsdf_inputs = None, material_style = 'blase'):
-        """Computes an isosurface from a volume grid.
-        
-        Parameters: 
-
-        """
-        from skimage import measure
-        cell = self.cell
-        self.cell_vertices.shape = (2, 2, 2, 3)
-        cell_origin = self.cell_vertices[0,0,0]
-        #
-        spacing = tuple(1.0/np.array(volume.shape))
-        scaled_verts, faces, normals, values = measure.marching_cubes_lewiner(volume, level = level,
-                        spacing=spacing,gradient_direction=gradient_direction , 
-                        allow_degenerate = False, step_size=step_size)
-        #
-        scaled_verts = list(scaled_verts)
-        nverts = len(scaled_verts)
-        # transform
-        for i in range(nverts):
-            scaled_verts[i] = scaled_verts[i].dot(cell)
-            scaled_verts[i] -= cell_origin
-        faces = list(faces)
-        print('Draw isosurface...')
-        # print('verts: ', scaled_verts[0:5])
-        # print('faces: ', faces[0:5])
-        #material
-        if not bsdf_inputs:
-            bsdf_inputs = self.material_styles_dict[material_style]
-        material = bpy.data.materials.new('isosurface')
-        material.name = 'isosurface'
-        material.diffuse_color = color + (transmit,)
-        # material.alpha_threshold = 0.2
-        # material.blend_method = 'BLEND'
-        material.use_nodes = True
-        principled_node = material.node_tree.nodes['Principled BSDF']
-        principled_node.inputs['Alpha'].default_value = transmit
-        for key, value in bsdf_inputs.items():
-                principled_node.inputs[key].default_value = value
-        #
-        # create new mesh structure
-        isosurface = bpy.data.meshes.new("isosurface")
-        isosurface.from_pydata(scaled_verts, [], faces)  
-        isosurface.update()
-        for f in isosurface.polygons:
-            f.use_smooth = True
-        iso_object = bpy.data.objects.new("isosurface", isosurface)
-        iso_object.data = isosurface
-        iso_object.data.materials.append(material)
-        bpy.ops.object.shade_smooth()
-        self.coll_isosurface.objects.link(iso_object)
-        self.STRUCTURE.append(iso_object)
-
-
+    
     def highlight_atoms(self, atomlist, shape = 'sphere', radius_scale=1.4,
                            color=(0.0, 1.0, 0.0), transmit=0.6):
         """

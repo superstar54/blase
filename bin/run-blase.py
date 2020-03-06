@@ -2,6 +2,7 @@
 from ase.io import read
 from ase.io.cube import read_cube_data
 from blase.bio import Blase
+from blase.btools import draw_cell, draw_atoms, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 import pickle
 
 
@@ -17,10 +18,10 @@ def main():
     #
     bobj = Blase(images, **kwargs)
     # view(images)
-    bobj.draw_cell()
-    bobj.draw_atoms()
-    bobj.draw_bonds()
-    bobj.draw_polyhedras()
+    draw_cell(bobj)
+    draw_atoms(bobj)
+    draw_bonds(bobj)
+    draw_polyhedras(bobj)
     for function in bobj.functions:
         name, paras = function
         getattr(bobj, name)(**paras)

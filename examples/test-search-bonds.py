@@ -7,13 +7,12 @@ from ase.data import covalent_radii
 
 
 atoms = read('datas/tio2.cif')
-del atoms[0]
 kwargs = {'show_unit_cell': 1, 
           'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
           'radii': 0.6,
           'bond_cutoff': 1.0,
-          # 'display': True,
-          # 'search_pbc': {'bonds_dict': {'O': [['Ti'], -1]}},
+          'display': True,
+          'search_pbc': {'bonds_dict': {'O': [['Ti'], -1]}},
           'polyhedra_dict': {'Ti': ['O']},
           'outfile': 'figs/test-search-bonds',
           }

@@ -20,9 +20,11 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
     cutoffs = cutoff * covalent_radii[atoms.numbers]
     nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True)
     nl.update(atoms)
-    bondpairs = []
+    # bondpairs = []
+    bondpairs = {}
     natoms = len(atoms)
     for a in range(natoms):
+        bondpairs[a] = []
         indices, offsets = nl.get_neighbors(a)
         # print(a, indices)
         for a2, offset in zip(indices, offsets):
@@ -33,7 +35,8 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
                     flag = False
             # print(a, a2, flag)
             if flag:
-                bondpairs.extend([([a, a2], offset)])
+                # bondpairs.extend([([a, a2], offset)])
+                bondpairs[a].append([a2, offset])
     return bondpairs
 
 
@@ -88,7 +91,7 @@ def get_atom_kinds(atoms, props = {}):
                 for prop, value in props[kind].items():
                     atom_kinds[kind][prop] = value
     return atom_kinds
-def get_bond_kinds(atoms, bondlist):
+def get_bond_kinds(atoms, atom_kinds, bondlist):
     '''
     Build faces for instancing bonds.
     The radius of bonds is determined by nbins.
@@ -96,44 +99,43 @@ def get_bond_kinds(atoms, bondlist):
     '''
     # view(atoms)
     bond_kinds = {}
-    for bond in bondlist:
-        inds, offset = bond
-        R = np.dot(offset, atoms.cell)
-        # print(inds, offset)
-        pos = [atoms.positions[inds[0]],
-               atoms.positions[inds[1]] + R]
-        # print(pos)
-        center0 = (pos[0] + pos[1])/2.0
-        if pos[0][2] > pos[1][2]:
-            vec = pos[0] - pos[1]
-        else:
-            vec = pos[1] - pos[0]
-        # print(vec)
-        length = np.linalg.norm(vec)
-        nvec = vec/length
-        # kinds = [atoms[ind].symbol for ind in [a, b]]
-        for i in range(1):
-            ind  = inds[i]
-            kind = atoms[ind].symbol
-            if kind not in bond_kinds.keys():
-                lengths = []
-                centers = []
-                normals = []
-                bond_kinds[kind] = {'lengths': lengths, 'centers': centers, 'normals': normals}
-                number = chemical_symbols.index(kind)
-                color = jmol_colors[number]
-                radius = covalent_radii[number]
-                bond_kinds[kind]['number'] = number
-                bond_kinds[kind]['color'] = color
-                bond_kinds[kind]['transmit'] = 1.0
-            center = (center0 + pos[i])/2.0
+    for ind1, pairs in bondlist.items():
+        kind = atoms.kinds[ind1]
+        if kind not in bond_kinds.keys():
+            lengths = []
+            centers = []
+            normals = []
+            bond_kinds[kind] = {'lengths': lengths, 'centers': centers, 'normals': normals}
+            number = chemical_symbols.index(kind)
+            color = atom_kinds[kind]['color']
+            radius = covalent_radii[number]
+            bond_kinds[kind]['number'] = number
+            bond_kinds[kind]['color'] = color
+            bond_kinds[kind]['transmit'] = atom_kinds[kind]['transmit']
+        for bond in pairs:
+            ind2, offset = bond
+            R = np.dot(offset, atoms.cell)
+            # print(inds, offset)
+            pos = [atoms.positions[ind1],
+                   atoms.positions[ind2] + R]
+            # print(pos)
+            center0 = (pos[0] + pos[1])/2.0
+            if pos[0][2] > pos[1][2]:
+                vec = pos[0] - pos[1]
+            else:
+                vec = pos[1] - pos[0]
+            # print(vec)
+            length = np.linalg.norm(vec)
+            nvec = vec/length
+            # kinds = [atoms[ind].symbol for ind in [a, b]]
+            center = (center0 + pos[0])/2.0
             bond_kinds[kind]['centers'].append(center)
             bond_kinds[kind]['lengths'].append(length/4.0)
             bond_kinds[kind]['normals'].append(nvec)
     # pprint.pprint(bond_kinds)
     return bond_kinds
 
-def get_polyhedra_kinds(atoms, cutoff=1.2, polyhedra_dict = {}):
+def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.4, polyhedra_dict = {}):
     """
     Two modes:
     (1) Search atoms bonded to kind
@@ -142,18 +144,35 @@ def get_polyhedra_kinds(atoms, cutoff=1.2, polyhedra_dict = {}):
     from scipy.spatial import ConvexHull
     from ase.data import covalent_radii
     from ase.neighborlist import NeighborList
-    cutoffs = cutoff * covalent_radii[atoms.numbers]
-    nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True)
-    nl.update(atoms)
     polyhedra_kinds = {}
     # loop center atoms
+    # for ind1, pairs in bondlist.items():
+        # kind = atoms.kinds[ind1]
     for kind, ligand in polyhedra_dict.items():
         # print(kind, ligand)
+        if kind not in polyhedra_kinds.keys():
+            vertices = []
+            edges = []
+            faces = []
+            polyhedra_kinds[kind] = {'vertices': vertices, 'edges': edges, 'faces': faces}
+            lengths = []
+            centers = []
+            normals = []
+            polyhedra_kinds[kind]['edge_cylinder'] = {'lengths': lengths, 'centers': centers, 'normals': normals}
+            # number = chemical_symbols.index(kind)
+            # color = jmol_colors[number]
+            # polyhedra_kinds[kind]['number'] = number
+            polyhedra_kinds[kind]['color'] = atom_kinds[kind]['color']
+            polyhedra_kinds[kind]['transmit'] = transmit
+            polyhedra_kinds[kind]['edge_cylinder']['color'] = (1.0, 1.0, 1.0)
+            polyhedra_kinds[kind]['edge_cylinder']['transmit'] = 0.4
         inds = [atom.index for atom in atoms if atom.symbol == kind]
         for ind in inds:
             vertice = []
-            indices, offsets = nl.get_neighbors(ind)
-            for a2, offset in zip(indices, offsets):
+            for bond in bondlist[ind]:
+            # indices, offsets = nl.get_neighbors(ind)
+            # for a2, offset in zip(indices, offsets):
+                a2, offset = bond
                 if atoms[a2].symbol in ligand:
                     temp_pos = atoms[a2].position + np.dot(offset, atoms.cell)
                     vertice.append(temp_pos)
@@ -161,22 +180,6 @@ def get_polyhedra_kinds(atoms, cutoff=1.2, polyhedra_dict = {}):
             # print(ind, indices, nverts)
             if nverts >3:
                 # print(ind, vertice)
-                if kind not in polyhedra_kinds.keys():
-                    vertices = []
-                    edges = []
-                    faces = []
-                    polyhedra_kinds[kind] = {'vertices': vertices, 'edges': edges, 'faces': faces}
-                    lengths = []
-                    centers = []
-                    normals = []
-                    polyhedra_kinds[kind]['edge_cylinder'] = {'lengths': lengths, 'centers': centers, 'normals': normals}
-                    number = chemical_symbols.index(kind)
-                    color = jmol_colors[number]
-                    polyhedra_kinds[kind]['number'] = number
-                    polyhedra_kinds[kind]['color'] = color
-                    polyhedra_kinds[kind]['transmit'] = 0.4
-                    polyhedra_kinds[kind]['edge_cylinder']['color'] = (1.0, 1.0, 1.0)
-                    polyhedra_kinds[kind]['edge_cylinder']['transmit'] = 0.4
                 # search convex polyhedra
                 hull = ConvexHull(vertice)
                 face = hull.simplices
@@ -204,24 +207,6 @@ def get_polyhedra_kinds(atoms, cutoff=1.2, polyhedra_dict = {}):
                     polyhedra_kinds[kind]['edge_cylinder']['lengths'].append(length/2.0)
                     polyhedra_kinds[kind]['edge_cylinder']['centers'].append(center)
                     polyhedra_kinds[kind]['edge_cylinder']['normals'].append(nvec)
-        # pprint.pprint(polyhedra_kinds[kind]['edge_cylinder'])
-        # print(len(polyhedra_kinds[kind]['edge_cylinder']['centers']))
-            # angles = []
-            # for i in range(nverts):
-            #     pos1 = vertice[i][1]
-                # for j in range(i + 1, nverts):
-            #         pos2 = vertice[j][1]
-            #         v1 = pos1 - pos0
-            #         nv1 = v1/(np.linalg.norm(v1) + 0.0000000001)
-            #         v2 = pos2 - pos0
-            #         nv2 = v2/(np.linalg.norm(v2) + + 0.0000000001)
-            #         x = np.dot(nv1, nv2)
-            #         angle = np.arccos(x)
-            #         angle = np.degrees(angle)
-            #         angles.append(angle)
-            # angles = sort(angles)
-            # print(angles)
-        #calc angle matrix
     return polyhedra_kinds
 
 
