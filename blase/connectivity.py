@@ -172,6 +172,59 @@ class ConnectivityList:
         self.atoms = newatoms
         self.add_total += self.add
         return newatoms
+    def remove_pbc(self, atoms = None, cutoff=1.0, eps=1e-3):
+        """
+        Two modes:
+        (1) Search atoms bonded to kind
+        bonds_dict: {'kind': ligands}
+        """
+        # print('Search pbc: ')
+        tstart = time.time()
+        # loop center atoms
+        if not atoms:
+            atoms = self.atoms
+        natoms = len(atoms)
+        positions = atoms.get_scaled_positions()
+        mask = []
+        newpositions = []
+        for i in range(natoms):
+            if positions[i, 0] < 0 or \
+               positions[i, 0] > 1 or \
+               positions[i, 1] < 0 or \
+               positions[i, 1] > 1 or \
+               positions[i, 2] < 0 or \
+               positions[i, 2] > 1:
+                mask.append(i)
+                continue
+
+
+        del atoms[mask]
+        #atoms.wrap()
+        natoms = len(atoms)
+        mask = []
+        positions = atoms.get_scaled_positions()
+        for i in range(natoms):
+            if positions[i, 0] > 1 - eps: positions[i, 0] = 0
+            if positions[i, 1] > 1 - eps: positions[i, 1] = 0
+            if positions[i, 2] > 1 - eps: positions[i, 2] = 0
+        for i in range(natoms - 1):
+            for j in range(i + 1, natoms):
+                pos = positions[i] - positions[j]
+                dis = pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2]
+                #dis = atoms.get_distance(i, j, mic=False)
+                #print(i, j, dis)
+                if dis < eps*eps:
+                    print(i, j, dis)
+                    if pos[0] < eps or pos[1] < eps or pos[2] < eps:
+                        mask.append(j)
+                    else:
+                        mask.append(i)
+                        break
+        #
+        #print(mask)
+        del atoms[mask]
+        self.atoms = atoms
+        return atoms
 
 
 if __name__ == "__main__":
@@ -180,6 +233,7 @@ if __name__ == "__main__":
     from ase.visualize import view
     from ase.data import covalent_radii
     atoms = read('../examples/datas/tio2.cif')
+    view(atoms)
     # atoms = read('../examples/perovskite.cif')
     # atoms = read('../examples/datas/anthraquinone.cif')
     # print(atoms)
@@ -188,6 +242,9 @@ if __name__ == "__main__":
     # cl = ConnectivityList(atoms, cutoffs = 1.2, molecule_list = [['C', 'C'], ['C', 'O']])
     # cl = ConnectivityList(atoms, cutoffs = 1.2)
     atoms = cl.build()
-    # print(atoms)
+    print(atoms)
+    view(atoms)
+    atoms = cl.remove_pbc(atoms)
+    print(atoms)
     view(atoms)
 

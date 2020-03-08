@@ -65,7 +65,7 @@ class Blase():
         'textures': None,  # length of atoms list of texture names
         'engine': 'BLENDER_EEVEE', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
         'transmits': None,  # transmittance of the atoms
-        'show_unit_cell': False,
+        'show_unit_cell': 'default',
         'celllinewidth': 0.025,  # radius of the cylinders representing the cell
         'bbox': None,
         'bondlinewidth': 0.10,  # radius of the cylinders representing bonds
@@ -77,7 +77,7 @@ class Blase():
         'bond_cutoff': None,  # 
         'bond_list': {},  # [[atom1, atom2], ... ] pairs of bonding atoms
         'polyhedra_dict': {},
-        'search_pbc': False, #{'bonds_dict': {}, 'molecule_list': {}},
+        'search_pbc_atoms': False, #{'bonds_dict': {}, 'molecule_list': {}},
         'search_molecule': False, #{'search_list': None},
         'boundary_list': [],
         'resolution_x': 1000,
@@ -112,9 +112,9 @@ class Blase():
         #
         self.images = images
         self.atoms = images[0]
-        if self.search_pbc:
-            print(self.search_pbc)
-            cl = ConnectivityList(self.atoms, cutoffs = self.bond_cutoff, **self.search_pbc)
+        if self.search_pbc_atoms:
+            print(self.search_pbc_atoms)
+            cl = ConnectivityList(self.atoms, cutoffs = self.bond_cutoff, **self.search_pbc_atoms)
             self.atoms = cl.build()
             # view(self.atoms)
             print(self.atoms)
@@ -173,6 +173,11 @@ class Blase():
         #------------------------------------------------------------
         # cell 
         # disp = atoms.get_celldisp().flatten()
+        if self.show_unit_cell == 'default':
+            if self.atoms.pbc[0] or self.atoms.pbc[1] or self.atoms.pbc[2]:
+                self.show_unit_cell = True
+            else:
+                self.show_unit_cell = False
         self.cell_vertices = None
         if self.show_unit_cell:
             cell_vertices = np.empty((2, 2, 2, 3))
@@ -243,22 +248,22 @@ class Blase():
         # Before we start to draw the atoms, we first create a collection for the
         # atomic structure. All atoms (balls) are put into this collection.
         if self.build_collection:
-            self.coll_structure_name = os.path.basename(self.name) + '_blase'
+            self.coll_name = os.path.basename(self.name) + '_blase'
             self.scene = bpy.context.scene
-            self.coll_structure = bpy.data.collections.new(self.coll_structure_name)
-            self.scene.collection.children.link(self.coll_structure)
-            self.coll_instancer = bpy.data.collections.new('instancers')
+            self.coll = bpy.data.collections.new(self.coll_name)
+            self.scene.collection.children.link(self.coll)
             self.coll_cell = bpy.data.collections.new('cell')
             self.coll_atom_kinds = bpy.data.collections.new('atoms')
             self.coll_bond_kinds = bpy.data.collections.new('bonds')
             self.coll_polyhedra_kinds = bpy.data.collections.new('polyhedras')
             self.coll_isosurface = bpy.data.collections.new('isosurfaces')
-            self.coll_structure.children.link(self.coll_instancer)
-            self.coll_structure.children.link(self.coll_cell)
-            self.coll_structure.children.link(self.coll_atom_kinds)
-            self.coll_structure.children.link(self.coll_bond_kinds)
-            self.coll_structure.children.link(self.coll_polyhedra_kinds)
-            self.coll_structure.children.link(self.coll_isosurface)
+            self.coll_instancer = bpy.data.collections.new('instancers')
+            self.coll.children.link(self.coll_cell)
+            self.coll.children.link(self.coll_atom_kinds)
+            self.coll.children.link(self.coll_bond_kinds)
+            self.coll.children.link(self.coll_polyhedra_kinds)
+            self.coll.children.link(self.coll_isosurface)
+            self.coll.children.link(self.coll_instancer)
         # ------------------------------------------------------------------------
         # DRAWING THE ATOMS
         bpy.ops.object.select_all(action='DESELECT')
@@ -277,7 +282,13 @@ class Blase():
             node_tree.nodes["Background"].inputs["Strength"].default_value = 1.0
             node_tree.links.new(rgb_node.outputs["Color"], node_tree.nodes["Background"].inputs["Color"])
         #
-        
+    def draw(self, coll = None):
+        if not coll:
+     	   coll = self.coll
+        draw_cell(self, coll = coll)
+        draw_atoms(self, coll = coll)
+        draw_bonds(self, coll = coll)
+        draw_polyhedras(self, coll = coll)
     #
     def look_at(self, obj, target, roll=0):
         """
@@ -344,7 +355,7 @@ class Blase():
         # Draw atoms
         #
         coll_highlight = bpy.data.collections.new('highlight')
-        self.coll_structure.children.link(coll_highlight)
+        self.coll.children.link(coll_highlight)
         # build materials
         material = bpy.data.materials.new('highlight')
         material.name = 'highlight'

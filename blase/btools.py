@@ -255,7 +255,7 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
         coll_polyhedra_kinds.objects.link(obj_edge)
         print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
-def draw_isosurface(bobj = None, coll = None, volume, level,
+def draw_isosurface(bobj = None, coll = None, volume = None, level = 0.02,
                     closed_edges = False, gradient_direction = 'descent',
                     color=(0.85, 0.80, 0.25) , transmit=1.0,
                     verbose = False, step_size = 1, 
