@@ -149,7 +149,7 @@ def draw_atoms(bobj = None, coll = None, atom_kinds = None, bsdf_inputs = None, 
             bpy.data.objects.remove(bpy.data.objects['atom_kind_{0}'.format(kind)])
         print('make_real: {0:10.2f} s'.format(time.time() - tstart))
 
-def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bondlinewidth = None, bsdf_inputs = None, material_style = 'blase'):
+def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bondlinewidth = None, vertices = None, bsdf_inputs = None, material_style = 'blase'):
     '''
     Draw atom bonds
     '''
@@ -164,7 +164,13 @@ def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bon
         bsdf_inputs = bobj.material_styles_dict[material_style]
     # import pprint
     # pprint.pprint(bond_kinds)
-    source = bond_source()
+    if not vertices:
+    	if len(bobj.atoms) > 200:
+	        vertices=8
+    	else:
+    		vertices = 16
+    source = bond_source(vertices = vertices)
+    #
     for kind, datas in bond_kinds.items():
         tstart = time.time()
         material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
