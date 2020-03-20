@@ -29,13 +29,14 @@ For the introduction of ASE , please visit https://wiki.fysik.dtu.dk/ase/index.h
 
 ### Installation
 
-Clone this repo. Add it to your PYTHONPATH.
+Clone this repo. Add it to your PYTHONPATH. On windows, you can edit the system environment variables.
 
-``` python
+``` sh
 export PYTHONPATH=~/apps/blase:$PYTHONPATH
-export BLASE_COMMAND="~/apps/blase/bin/run-blase.py"
-export BLENDER_COMMAND="~/bin/blender"
-````
+export BLASE_PATH="~/apps/blase/"
+```
+
+You can specify the location of blender by ```sh export BLENDER_COMMAND="~/bin/blender" ```, otherwise blase will use the default blender command in the system.
 
 ### How to use
 * Run from python code directly, supporting functions from build inside blase.  ``` python examples/c2h6so.py ```

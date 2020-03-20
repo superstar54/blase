@@ -44,7 +44,9 @@ def write_blender(atoms, display = False, queue = None, **kwargs):
     with open('blase.inp', 'wb') as f:
         pickle.dump([atoms, kwargs], f)
     #
-    blender_cmd = os.environ['BLENDER_COMMAND']
+    blender_cmd = 'blender'
+    if 'BLENDER_COMMAND' in os.environ.keys():
+        blender_cmd = os.environ['BLENDER_COMMAND']
     blase_path = os.environ['BLASE_PATH']
     blase_cmd = blase_path + '/bin/run-blase.py'
     if display:
