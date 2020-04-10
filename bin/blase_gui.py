@@ -1,80 +1,70 @@
 #!/usr/bin/env python
 from ase.io import read
 from ase.io.cube import read_cube_data
-from blase.bio import Blase
-from blase.btools import draw_cell, draw_atoms, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
+from blase.tools import write_blender, get_bondpairs
 import sys
+import argparse
+
+# default
+kwargs = {
+      'radii': 1.0,
+      'bond_cutoff': 1.0,
+      }
 
 
-def import_blase(inputfile, 
-               model_type = '0',
-               camera = 'True',
-               light = 'True',
-               world = 'False',
-               show_unit_cell = False,
-               ball_type = 'Ball-and-stick',
-               radii = 1.0,
-               bond_cutoff = 1.0,
-               search_pbc = False,
-               search_molecule = False,
-               make_real = False,
-               ):
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('inputfile', type=str,
+                        help="the input json file, includes coordinates of a \
+                        set of points, threshold and a list of pairs of points ")
+    parser.add_argument('--display', action='store_true', default=True,
+                        help="render")
+    parser.add_argument('--run_render', action='store_false', default=False,
+                        help="render")
+    parser.add_argument('--model', '-m', type=int, default=0,
+                        help="structure model")
+    parser.add_argument('--outfile', '-o', type=str, default='output',
+                        help="write output to specified file ")
+    parser.add_argument('--camera', action='store_false', default=False,
+                        help="camera")
+    parser.add_argument('--light', action='store_false', default=False,
+                        help="light")
+    parser.add_argument('--search_pbc_atoms', action='store_false', default=False,
+                        help="search_pbc_atoms")
+    parser.add_argument('--search_molecule', action='store_false', default=False,
+                        help="search_molecule")
+    args = parser.parse_args()
     #
-    print('='*30)
-    print('Import structure')
-    print('='*30)
-    print(model_type)
-    #
-    kwargs = {'show_unit_cell': show_unit_cell, 
-          'radii': radii,
-          'bond_cutoff': bond_cutoff,
-          'world': world,
-          'camera': camera,
-          'light': light,
-          'search_pbc':search_pbc,
-          'search_molecule': search_molecule,
-          'make_real': make_real,
-          'display': True,
-          }
-    
-    if inputfile.split('.')[-1] == 'cube':
-        images, data = read_cube_data(inputfile)
+    if args.inputfile.split('.')[-1] == 'cube':
+        atoms, data = read_cube_data(inputfile)
     else:
-        images = read(inputfile)
+        atoms = read(args.inputfile)
+    if atoms.pbc.any():
+      kwargs['show_unit_cell'] = True
+    kwargs['display'] = args.display
+    kwargs['camera'] = args.camera
+    kwargs['light'] = args.light
+    kwargs['outfile'] = args.outfile+'.png'
+    kwargs['run_render'] = args.run_render
+    kwargs['search_pbc_atoms'] = args.search_pbc_atoms
+    kwargs['search_molecule'] = args.search_molecule
     
-    if model_type == '0':
-        # view(images)
+    if args.model == 0:
         kwargs['radii'] = 0.6
         kwargs['bond_cutoff'] = 1.0
-        bobj = Blase(images, **kwargs)
-        draw_cell(bobj)
-        draw_atoms(bobj)
-        draw_bonds(bobj)
-    elif model_type == '1':
+    elif args.model == 1:
         kwargs['bond_cutoff'] = None
-        bobj = Blase(images, **kwargs)
-        draw_cell(bobj)
-        draw_atoms(bobj)
-    elif model_type == '2':
+    elif args.model == 2:
         kwargs['radii'] = 0.6
         kwargs['bond_cutoff'] = 1.0
         kwargs['polyhedral'] = {}
-        bobj = Blase(images, **kwargs)
-        draw_cell(bobj)
-        draw_atoms(bobj)
-        draw_bonds(bobj)
-        draw_polyhedras(bobj)
-    elif model_type == '3':
-        # kwargs['bond_cutoff'] = 1.0
-        bobj = Blase(images, **kwargs)
-        draw_cell(bobj)
-        draw_bonds(bobj)
-
+    
+    print('='*30)
+    print('Import structure')
+    print('='*30)
+    write_blender(atoms, **kwargs)
     print('\n Finished!')
 
-#
-inputfile = sys.argv[3]
-model_type = sys.argv[4]
 
-import_blase(inputfile, model_type)
-
+if __name__ == "__main__":
+    main()

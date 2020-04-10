@@ -80,6 +80,7 @@ class Blase():
         'search_pbc_atoms': False, #{'bonds_dict': {}, 'molecule_list': {}},
         'search_molecule': False, #{'search_list': None},
         'boundary_list': [],
+        'isosurface':None,
         'resolution_x': 1000,
         'cube': None,
         'highlight': None, # highlight atoms
@@ -90,13 +91,12 @@ class Blase():
         'queue': None,
         'gpu': True,
         'num_samples': 128,
-        'outfile': 'bout',
         'build_collection': True,
         }  
     #
     
 
-    def __init__(self, images, name = None, rotations=None, scale=1, debug = False,
+    def __init__(self, images, outfile = 'bout', name = None, rotations=None, scale=1, debug = False,
                               **parameters):
         for k, v in self.default_settings.items():
             setattr(self, k, parameters.pop(k, v))
@@ -105,6 +105,7 @@ class Blase():
         if not isinstance(images, list):
             images = [images]
         self.nimages = len(images)
+        self.outfile = outfile
         if rotations:
             for rotation in rotations:
                 for i in range(self.nimages):
@@ -174,7 +175,7 @@ class Blase():
         # cell 
         # disp = atoms.get_celldisp().flatten()
         if self.show_unit_cell == 'default':
-            if self.atoms.pbc[0] or self.atoms.pbc[1] or self.atoms.pbc[2]:
+            if self.atoms.pbc.any():
                 self.show_unit_cell = True
             else:
                 self.show_unit_cell = False
@@ -289,6 +290,13 @@ class Blase():
         draw_atoms(self, coll = coll)
         draw_bonds(self, coll = coll)
         draw_polyhedras(self, coll = coll)
+        if self.isosurface:
+            volume = self.isosurface[0]
+            icolor = 0
+            for level in self.isosurface[1:]:
+                draw_isosurface(self, coll = coll, volume=volume, level=level, icolor = icolor)
+                icolor += 1
+
     #
     def look_at(self, obj, target, roll=0):
         """

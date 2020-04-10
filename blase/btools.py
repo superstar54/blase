@@ -85,7 +85,7 @@ def draw_atoms(bobj = None, coll = None, atom_kinds = None, bsdf_inputs = None, 
     # build materials
     if not  coll:
         coll = bobj.coll
-    coll_atom_kinds = [c for c in coll.children if c.name[0:5] == 'atoms'][0]
+    coll_atom_kinds = [c for c in coll.children if 'atoms' in c.name][0]
     if not atom_kinds:
         atom_kinds = bobj.atom_kinds
     if not bsdf_inputs:
@@ -155,7 +155,7 @@ def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bon
     '''
     if not  coll:
         coll = bobj.coll
-    coll_bond_kinds = [c for c in coll.children if c.name[0:5] == 'bonds'][0]
+    coll_bond_kinds = [c for c in coll.children if 'bonds' in c.name][0]
     if not bond_kinds:
         bond_kinds = bobj.bond_kinds
     if not bondlinewidth:
@@ -202,7 +202,7 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
     '''
     if not  coll:
         coll = bobj.coll
-    coll_polyhedra_kinds = [c for c in coll.children if c.name[0:10] == 'polyhedras'][0]
+    coll_polyhedra_kinds = [c for c in coll.children if 'polyhedras' in c.name][0]
     if not polyhedra_kinds:
         polyhedra_kinds = bobj.polyhedra_kinds
     if not bsdf_inputs:
@@ -263,7 +263,7 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
 
 def draw_isosurface(bobj = None, coll = None, volume = None, level = 0.02,
                     closed_edges = False, gradient_direction = 'descent',
-                    color=(0.85, 0.80, 0.25) , transmit=1.0,
+                    color=(0.85, 0.80, 0.25) , icolor = None, transmit=0.5,
                     verbose = False, step_size = 1, 
                     bsdf_inputs = None, material_style = 'blase'):
     """Computes an isosurface from a volume grid.
@@ -271,9 +271,12 @@ def draw_isosurface(bobj = None, coll = None, volume = None, level = 0.02,
     Parameters:     
     """
     from skimage import measure
+    colors = [(0.85, 0.80, 0.25), (0.0, 0.0, 1.0)]
+    if icolor:
+        color = colors[icolor]
     if not  coll:
         coll = bobj.coll
-    coll_isosurface = [c for c in coll.children if c.name[0:10] == 'isosurfaces'][0]
+    coll_isosurface = [c for c in coll.children if 'isosurfaces' in c.name][0]
     
     cell = bobj.cell
     bobj.cell_vertices.shape = (2, 2, 2, 3)

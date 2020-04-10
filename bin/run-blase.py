@@ -18,10 +18,7 @@ def main():
     #
     bobj = Blase(images, **kwargs)
     # view(images)
-    draw_cell(bobj)
-    draw_atoms(bobj)
-    draw_bonds(bobj)
-    draw_polyhedras(bobj)
+    bobj.draw()
     for function in bobj.functions:
         name, paras = function
         getattr(bobj, name)(**paras)
