@@ -77,6 +77,7 @@ def get_atom_kinds(atoms, props = {}):
     for kind in kinds:
         atom_kinds[kind] = {}
         element = kind.split('_')[0]
+        print(kind, element)
         number = chemical_symbols.index(element)
         inds = [atom.index for atom in atoms if atoms.kinds[atom.index]==kind]
         color = jmol_colors[number]
@@ -104,11 +105,12 @@ def get_bond_kinds(atoms, atom_kinds, bondlist):
     for ind1, pairs in bondlist.items():
         kind = atoms.kinds[ind1]
         if kind not in bond_kinds.keys():
+            element = kind.split('_')[0]
             lengths = []
             centers = []
             normals = []
             bond_kinds[kind] = {'lengths': lengths, 'centers': centers, 'normals': normals}
-            number = chemical_symbols.index(kind)
+            number = chemical_symbols.index(element)
             color = atom_kinds[kind]['color']
             radius = covalent_radii[number]
             bond_kinds[kind]['number'] = number
@@ -153,6 +155,7 @@ def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.4, polyhe
     for kind, ligand in polyhedra_dict.items():
         # print(kind, ligand)
         if kind not in polyhedra_kinds.keys():
+            element = kind.split('_')[0]
             vertices = []
             edges = []
             faces = []

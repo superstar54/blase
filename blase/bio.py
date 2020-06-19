@@ -50,7 +50,7 @@ class Blase():
         'resolution_x': None,  # 
         'resolution_y': None,  # 
         'camera': True,
-        'camera_loc': [0, 0, 50],  # x, y is the image plane, z is *out* of the screen
+        'camera_loc': None,  # x, y is the image plane, z is *out* of the screen
         'camera_type': 'ORTHO',  #  ['PERSP', 'ORTHO']
         'ortho_scale': None, #
         'camera_lens': 10,  #
@@ -58,6 +58,7 @@ class Blase():
         'camera_target': None, #
         'world': False,
         'light': True,
+        'light_loc': [0, 0, 200],
         'light_type': 'SUN', # 'POINT', 'SUN', 'SPOT', 'AREA'
         'point_lights': [],  # 
         'light_strength': 1.0,
@@ -324,9 +325,10 @@ class Blase():
         camera_data.dof.aperture_fstop = self.fstop
         camera_data.type = self.camera_type
         camera = bpy.data.objects.new("Camera", camera_data)
-        camera.location = Vector(self.camera_loc)
-        if self.camera_type == 'ORTHO':
-            camera.location = [target[0], target[1], self.camera_loc[2]]
+        if self.camera_type == 'ORTHO' and not self.camera_loc:
+            camera.location = [target[0], target[1], 200]
+        else:
+            camera.location = Vector(self.camera_loc)
         bpy.data.cameras['Camera'].type = self.camera_type
         if self.ortho_scale and self.camera_type == 'ORTHO':
             print('add_camera: ', self.ortho_scale)
@@ -335,7 +337,7 @@ class Blase():
         self.look_at(camera, target, roll = radians(0))
         self.STRUCTURE.append(camera)
         bpy.context.scene.camera = camera
-    def add_light(self, loc = [0, 0, 200], light_type = 'SUN', name = "Light", energy = 5):
+    def add_light(self, light_type = 'SUN', name = "Light", energy = 5):
         # Create the lamp
         '''
         POINT Point, Omnidirectional point light source.
@@ -348,11 +350,12 @@ class Blase():
         light_data = bpy.data.lights.new(name=name, type=self.light_type)
         light_data.energy = energy
         lamp = bpy.data.objects.new(name, light_data)
-        lamp.location = Vector(loc)
+        lamp.location = Vector(self.light_loc)
         bpy.context.collection.objects.link(lamp)
         # Some properties for cycles
         lamp.data.use_nodes = True
         lamp.data.node_tree.nodes['Emission'].inputs['Strength'].default_value = 0.1
+        self.look_at(lamp, self.camera_target, roll = radians(0))
         self.STRUCTURE.append(lamp)
 
     

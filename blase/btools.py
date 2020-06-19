@@ -332,22 +332,6 @@ def clean_default():
         bpy.data.objects.remove(bpy.data.objects['Cube'])
 
 
-def clean_objects():
-    for item in bpy.data.objects:
-        bpy.data.objects.remove(item)
-
-def removeAll():
-    #types =  ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'ARMATURE', 'LATTICE', 'EMPTY', 'GPENCIL', 'CAMERA', 'LIGHT', 'SPEAKER', 'LIGHT_PROBE']
-    for mesh in bpy.data.meshes:
-        bpy.data.meshes.remove(mesh)
-    for obj in bpy.data.objects:
-        bpy.data.objects.remove(obj)
-    for cam in bpy.data.cameras:
-        bpy.data.cameras.remove(cam)
-    for light in bpy.data.lights:
-        bpy.data.lights.remove(light)
-    for coll in bpy.data.collections:
-        bpy.data.collections.remove(coll)
 
 # draw bonds
 def bond_source(vertices = 16):
