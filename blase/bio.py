@@ -23,7 +23,7 @@ from ase.data.colors import jmol_colors
 from math import pi, sqrt, radians, acos, atan2
 from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_polyhedra_kinds
 from blase import tools
-from blase.btools import draw_cell, draw_atoms, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
+from blase.btools import draw_cell, draw_atoms, draw_bonds, draw_bonds_2, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 from blase.connectivity import ConnectivityList
 from blase.boundary import Boundary
 import time
@@ -289,7 +289,8 @@ class Blase():
      	   coll = self.coll
         draw_cell(self, coll = coll)
         draw_atoms(self, coll = coll)
-        draw_bonds(self, coll = coll)
+        draw_bonds_2(self, coll = coll)
+        # draw_bonds(self, coll = coll)
         draw_polyhedras(self, coll = coll)
         if self.isosurface:
             volume = self.isosurface[0]

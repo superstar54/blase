@@ -7,11 +7,13 @@ from ase.data import covalent_radii
 
 
 atoms = read('datas/perovskite.xyz')
-# atoms.pbc = [False, False, False]
-# atoms = atoms*[2, 2, 2]
+atoms.pbc = [True, True, True]
+atoms = atoms*[2, 2, 2]
+# atoms.write('datas/perovskite-2-2-2.in')
+print(atoms)
 kind_props = {
-'Ti': {'radius': 0.6, 'color': [0/255.0, 191/255.0, 56/255.0]},
-'O': {'radius': 0.6, }
+'Pb': {'radius': 1.0, 'color': [100/255.0, 191/255.0, 56/255.0]},
+'O': {'radius': 1.0, }
 }
 
 
@@ -21,10 +23,11 @@ kwargs = {'show_unit_cell': 1,
           'radii': 0.6,
           'bond_cutoff': 1.0,
           # 'bond_list': bond_list,
-          # 'kind_props': kind_props,
+          'kind_props': kind_props,
           'display': True,
           'polyhedra_dict': {'Pb': ['I']},
-          'search_pbc_atoms': {'bonds_dict':{'I': [['Pb'], -1]}, 'molecule_list':[['C', 'N']]},
+          # 'search_pbc_atoms': {'bonds_dict':{'I': [['Pb'], -1]}, 'molecule_list':[['C', 'N']]},
+          'run_render': False,
           'outfile': 'figs/test-polyhedra',
           }
 write_blender(atoms, **kwargs)

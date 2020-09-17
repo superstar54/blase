@@ -82,9 +82,9 @@ class ConnectivityList:
         self.search_pbc()
         # view(self.atoms)
         print('Start searching: ')
-        # self.search_bond(bonds_dict = self.bonds_dict)
-        # self.search_molecule(molecule_dict = self.molecule_dict)
-        # self.search_bond(bonds_dict = self.bonds_dict)
+        self.search_bond(bonds_dict = self.bonds_dict)
+        self.search_molecule(molecule_dict = self.molecule_dict)
+        self.search_bond(bonds_dict = self.bonds_dict)
         print('Search ConnectivityList time: {0:1.2f} s, add {1} atoms'.format(time.time() - tstart, self.add_total))
         self.atoms.pbc = [False, False, False]
         print(self.atoms)

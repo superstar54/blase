@@ -2,6 +2,7 @@ from ase.io import read, write
 from blase.tools import write_blender
 
 atoms = read('datas/tio2.cif')
+atoms = atoms*[2, 2, 2]
 kwargs = {'show_unit_cell': 1, 
           'engine': 'BLENDER_WORKBENCH',
           'radii': 0.6,

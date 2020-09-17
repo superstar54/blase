@@ -198,6 +198,65 @@ def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bon
         bpy.ops.object.shade_smooth()
         coll_bond_kinds.objects.link(obj_bond)
         print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+
+def draw_bonds_2(bobj = None, coll = None, bond_kinds = None, bond_list= None, bondlinewidth = None, vertices = None, bsdf_inputs = None, material_style = 'blase'):
+    '''
+    Draw atom bonds
+    '''
+    if not  coll:
+        coll = bobj.coll
+    coll_bond_kinds = [c for c in coll.children if 'bonds' in c.name][0]
+    if not bond_kinds:
+        bond_kinds = bobj.bond_kinds
+    if not bondlinewidth:
+        bondlinewidth = bobj.bondlinewidth
+    if not bsdf_inputs:
+        bsdf_inputs = bobj.material_styles_dict[material_style]
+    # import pprint
+    # pprint.pprint(bond_kinds)
+    if not vertices:
+        if len(bobj.atoms) > 200:
+            vertices=8
+        else:
+            vertices = 16
+    #
+    for kind, datas in bond_kinds.items():
+        tstart = time.time()
+        material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
+        material.diffuse_color = np.append(bond_kinds[kind]['color'], bond_kinds[kind]['transmit'])
+        # material.blend_method = 'BLEND'
+        material.use_nodes = True
+        principled_node = material.node_tree.nodes['Principled BSDF']
+        principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
+        principled_node.inputs['Alpha'].default_value = bond_kinds[kind]['transmit']
+        for key, value in bsdf_inputs.items():
+            principled_node.inputs[key].default_value = value
+        datas['materials'] = material
+        #
+        bpy.ops.mesh.primitive_cylinder_add(vertices = vertices, radius=0.1, depth = 1.0)
+        cylinder = bpy.context.view_layer.objects.active
+        cylinder.name = 'cylinder_atom_kind_{0}'.format(kind)
+        cylinder.data.materials.append(material)
+        bpy.ops.object.shade_smooth()
+        cylinder.hide_set(True)
+        mesh = bpy.data.meshes.new('mesh_kind_{0}'.format(kind) )
+        obj_bond = bpy.data.objects.new('bond_kind_{0}'.format(kind), mesh )
+        # Associate the vertices
+        obj_bond.data.from_pydata(datas['verts'], [], datas['faces'])
+        # Make the object parent of the cube
+        cylinder.parent = obj_bond
+        # Make the object dupliverts
+        obj_bond.instance_type = 'FACES'
+        obj_bond.use_instance_faces_scale = True
+        obj_bond.show_instancer_for_render = False
+        obj_bond.show_instancer_for_viewport = False
+        # bpy.context.view_layer.objects.active = obj_bond
+        # obj_bond.select_set(True)
+        # bpy.data.objects['bond_kind_{0}'.format(kind)].select_set(True)
+        # STRUCTURE.append(obj_bond)
+        bpy.data.collections['instancers'].objects.link(cylinder)
+        coll_bond_kinds.objects.link(obj_bond)        
+        print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= None, bsdf_inputs = None, material_style = 'plastic'):
     '''
     Draw polyhedras
@@ -244,12 +303,12 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
         # material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
-        principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
+        principled_node.inputs['Base Color'].default_value = np.append(datas['edge_cylinder']['color'], datas['edge_cylinder']['transmit'])
         principled_node.inputs['Alpha'].default_value = datas['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
         datas['edge_cylinder']['materials'] = material
-        verts, faces = cylinder_mesh_from_instance(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.001, source)
+        verts, faces = cylinder_mesh_from_instance(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.01, source)
         # print(verts)
         mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
         mesh.from_pydata(verts, [], faces)  
@@ -397,6 +456,7 @@ def sphere_mesh_from_instance(centers, radius, source):
             faces.append(face)
     return verts, faces
 def cylinder_mesh_from_instance(centers, normals, lengths, scale, source):
+    # verts = np.empty((0, 3), float)
     verts = []
     faces = []
     vert0, face0 = source
@@ -417,10 +477,11 @@ def cylinder_mesh_from_instance(centers, normals, lengths, scale, source):
         r = R.from_rotvec(vec)
         matrix = r.as_dcm()
         # print(vec, ang)
-        for vert in vert0:
-            vert = vert*[scale, scale, length]
-            vert = vert.dot(matrix)
-            vert += center
+        vert1 = vert0.copy()
+        vert1 = vert1*np.array([scale, scale, length])
+        vert1 = vert1.dot(matrix)
+        vert1 += center
+        for vert in vert1:
             verts.append(vert)
         for face in face0:
             face = [x+ i*nvert for x in face]

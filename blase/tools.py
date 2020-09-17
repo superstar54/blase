@@ -16,9 +16,10 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
     rmbonds
     """
     from ase.data import covalent_radii
-    from ase.neighborlist import NeighborList
+    from ase.neighborlist import NeighborList, NewPrimitiveNeighborList
+    tstart = time.time()
     cutoffs = cutoff * covalent_radii[atoms.numbers]
-    nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True)
+    nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=False, primitive=NewPrimitiveNeighborList)
     nl.update(atoms)
     # bondpairs = []
     bondpairs = {}
@@ -37,6 +38,7 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
             if flag:
                 # bondpairs.extend([([a, a2], offset)])
                 bondpairs[a].append([a2, offset])
+    print('get_bondpairs: {0:10.2f} s'.format(time.time() - tstart))
     return bondpairs
 
 
@@ -67,6 +69,7 @@ def get_atom_kinds(atoms, props = {}):
     # symbols = atoms.symbols
     # formula = atoms.symbols.formula
     # atom_kinds = formula.count()
+    tstart = time.time()
     if hasattr(atoms, 'kinds'):
         kinds = list(set(atoms.kinds))
     else:
@@ -89,10 +92,17 @@ def get_atom_kinds(atoms, props = {}):
         atom_kinds[kind]['transmit'] = 1.0
         atom_kinds[kind]['radius'] = radius
         atom_kinds[kind]['balltype'] = None
+        # bond
+        atom_kinds[kind]['lengths'] = []
+        atom_kinds[kind]['centers'] = []
+        atom_kinds[kind]['normals'] = []
+        atom_kinds[kind]['verts'] = []
+        atom_kinds[kind]['faces'] = []
         if props:
             if kind in props.keys():
                 for prop, value in props[kind].items():
                     atom_kinds[kind][prop] = value
+    print('get_atom_kinds: {0:10.2f} s'.format(time.time() - tstart))
     return atom_kinds
 def get_bond_kinds(atoms, atom_kinds, bondlist):
     '''
@@ -101,45 +111,47 @@ def get_bond_kinds(atoms, atom_kinds, bondlist):
     mesh.from_pydata(vertices, [], faces)
     '''
     # view(atoms)
-    bond_kinds = {}
+    import copy
+    tstart = time.time()
+    # bond_kinds = copy.deepcopy(atom_kinds)
+    bond_kinds = atom_kinds.copy()
     for ind1, pairs in bondlist.items():
-        kind = atoms.kinds[ind1]
-        if kind not in bond_kinds.keys():
-            element = kind.split('_')[0]
-            lengths = []
-            centers = []
-            normals = []
-            bond_kinds[kind] = {'lengths': lengths, 'centers': centers, 'normals': normals}
-            number = chemical_symbols.index(element)
-            color = atom_kinds[kind]['color']
-            radius = covalent_radii[number]
-            bond_kinds[kind]['number'] = number
-            bond_kinds[kind]['color'] = color
-            bond_kinds[kind]['transmit'] = atom_kinds[kind]['transmit']
+        kind1 = atoms.kinds[ind1]
+        # print(ind1, kind, pairs)
         for bond in pairs:
             ind2, offset = bond
+            kind2 = atoms.kinds[ind2]
             R = np.dot(offset, atoms.cell)
-            # print(inds, offset)
             pos = [atoms.positions[ind1],
                    atoms.positions[ind2] + R]
-            # print(pos)
             center0 = (pos[0] + pos[1])/2.0
-            if pos[0][2] > pos[1][2]:
-                vec = pos[0] - pos[1]
-            else:
-                vec = pos[1] - pos[0]
-            # print(vec)
+            vec = pos[0] - pos[1]
             length = np.linalg.norm(vec)
             nvec = vec/length
-            # kinds = [atoms[ind].symbol for ind in [a, b]]
-            center = (center0 + pos[0])/2.0
-            bond_kinds[kind]['centers'].append(center)
-            bond_kinds[kind]['lengths'].append(length/4.0)
-            bond_kinds[kind]['normals'].append(nvec)
+            nvec = nvec + 1e-8
+            # verts, faces
+            v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
+            v11 = v1 - np.dot(v1, nvec)*nvec
+            v11 = v11/np.linalg.norm(v11)/2.828427
+            v22 = np.cross(nvec, v11)*length*length
+            kinds = [kind1, kind2]
+            for i in range(2):
+                kind = kinds[i]
+                center = (center0 + pos[i])/2.0
+                bond_kinds[kind]['centers'].append(center)
+                bond_kinds[kind]['lengths'].append(length/4.0)
+                bond_kinds[kind]['normals'].append(nvec)
+                nvert = len(bond_kinds[kind]['verts'])
+                bond_kinds[kind]['verts'].append(center + v11)
+                bond_kinds[kind]['verts'].append(center - v11)
+                bond_kinds[kind]['verts'].append(center + v22)
+                bond_kinds[kind]['verts'].append(center - v22)
+                bond_kinds[kind]['faces'].append([nvert + 0, nvert + 2, nvert + 1, nvert + 3])
     # pprint.pprint(bond_kinds)
+    print('get_bond_kinds: {0:10.2f} s'.format(time.time() - tstart))
     return bond_kinds
 
-def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.4, polyhedra_dict = {}):
+def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.8, polyhedra_dict = {}):
     """
     Two modes:
     (1) Search atoms bonded to kind
@@ -152,6 +164,12 @@ def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.4, polyhe
     # loop center atoms
     # for ind1, pairs in bondlist.items():
         # kind = atoms.kinds[ind1]
+    # update bondlist
+    for ind1, pairs in bondlist.items():
+        # print(ind1, kind, pairs)
+        for bond in pairs:
+            ind2, offset = bond
+            bondlist[ind2].append([ind1, -offset])
     for kind, ligand in polyhedra_dict.items():
         # print(kind, ligand)
         if kind not in polyhedra_kinds.keys():
@@ -170,7 +188,7 @@ def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.4, polyhe
             polyhedra_kinds[kind]['color'] = atom_kinds[kind]['color']
             polyhedra_kinds[kind]['transmit'] = transmit
             polyhedra_kinds[kind]['edge_cylinder']['color'] = (1.0, 1.0, 1.0)
-            polyhedra_kinds[kind]['edge_cylinder']['transmit'] = 0.4
+            polyhedra_kinds[kind]['edge_cylinder']['transmit'] = 1.0
         inds = [atom.index for atom in atoms if atom.symbol == kind]
         for ind in inds:
             vertice = []
