@@ -11,7 +11,7 @@ kwargs = {'show_unit_cell': 1,
           # 'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
           'radii': 0.6,
           'display': True,
-          'search_pbc': {'bonds_dict': {}},
+          'search_pbc_atoms': {'bonds_dict': {}},
           'outfile': 'figs/test-search-pbc',
           }
 write_blender(atoms, **kwargs)

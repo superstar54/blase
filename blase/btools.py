@@ -99,6 +99,7 @@ def draw_atoms(bobj = None, coll = None, atom_kinds = None, bsdf_inputs = None, 
         # material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
+        principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
         principled_node.inputs['Alpha'].default_value = datas['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
@@ -178,6 +179,7 @@ def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bon
         # material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
+        principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
         principled_node.inputs['Alpha'].default_value = bond_kinds[kind]['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
@@ -219,6 +221,7 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
         # material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
+        principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
         principled_node.inputs['Alpha'].default_value = polyhedra_kinds[kind]['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
@@ -241,6 +244,7 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
         # material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
+        principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
         principled_node.inputs['Alpha'].default_value = datas['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
@@ -307,6 +311,7 @@ def draw_isosurface(bobj = None, coll = None, volume = None, level = 0.02,
     # material.blend_method = 'BLEND'
     material.use_nodes = True
     principled_node = material.node_tree.nodes['Principled BSDF']
+    principled_node.inputs['Base Color'].default_value = color + (transmit,)
     principled_node.inputs['Alpha'].default_value = transmit
     for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value

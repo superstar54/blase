@@ -27,17 +27,17 @@ atoms.cell[0][0] += 10
 
 atoms.rotate(90, 'y')
 # view(atoms)
-bondatoms = get_bondpairs(atoms, radius=1.2, rmbonds=[['Na', 'Na'], ['Cl', 'Cl']])
+bondatoms = get_bondpairs(atoms, cutoff=1.2, rmbonds=[['Na', 'Na'], ['Cl', 'Cl']])
 # print(bondatoms)
 kwargs = {
           # 'show_unit_cell': 1, 
           'radii': 0.6, 
           # 'functions': [['draw_plane', {'size': 200, 'loc': (0, 0, -1.0)}]],
           'bonds': 'all',
-          # 'display': True,    
+          'display': True,    
           'radii': {'C': 0.8, 'H': 0.8}, 
           'bondlist': bondatoms,
           'bondlinewidth': 0.4,  # radius of the cylinders representing bonds
-          'outfile': 'NaCl_C6H6',
+          'outfile': 'figs/NaCl_C6H6',
           }
 write_blender(atoms, **kwargs)

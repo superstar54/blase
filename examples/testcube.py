@@ -8,7 +8,7 @@ kwargs = {'show_unit_cell': 1,
           # 'bond_cutoff': 1.0,
           'isosurface': [data, -0.002, 0.002],
           'rotations': [[90, '-x'], [30, 'y']],
-          # 'display': True,
+          'display': True,
           'outfile': 'figs/testcube'}
 
 write_blender(atoms, **kwargs)

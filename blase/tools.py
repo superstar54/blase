@@ -55,7 +55,7 @@ def write_blender(atoms, display = False, queue = None, **kwargs):
         cmd = 'srun -n $SLURM_NTASKS ' +  blender_cmd + ' -b ' + ' -P ' + blase_cmd
     else:
         cmd = blender_cmd + ' -b ' + ' -P ' + blase_cmd
-    # print(cmd)
+    print(cmd)
     errcode = os.system(cmd)
     # if errcode != 0:
     #     raise OSError('Command ' + cmd +

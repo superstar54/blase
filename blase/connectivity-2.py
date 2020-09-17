@@ -74,17 +74,16 @@ class ConnectivityList:
         print(self.bonds_dict)
         print(self.molecule_dict)
         #
-    def build(self, atoms = None, pbc = None, bonds_dict = None, molecule_dict = None):
+    def build(self, atoms = None):
         """
         """
         self.add = 0
         tstart = time.time()
-        self.search_pbc()
-        # view(self.atoms)
         print('Start searching: ')
-        # self.search_bond(bonds_dict = self.bonds_dict)
-        # self.search_molecule(molecule_dict = self.molecule_dict)
-        # self.search_bond(bonds_dict = self.bonds_dict)
+        self.search_pbc()
+        self.search_bond(bonds_dict = self.bonds_dict)
+        self.search_molecule(molecule_dict = self.molecule_dict)
+        self.search_bond(bonds_dict = self.bonds_dict)
         print('Search ConnectivityList time: {0:1.2f} s, add {1} atoms'.format(time.time() - tstart, self.add_total))
         self.atoms.pbc = [False, False, False]
         print(self.atoms)
@@ -99,7 +98,7 @@ class ConnectivityList:
             i += 1
             if self.add == 0: flag = False
         # view(atoms[mask])
-    def search_pbc(self, atoms = None, cutoff=1e-2):
+    def search_pbc(self, atoms = None, cutoff=1e-6):
         """
         Two modes:
         (1) Search atoms bonded to kind
@@ -232,26 +231,20 @@ if __name__ == "__main__":
     from ase.build import molecule, bulk
     from ase.visualize import view
     from ase.data import covalent_radii
-    # test pbc
-    # atoms = bulk('Pt')
-    # cl = ConnectivityList(atoms, cutoffs = 1.2, pbc = ['Pt'])
-    # atoms = cl.build()
-    # view(atoms)
-    # atoms = read('../examples/datas/tio2.cif')
-    # view(atoms)
-    # cl = ConnectivityList(atoms, cutoffs = 1.2, pbc = ['Ti'], bonds_dict = {'O': [['Ti'], -1]})
+    atoms = read('../examples/datas/tio2.cif')
     # atoms = read('../examples/datas/latino2-trans-p-001-plp-relax.in')
-    # view(atoms)
-    # cl = ConnectivityList(atoms, cutoffs = 1.2, pbc = ['La'], bonds_dict = {}, molecule_list = {})
+    view(atoms)
     # atoms = read('../examples/perovskite.cif')
-    # cl = ConnectivityList(atoms, cutoffs = 1.2,  bonds_dict = {'I': [['Pb'], -1]}, molecule_list = [['C', 'N']])
     # atoms = read('../examples/datas/anthraquinone.cif')
+    # print(atoms)
+    # cl = ConnectivityList(atoms, cutoffs = 1.2, pbc = ['La'], bonds_dict = {}, molecule_list = {})
+    cl = ConnectivityList(atoms, cutoffs = 1.2, bonds_dict = {'O': [['Ti'], -1]})
+    # cl = ConnectivityList(atoms, cutoffs = 1.2,  bonds_dict = {'I': [['Pb'], -1]}, molecule_list = [['C', 'N']])
     # cl = ConnectivityList(atoms, cutoffs = 1.2, molecule_list = [['C', 'C'], ['C', 'O']])
-    # print(atoms)
     # cl = ConnectivityList(atoms, cutoffs = 1.2)
-    # atoms = cl.build()
-    # print(atoms)
-    # view(atoms)
+    atoms = cl.build()
+    print(atoms)
+    view(atoms)
     # atoms = cl.remove_pbc(atoms)
     # print(atoms)
     # view(atoms)

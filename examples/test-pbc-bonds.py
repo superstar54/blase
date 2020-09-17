@@ -18,6 +18,6 @@ kwargs = {'show_unit_cell': True,
           'bond_cutoff': 1.0,
           'resolution_x': 1000,
           'display': True,
-          'outfile': 'test-pbc-bonds',
+          'outfile': 'figs/test-pbc-bonds',
           }
 write_blender(atoms, **kwargs)
