@@ -220,6 +220,7 @@ def draw_bonds_2(bobj = None, coll = None, bond_kinds = None, bond_list= None, b
         else:
             vertices = 16
     #
+    # print(bond_kinds)
     for kind, datas in bond_kinds.items():
         tstart = time.time()
         material = bpy.data.materials.new('bond_kind_{0}'.format(kind))

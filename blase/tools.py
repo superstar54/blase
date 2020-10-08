@@ -8,9 +8,9 @@ from ase.data.colors import jmol_colors
 from ase.visualize import view
 import pprint
 import time
+import copy
 
-
-def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
+def get_bondpairs(atoms, cutoff=1.0, rmbonds = {}):
     """
     Get all pairs of bonding atoms
     rmbonds
@@ -19,7 +19,7 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
     from ase.neighborlist import NeighborList, NewPrimitiveNeighborList
     tstart = time.time()
     cutoffs = cutoff * covalent_radii[atoms.numbers]
-    nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=False, primitive=NewPrimitiveNeighborList)
+    nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True, primitive=NewPrimitiveNeighborList)
     nl.update(atoms)
     # bondpairs = []
     bondpairs = {}
@@ -30,13 +30,13 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = []):
         # print(a, indices)
         for a2, offset in zip(indices, offsets):
             flag = True
-            for rmpair in rmbonds:
-                if atoms[a].symbol == rmpair[0] and atoms[a2].symbol == rmpair[1] \
-                  or atoms[a].symbol == rmpair[1] and atoms[a2].symbol == rmpair[0]:
-                    flag = False
-            # print(a, a2, flag)
+            for key, kinds in rmbonds.items():
+                for kind in kinds:
+                    if atoms[a].symbol == key and kind == '*' \
+                       or atoms[a].symbol == key and atoms[a2].symbol == kind \
+                       or atoms[a].symbol == kind and atoms[a2].symbol == key:
+                        flag = False
             if flag:
-                # bondpairs.extend([([a, a2], offset)])
                 bondpairs[a].append([a2, offset])
     print('get_bondpairs: {0:10.2f} s'.format(time.time() - tstart))
     return bondpairs
@@ -111,7 +111,7 @@ def get_bond_kinds(atoms, atom_kinds, bondlist):
     mesh.from_pydata(vertices, [], faces)
     '''
     # view(atoms)
-    import copy
+    
     tstart = time.time()
     # bond_kinds = copy.deepcopy(atom_kinds)
     bond_kinds = atom_kinds.copy()
@@ -134,8 +134,9 @@ def get_bond_kinds(atoms, atom_kinds, bondlist):
             v11 = v1 - np.dot(v1, nvec)*nvec
             v11 = v11/np.linalg.norm(v11)/2.828427
             v22 = np.cross(nvec, v11)*length*length
+            #
             kinds = [kind1, kind2]
-            for i in range(2):
+            for i in range(1):
                 kind = kinds[i]
                 center = (center0 + pos[i])/2.0
                 bond_kinds[kind]['centers'].append(center)
@@ -160,16 +161,11 @@ def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.8, polyhe
     from scipy.spatial import ConvexHull
     from ase.data import covalent_radii
     from ase.neighborlist import NeighborList
+    tstart = time.time()
     polyhedra_kinds = {}
     # loop center atoms
     # for ind1, pairs in bondlist.items():
         # kind = atoms.kinds[ind1]
-    # update bondlist
-    for ind1, pairs in bondlist.items():
-        # print(ind1, kind, pairs)
-        for bond in pairs:
-            ind2, offset = bond
-            bondlist[ind2].append([ind1, -offset])
     for kind, ligand in polyhedra_dict.items():
         # print(kind, ligand)
         if kind not in polyhedra_kinds.keys():
@@ -230,6 +226,7 @@ def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.8, polyhe
                     polyhedra_kinds[kind]['edge_cylinder']['lengths'].append(length/2.0)
                     polyhedra_kinds[kind]['edge_cylinder']['centers'].append(center)
                     polyhedra_kinds[kind]['edge_cylinder']['normals'].append(nvec)
+    print('get_polyhedra_kinds: {0:10.2f} s'.format(time.time() - tstart))
     return polyhedra_kinds
 
 

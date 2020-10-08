@@ -168,8 +168,10 @@ class Blase():
         # bond_kinds
         if not self.bond_list and self.bond_cutoff:
             self.bond_list = get_bondpairs(self.atoms, cutoff = self.bond_cutoff)
-        # print(self.bond_list)
         self.bond_kinds = get_bond_kinds(self.atoms, self.atom_kinds, self.bond_list)
+        if self.debug:
+            print(self.bond_list)
+            print(self.bond_kinds)
         #------------------------------------------------------------
         self.polyhedra_kinds = get_polyhedra_kinds(self.atoms, self.atom_kinds, self.bond_list, polyhedra_dict = self.polyhedra_dict)
         #------------------------------------------------------------
@@ -289,8 +291,8 @@ class Blase():
      	   coll = self.coll
         draw_cell(self, coll = coll)
         draw_atoms(self, coll = coll)
-        draw_bonds_2(self, coll = coll)
-        # draw_bonds(self, coll = coll)
+        # draw_bonds_2(self, coll = coll)
+        draw_bonds(self, coll = coll)
         draw_polyhedras(self, coll = coll)
         if self.isosurface:
             volume = self.isosurface[0]

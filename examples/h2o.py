@@ -15,7 +15,7 @@ kwargs = {'show_unit_cell': 0,
           'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
           'radii': 0.6, 
           'bond_cutoff':  1.0,
-          # 'display': True,
+          'display': True,
           'run_render': False,
           'outfile': 'figs/h2o',
           }
