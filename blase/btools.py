@@ -96,6 +96,8 @@ def draw_atoms(bobj = None, coll = None, atom_kinds = None, bsdf_inputs = None, 
         tstart = time.time()
         material = bpy.data.materials.new('atom_kind_{0}'.format(kind))
         material.diffuse_color = np.append(datas['color'], datas['transmit'])
+        material.metallic = bsdf_inputs['Metallic']
+        material.roughness = bsdf_inputs['Roughness']
         # material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
@@ -150,7 +152,7 @@ def draw_atoms(bobj = None, coll = None, atom_kinds = None, bsdf_inputs = None, 
             bpy.data.objects.remove(bpy.data.objects['atom_kind_{0}'.format(kind)])
         print('make_real: {0:10.2f} s'.format(time.time() - tstart))
 
-def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bondlinewidth = None, vertices = None, bsdf_inputs = None, material_style = 'blase'):
+def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bondlinewidth = None, vertices = None, bsdf_inputs = None, material_style = 'plastic'):
     '''
     Draw atom bonds
     '''
@@ -176,6 +178,8 @@ def draw_bonds(bobj = None, coll = None, bond_kinds = None, bond_list= None, bon
         tstart = time.time()
         material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
         material.diffuse_color = np.append(bond_kinds[kind]['color'], bond_kinds[kind]['transmit'])
+        material.metallic = bsdf_inputs['Metallic']
+        material.roughness = bsdf_inputs['Roughness']
         # material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
@@ -325,9 +329,9 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
         coll_polyhedra_kinds.objects.link(obj_edge)
         print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
-def draw_isosurface(bobj = None, coll = None, volume = None, level = 0.02,
+def draw_isosurface(bobj = None, coll = None, volume = None, level = None,
                     closed_edges = False, gradient_direction = 'descent',
-                    color=(0.85, 0.80, 0.25) , icolor = None, transmit=0.5,
+                    color=(0.85, 0.80, 0.25) , icolor = None, transmit=0.4,
                     verbose = False, step_size = 1, 
                     bsdf_inputs = None, material_style = 'blase'):
     """Computes an isosurface from a volume grid.
@@ -335,7 +339,7 @@ def draw_isosurface(bobj = None, coll = None, volume = None, level = 0.02,
     Parameters:     
     """
     from skimage import measure
-    colors = [(0.85, 0.80, 0.25), (0.0, 0.0, 1.0)]
+    colors = [(1, 1, 0), (0.0, 0.0, 1.0)]
     if icolor:
         color = colors[icolor]
     if not  coll:
@@ -347,6 +351,10 @@ def draw_isosurface(bobj = None, coll = None, volume = None, level = 0.02,
     cell_origin = bobj.cell_vertices[0,0,0]
     #
     spacing = tuple(1.0/np.array(volume.shape))
+    mlevel = np.mean(volume)
+    if not level:
+        level = mlevel*10
+    print('iso level: {0:1.9f}, iso mean: {1:1.9f}'.format(level, mlevel))
     scaled_verts, faces, normals, values = measure.marching_cubes_lewiner(volume, level = level,
                     spacing=spacing,gradient_direction=gradient_direction , 
                     allow_degenerate = False, step_size=step_size)
@@ -476,7 +484,7 @@ def cylinder_mesh_from_instance(centers, normals, lengths, scale, source):
         ang = np.arccos(normal[2])
         vec = -1*ang*vec
         r = R.from_rotvec(vec)
-        matrix = r.as_dcm()
+        matrix = r.as_matrix()
         # print(vec, ang)
         vert1 = vert0.copy()
         vert1 = vert1*np.array([scale, scale, length])

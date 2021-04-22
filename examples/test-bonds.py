@@ -7,18 +7,18 @@ from ase.data import covalent_radii
 
 
 atoms = read('datas/tio2.cif')
+atoms = atoms*[2, 2, 2]
 # view(atoms)
-bond_list = get_bondpairs(atoms, cutoff=1.0, rmbonds=[['Ti', 'Ti']])
+bond_list = get_bondpairs(atoms, cutoff=1.0)
 # pprint(bond_list)
 kwargs = {'name': 'tio2',
           'show_unit_cell': 1, 
           'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
-          'radii': 0.6,
-          # 'bond_cutoff': 1.0,
-          'bond_list': bond_list,
+          'radii': 0.3,
+          'bond_cutoff': 1.0,
           'display': True,
           # 'search_pbc': {'bonds_dict': {'O': [['Ti'], -1]}},
-          'polyhedra_dict': {'Ti': ['O']},
+        #   'polyhedra_dict': {'Ti': ['O']},
           'outfile': 'figs/test-search-bonds',
           }
 write_blender(atoms, **kwargs)

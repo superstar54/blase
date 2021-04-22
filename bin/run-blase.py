@@ -23,7 +23,7 @@ def main():
         name, paras = function
         getattr(bobj, name)(**paras)
     # if bobj.'run_render':
-    # bobj.load_frames()
+    bobj.load_frames()
     
     bobj.render()
     # bobj.export('h2o.xyz')

@@ -10,13 +10,18 @@ import pprint
 import time
 import copy
 
-def get_bondpairs(atoms, cutoff=1.0, rmbonds = {}):
+def get_bondpairs(atoms, cutoff=1.0, add_bonds = {}, remove_bonds = {}):
     """
+    The default bonds are stored in 'default_bonds'
     Get all pairs of bonding atoms
-    rmbonds
+    remove_bonds
     """
     from ase.data import covalent_radii
     from ase.neighborlist import NeighborList, NewPrimitiveNeighborList
+    from blase.default_data import default_bonds
+
+    for ele1, ele2 in add_bonds:
+        default_bonds[ele1] += ele2
     tstart = time.time()
     cutoffs = cutoff * covalent_radii[atoms.numbers]
     nl = NeighborList(cutoffs=cutoffs, self_interaction=False, bothways=True, primitive=NewPrimitiveNeighborList)
@@ -28,9 +33,13 @@ def get_bondpairs(atoms, cutoff=1.0, rmbonds = {}):
         bondpairs[a] = []
         indices, offsets = nl.get_neighbors(a)
         # print(a, indices)
+        ele1 = atoms[a].symbol
         for a2, offset in zip(indices, offsets):
-            flag = True
-            for key, kinds in rmbonds.items():
+            ele2 = atoms[a2].symbol
+            flag = False
+            if ele2 in default_bonds[ele1] or ele1 in default_bonds[ele2]:
+                flag = True
+            for key, kinds in remove_bonds.items():
                 for kind in kinds:
                     if atoms[a].symbol == key and kind == '*' \
                        or atoms[a].symbol == key and atoms[a2].symbol == kind \
@@ -77,6 +86,7 @@ def get_atom_kinds(atoms, props = {}):
         kinds = list(set(atoms.kinds))
     # print(kinds)
     atom_kinds = {}
+    
     for kind in kinds:
         atom_kinds[kind] = {}
         element = kind.split('_')[0]

@@ -8,7 +8,7 @@ from ase.data import covalent_radii
 
 atoms = bulk('Pt')
 kwargs = {'show_unit_cell': 1, 
-          # 'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
+          'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
           'radii': 0.6,
           'display': True,
           'search_pbc_atoms': {'bonds_dict': {}},

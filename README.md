@@ -39,6 +39,12 @@ export BLASE_PATH="~/apps/blase/"
 
 You can specify the location of blender by ```sh export BLENDER_COMMAND="~/bin/blender" ```, otherwise blase will use the default blender command in the system.
 
+#### Install ASE in Blender
+* go to the python directory, e.g. ```blender-2.92.0/2.92/python/bin```
+* install pip, ```./python3.7m -m ensurepip```
+* install ase, ```./pip3 install --upgrade ase```
+
+
 ### How to use
 * Run from command line directly, supporting functions from build inside blase.  ```blase_gui h2o.xyz ```
 
@@ -285,6 +291,14 @@ Or set your own materials by setting the bsdf_inputs dict.
 bsdf_inputs = {'Metallic': 1.0, 'Specular': 1.0, 'Roughness': 0.01, }
 bobj.draw_atoms(bsdf_inputs = bsdf_inputs)
 ````
+
+
+### Tips
+
+#### Edit the studio light
+The Workbench engine use the studio light instead of the lights in the scene. To make you image more brighter. You can add an new Studio light. https://docs.blender.org/manual/en/latest/editors/preferences/lights.html#prefs-lights-studio. Please save it to as ```StudioLight_blase.sl```. Then Blase will use this one when Workbench engined is used.
+
+
 
 ### To do
 

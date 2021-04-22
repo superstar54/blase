@@ -1,5 +1,8 @@
 # ###################################################################
 """Python module for drawing and rendering ase atoms objects using blender.
+Basic idea:
+
+
 
 Part of code based on ase.io.pov, 
 https://wiki.fysik.dtu.dk/ase/dev/_modules/ase/io/pov.html
@@ -13,6 +16,7 @@ from mathutils import Vector, Matrix
 import os
 import numpy as np
 from ase import Atoms, Atom
+from ase.visualize import view
 from ase.io.utils import PlottingVariables, cell_to_lines
 from ase.constraints import FixAtoms
 from ase.utils import basestring
@@ -27,6 +31,15 @@ from blase.btools import draw_cell, draw_atoms, draw_bonds, draw_bonds_2, draw_p
 from blase.connectivity import ConnectivityList
 from blase.boundary import Boundary
 import time
+import logging
+import sys
+
+logging.basicConfig(stream=sys.stdout,
+                    format=('%(levelname)-8s '
+                            '[%(funcName)s]: %(message)s'),
+                    level=logging.INFO)
+
+logger = logging.getLogger('xespresso')
 
 
 
@@ -97,36 +110,48 @@ class Blase():
     #
     
 
-    def __init__(self, images, outfile = 'bout', name = None, rotations=None, scale=1, debug = False,
+    def __init__(self, images, outfile = 'bout', rotations=None, rotate_matrix = None, scale=1, debug = False,
                               **parameters):
         for k, v in self.default_settings.items():
             setattr(self, k, parameters.pop(k, v))
         #
-        self.debug = debug
+        self.name = None
+        self.logger = logger
+        if debug:
+            print('debug is: ', debug)
+            self.logger.setLevel(debug)
         if not isinstance(images, list):
             images = [images]
         self.nimages = len(images)
+        self.logger.debug('Number of images: %s'%(self.nimages))
         self.outfile = outfile
         if rotations:
             for rotation in rotations:
                 for i in range(self.nimages):
                     images[i].rotate(rotation[0], rotation[1], rotate_cell = True)
+        if rotate_matrix is not None:
+            for i in range(self.nimages):
+                center = images[i].get_center_of_mass()
+                # images[i].positions = images[i].positions - center
+                images[i].positions = np.dot(images[i].positions, rotate_matrix)
+                if images[i].pbc.any():
+                    images[i].cell = np.dot(images[i].cell, rotate_matrix)
+                images[i].translate(center - images[i].get_center_of_mass())
         #
         self.images = images
         self.atoms = images[0]
+        # view(self.atoms)
         if self.search_pbc_atoms:
-            print(self.search_pbc_atoms)
+            self.logger.debug('Search for pbc')
             cl = ConnectivityList(self.atoms, cutoffs = self.bond_cutoff, **self.search_pbc_atoms)
             self.atoms = cl.build()
-            # view(self.atoms)
-            print(self.atoms)
         if self.boundary_list:
             bd = Boundary(self.atoms, self.boundary_list)
             self.atoms = bd.build()
-        self.name = name
         if not self.name:
             self.name = self.atoms.symbols.formula.format('abc')
         self.natoms = len(self.atoms)
+        self.logger.debug('Number of atoms: %s' %(self.natoms))
         self.positions = self.atoms.positions*scale
         self.numbers = self.atoms.get_atomic_numbers()
         self.symbols = self.atoms.get_chemical_symbols()
@@ -137,8 +162,8 @@ class Blase():
         # atom_kinds
         self.atom_kinds = get_atom_kinds(self.atoms, self.kind_props)
         self.nkinds = len(self.atom_kinds)
-        if self.debug:
-            print(self.atom_kinds)
+        self.logger.debug('Get atom kinds: ')
+        self.logger.debug('Number of kinds: %s' % (self.nkinds))
         #
         if isinstance(self.colors, dict):
             for kind in self.colors:
@@ -169,9 +194,8 @@ class Blase():
         if not self.bond_list and self.bond_cutoff:
             self.bond_list = get_bondpairs(self.atoms, cutoff = self.bond_cutoff)
         self.bond_kinds = get_bond_kinds(self.atoms, self.atom_kinds, self.bond_list)
-        if self.debug:
-            print(self.bond_list)
-            print(self.bond_kinds)
+        self.logger.debug('Get bond kinds: ')
+        # self.logger.debug('Number of kinds: %s' % (self.nkinds))
         #------------------------------------------------------------
         self.polyhedra_kinds = get_polyhedra_kinds(self.atoms, self.atom_kinds, self.bond_list, polyhedra_dict = self.polyhedra_dict)
         #------------------------------------------------------------
@@ -196,6 +220,7 @@ class Blase():
         if self.bbox is None:
             bbox = np.zeros([3, 2])
             # print(self.positions)
+            print(self.atoms)
             R = self.atom_kinds[max(self.atom_kinds, key = lambda x: self.atom_kinds[x]['radius'])]['radius']
             for i in range(3):
                 P1 = (self.positions[:, i] - R).min(0)
@@ -236,9 +261,9 @@ class Blase():
             'jmol'    : {'Specular': 1.0, 'Roughness': 0.001, 'Metallic': 1.0},
             'ase3'    : {'Metallic': 1.0, 'Roughness': 0.001},
             'ceramic' : {'Subsurface': 0.1, 'Metallic': 0.02, 'Specular': 0.5, 'Roughness': 0.0},
-            'plastic' : {'Metallic': 0.0, 'Specular': 0.5, 'Roughness': 0.7, 'Sheen Tint': 0.5, 'Clearcoat Roughness': 0.03, 'IOR': 1.6},
-            'glass'   : {'Metallic': 0.0, 'Specular': 0.5, 'Roughness': 0.0, 'Clearcoat': 0.5, 'Clearcoat Roughness': 0.03, 'IOR': 1.45, 'Transmission': 0.98},
-            'blase'   : {'Metallic': 0.02, 'Specular': 0.2, 'Roughness': 0.4, },
+            'plastic' : {'Metallic': 0.0, 'Specular': 0.5, 'Roughness': 1.0, },
+            'glass'   : {'Metallic': 0.0, 'Specular': 0.5, 'Roughness': 0.0, 'Transmission': 0.98},
+            'blase'   : {'Metallic': 0.1, 'Specular': 0.2, 'Roughness': 0.2, },
             'mirror'  : {'Metallic': 0.99, 'Specular': 2.0, 'Roughness': 0.001},
             }
         # ------------------------------------------------------------------------
@@ -273,8 +298,10 @@ class Blase():
         bpy.ops.object.select_all(action='DESELECT')
         # CAMERA and LIGHT SOURCES
         if self.camera:
+            self.logger.debug('Add camera')
             self.add_camera()
         if self.light:
+            self.logger.debug('Add light')
             self.add_light()
         #
         if self.world:
@@ -287,16 +314,18 @@ class Blase():
             node_tree.links.new(rgb_node.outputs["Color"], node_tree.nodes["Background"].inputs["Color"])
         #
     def draw(self, coll = None):
+        self.logger.debug('Drawing objects...')
         if not coll:
      	   coll = self.coll
         draw_cell(self, coll = coll)
         draw_atoms(self, coll = coll)
-        # draw_bonds_2(self, coll = coll)
         draw_bonds(self, coll = coll)
         draw_polyhedras(self, coll = coll)
         if self.isosurface:
             volume = self.isosurface[0]
             icolor = 0
+            if len(self.isosurface) == 1:
+                draw_isosurface(self, coll = coll, volume=volume, level=None, icolor = icolor)
             for level in self.isosurface[1:]:
                 draw_isosurface(self, coll = coll, volume=volume, level=level, icolor = icolor)
                 icolor += 1
@@ -426,6 +455,8 @@ class Blase():
                 os.makedirs(self.directory)  # cp2k expects dirs to exist
         self.scene.render.image_settings.file_format = 'PNG'
         self.scene.render.engine = self.engine
+        if self.engine.upper() == 'BLENDER_WORKBENCH':
+            bpy.data.scenes['Scene'].display.shading.studio_light = 'StudioLight_blase.sl'
         if self.engine.upper() == 'CYCLES' and self.gpu:
             self.scene.cycles.device = 'GPU'
             prefs = bpy.context.preferences.addons['cycles'].preferences

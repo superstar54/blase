@@ -62,6 +62,8 @@ def main():
     print('='*30)
     print('Import structure')
     print('='*30)
+    print(atoms)
+    print(kwargs)
     write_blender(atoms, **kwargs)
     print('\n Finished!')
 
