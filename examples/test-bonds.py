@@ -8,6 +8,7 @@ from ase.data import covalent_radii
 
 atoms = read('datas/tio2.cif')
 atoms = atoms*[2, 2, 2]
+atoms.pbc = False
 # view(atoms)
 bond_list = get_bondpairs(atoms, cutoff=1.0)
 # pprint(bond_list)
@@ -17,7 +18,8 @@ kwargs = {'name': 'tio2',
           'radii': 0.3,
           'bond_cutoff': 1.0,
           'display': True,
-          # 'search_pbc': {'bonds_dict': {'O': [['Ti'], -1]}},
+          'search_pbc': 0.05,
+          'search_bond': {'bonds_dict': {'O': [['Ti'], -1]}},
         #   'polyhedra_dict': {'Ti': ['O']},
           'outfile': 'figs/test-search-bonds',
           }
