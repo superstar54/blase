@@ -69,29 +69,7 @@ def get_bondpairs(atoms, cutoff=1.0, add_bonds = {}, remove_bonds = {}):
     return bondpairs
 
 
-def write_blender(atoms, display = False, queue = None, **kwargs):
-    with open('blase.inp', 'wb') as f:
-        pickle.dump([atoms, kwargs], f)
-    #
-    blender_cmd = 'blender'
-    if 'BLENDER_COMMAND' in os.environ.keys():
-        blender_cmd = os.environ['BLENDER_COMMAND']
-    blase_path = os.environ['BLASE_PATH']
-    blase_cmd = blase_path + '/bin/run-blase.py'
-    if display:
-        cmd = blender_cmd + ' -P ' + blase_cmd
-    elif queue == 'SLURM':
-        cmd = 'srun -n $SLURM_NTASKS ' +  blender_cmd + ' -b ' + ' -P ' + blase_cmd
-    else:
-        cmd = blender_cmd + ' -b ' + ' -P ' + blase_cmd
-    print(cmd)
-    errcode = os.system(cmd)
-    # if errcode != 0:
-    #     raise OSError('Command ' + cmd +
-    #                   ' failed with error code %d' % errcode)
 
-# def get_atom_kinds(atoms, props):
-    # return kinds
 def default_atom_kind(element, positions, color = 'jmol'):
     """
     """

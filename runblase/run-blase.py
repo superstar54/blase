@@ -1,8 +1,6 @@
-#!/usr/bin/env python
 from ase.io import read
 from ase.io.cube import read_cube_data
 from blase.bio import Blase
-from blase.btools import draw_cell, draw_atoms, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 from blase.batoms import Batoms
 import pickle
 
@@ -15,12 +13,13 @@ def main():
     print('Running blender')
     print('='*30)
     with open(inputfile, 'rb') as f:
-        images, kwargs = pickle.load(f)
+        atoms, kwargs = pickle.load(f)
     #
-    # bobj = Blase(images, **kwargs)
-    bobj = Batoms(images)
-    # view(images)
-    bobj.draw_atoms()
+    from blase.bio import Blase
+    print('Rendering atoms')
+    batoms = Batoms(atoms)
+    obj = Blase(batoms, **kwargs)
+    obj.render()
     # for function in bobj.functions:
         # name, paras = function
         # getattr(bobj, name)(**paras)

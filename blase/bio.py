@@ -10,7 +10,7 @@ from ase.constraints import FixAtoms
 from ase.io import read, write
 from math import pi, sqrt, radians, acos, atan2
 from blase.tools import get_bbox
-from blase.utils import read_blase_collection_list, read_blase_collection
+from blase.butils import read_blase_collection_list, read_blase_collection
 from blase.data import default_settings, material_styles_dict
 import time
 import logging

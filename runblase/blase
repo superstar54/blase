@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from ase.io import read
 from ase.io.cube import read_cube_data
-from blase.tools import write_blender, get_bondpairs
+from runblase import write_blender
 import sys
 import argparse
 
