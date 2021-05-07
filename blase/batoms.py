@@ -12,17 +12,16 @@ import bmesh
 from mathutils import Vector
 from math import sqrt
 from copy import copy
-from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_cell_vertices, get_polyhedra_kinds, search_pbc
+from blase.tools import get_atom_kinds, get_bond_kinds, get_bondpairs, get_cell_vertices, get_polyhedra_kinds, search_pbc, get_bbox
 from blase.bdraw import draw_cell, draw_atoms, draw_atom_kind, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 import numpy as np
 from ase.cell import Cell
+import time
 
 
 
 
 subcollections = ['atoms', 'bonds', 'instancers', 'cell', 'polyhedras', 'isosurfaces', 'boundary']
-
-
 
 
 class Batoms():
@@ -33,33 +32,49 @@ class Batoms():
     
     """
 
-    def __init__(self, atoms, name = None, coll = None, draw = False, model_type = '0',
-                 scale = 1.0):
+    def __init__(self, atoms, name = None, coll = None,
+                 draw = False, model_type = '0', boundary = [0.0, 0.0, 0.0],
+                 scale = 1.0, add_bonds = {}, remove_bonds = {},
+                 show_unit_cell = True,
+                 movie = False):
         if not hasattr(bpy.types.Collection, 'blase'):
             print('add blase')
             bpy.types.Collection.blase = bpy.props.PointerProperty(name="blase", type = BlaseSettings)
-            # bpy.types.Collection.batoms = bpy.props.CollectionProperty(name="batoms", type = BlaseAtom)
-        self.atoms = atoms
+            bpy.types.Collection.batoms = bpy.props.CollectionProperty(name="batoms", type = BlaseAtom)
+        if not isinstance(atoms, list):
+            atoms = [atoms]
+        self.images = atoms
+        self.atoms = atoms[0]
         self.name = name
         if not self.name:
             self.name = self.atoms.symbols.formula.format('abc')
         self.scene = bpy.context.scene
         self.coll = coll
         self.set_collection()
-        # self.set_atoms()
-        self.coll.blase.model_type = model_type
+        self.add_bonds = add_bonds
+        self.remove_bonds = remove_bonds
+        self.show_unit_cell = show_unit_cell
+        self.set_atoms()
+        if not coll:
+            self.coll.blase.model_type = model_type
+            self.coll.blase.boundary = boundary
+        self.coll.blase.cell = self.atoms.cell[:].flatten()
         self.scale = scale
         #
         
         if draw:
             self.draw()
+        if movie:
+            self.load_frames()
         
 
-    # def set_atoms(self):
-    #     for atom in self.atoms:
-    #         batom = self.coll.batoms.add()
-    #         batom.symbol = atom.symbol
-    #         batom.position = atom.position
+    def set_atoms(self):
+        tstart = time.time()
+        for atom in self.atoms:
+            batom = self.coll.batoms.add()
+            batom.symbol = atom.symbol
+            batom.position = atom.position
+        print('set batoms: {0:10.2f} s'.format(time.time() - tstart))
     def set_collection(self):
         if not self.coll:
             for coll in bpy.data.collections:
@@ -74,45 +89,50 @@ class Batoms():
         
     def draw_cell(self):
         # bond_kinds
-        # if not self.bond_list and self.bond_cutoff:
+        # if not bond_list and self.bond_cutoff:
+        print('--------------Draw cell--------------')
         cell_vertices = get_cell_vertices(self.atoms.cell)
         for obj in self.coll.children['%s_cell'%self.name].all_objects:
             bpy.data.objects.remove(obj)
-        draw_cell(self.coll.children['%s_cell'%self.name], cell_vertices)
-    def draw_atoms(self, scale = 1.0, props = {}):
+        if self.show_unit_cell:
+            draw_cell(self.coll.children['%s_cell'%self.name], cell_vertices)
+    def draw_atoms(self, scale = None, props = {}):
+        print('--------------Draw atoms--------------')
         # atom_kinds
         for obj in self.coll.children['%s_atoms'%self.name].all_objects:
             bpy.data.objects.remove(obj)
         for obj in self.coll.children['%s_instancers'%self.name].all_objects:
             bpy.data.objects.remove(obj)
-        self.scale = scale
+        if scale:
+            self.scale = scale
         self.atom_kinds = get_atom_kinds(self.atoms, scale = self.scale, props = props)
-        self.nkinds = len(self.atom_kinds)
         draw_atoms(self.coll.children['%s_atoms'%self.name], self.atom_kinds)
-        self.draw_atoms_boundary()
-    def draw_atoms_boundary(self, cutoff = None, props = {}):
+    def draw_atoms_boundary(self, boundary = None, props = {}):
+        print('--------------Draw atoms boundary--------------')
         # atom_kinds
-        if not cutoff:
-            cutoff = self.coll.blase.boundary
-        self.bd_atoms, self.bd_index = search_pbc(self.atoms, cutoff)
+        if boundary:
+            self.coll.blase.boundary = boundary
+        self.bd_atoms, self.bd_index = search_pbc(self.atoms, self.coll.blase.boundary)
         for obj in self.coll.children['%s_boundary'%self.name].all_objects:
             bpy.data.objects.remove(obj)
-        self.bd_atom_kinds = get_atom_kinds(self.bd_atoms, scale = self.scale, props = props)
-        self.nkinds = len(self.bd_atom_kinds)
-        draw_atoms(self.coll.children['%s_boundary'%self.name], self.bd_atom_kinds)
+        bd_atom_kinds = get_atom_kinds(self.bd_atoms, scale = self.scale, props = props)
+        # print('boundary atoms: ', bd_atom_kinds)
+        draw_atoms(self.coll.children['%s_boundary'%self.name], bd_atom_kinds)
         atoms = self.atoms + self.bd_atoms
-        # if self.coll.blase.model_type in ['1', '2', '3']:
-            # self.draw_bonds(atoms = atoms)
+        if self.coll.blase.model_type in ['1', '2', '3']:
+            del atoms.info['kinds']
+            self.draw_bonds(atoms = atoms)
     def draw_bonds(self, cutoff = 1.0, atoms = None):
+        print('--------------Draw bonds--------------')
         # bond_kinds
-        # if not self.bond_list and self.bond_cutoff:
+        # if not bond_list and self.bond_cutoff:
         for obj in self.coll.children['%s_bonds'%self.name].all_objects:
             bpy.data.objects.remove(obj)
         if not atoms:
             atoms = self.atoms
-        self.bond_list = get_bondpairs(atoms)
-        self.bond_kinds = get_bond_kinds(atoms, self.bond_list)
-        draw_bonds(self.coll.children['%s_bonds'%self.name], self.bond_kinds)
+        bond_list = get_bondpairs(atoms, add_bonds = self.add_bonds, remove_bonds=self.remove_bonds)
+        bond_kinds = get_bond_kinds(atoms, self.atom_kinds, bond_list)
+        draw_bonds(self.coll.children['%s_bonds'%self.name], bond_kinds)
     def draw_isosurface(self):
         if self.isosurface:
             volume = self.isosurface[0]
@@ -125,26 +145,26 @@ class Batoms():
     def draw(self, model_type = None):
         if not model_type:
             model_type = self.coll.blase.model_type
+        else:
+            self.coll.blase.model_type = model_type
+        self.draw_cell()
         if model_type == '0':
-            self.draw_cell()
+            self.scale = 1.0
             self.draw_atoms()
         elif model_type == '1':
             # view(images)
-            self.draw_cell()
-            self.draw_atoms(scale = 0.6)
+            self.scale = 0.4
+            self.draw_atoms()
             self.draw_bonds()
         elif model_type == '2':
-            self.draw_cell()
-            self.draw_atoms(scale = 0.6)
+            self.scale = 0.4
+            self.draw_atoms()
             self.draw_bonds()
             self.draw_polyhedras()
         elif model_type == '3':
-            self.draw_cell()
-            self.draw_atoms(scale = 0.001)
+            self.scale = 0.4
+            self.draw_atoms()
             self.draw_bonds()
-        # self.draw_atoms()
-        # self.draw_cell()
-        # self.draw_bonds()
     def replace(self, index = [], element = None):
         """
         replace atoms
@@ -251,6 +271,7 @@ class Batoms():
 
         # Override pbcs if and only if given a Cell object:
         self.atoms.set_cell(cell, scale_atoms = scale_atoms)
+        self.coll.blase.cell = self.atoms.cell[:].flatten()
         self.update()
     
     def draw_constraints(self):
@@ -293,18 +314,34 @@ class Batoms():
             ball.data.materials.append(material)
             ball.show_transparent = True
             coll_highlight.objects.link(ball)
-    def load_frames(self):
+    def load_frames(self, nimages = None):
         # render settings
-        for i in range(0, self.nimages):
+        if not nimages:
+            nimages = len(self.images)
+        for i in range(0, nimages):
             atom_kinds = get_atom_kinds(self.images[i])
-            # bond_kinds = get_bond_kinds(self.images[i], self.bond_list, self.nbins)
+            # bond_kinds = get_bond_kinds(self.images[i], bond_list, self.nbins)
             for kind, datas in atom_kinds.items():
-                obj_atom = bpy.data.objects['atom_kind_{0}'.format(kind)]
+                obj_atom = bpy.data.objects['atom_{0}_{1}'.format(self.name, kind)]
                 nverts = len(obj_atom.data.vertices)
                 for j in range(nverts):
                     obj_atom.data.vertices[j].co = datas['positions'][j]
                     obj_atom.data.vertices[j].keyframe_insert('co', frame=i + 1)
         self.scene.frame_start = 1
-        self.scene.frame_end = self.nimages
+        self.scene.frame_end = nimages
     
+    def render(self, **kwargs):
+        """
+        """
+        from blase.bio import Blase
+        print('--------------Render--------------')
+        print('Rendering atoms')
+        if 'bbox' not in kwargs:
+            bbox = get_bbox(bbox = None, atoms = self.atoms)
+            kwargs['bbox'] = bbox
+        if 'output_image' not in kwargs:
+            kwargs['output_image'] = '%s.png'%self.name
+        # print(kwargs)
+        obj = Blase(**kwargs)
+        obj.render()
 

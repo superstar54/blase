@@ -5,14 +5,9 @@ import bpy
 from mathutils import Vector, Matrix
 import os
 import numpy as np
-from ase import Atoms, Atom
-from ase.constraints import FixAtoms
-from ase.io import read, write
 from math import pi, sqrt, radians, acos, atan2
 from blase.tools import get_bbox
-from blase.butils import read_blase_collection_list, read_blase_collection
 from blase.data import default_settings, material_styles_dict
-import time
 import logging
 import sys
 
@@ -27,11 +22,9 @@ logger = logging.getLogger('blase')
 class Blase():
     """
     Blase object to render atomic structure.
-
-
     """
     #
-    def __init__(self, batoms = None, outfile = 'bout', debug = False,
+    def __init__(self, output_image = 'bout', debug = False,
                               **parameters):
         for k, v in default_settings.items():
             setattr(self, k, parameters.pop(k, v))
@@ -40,13 +33,10 @@ class Blase():
         if debug:
             print('debug is: ', debug)
             self.logger.setLevel(debug)
-        if isinstance(batoms, str):
-            coll = bpy.data.collections[batoms]
-            batoms = read_blase_collection(coll)
-        self.outfile = outfile
-        self.batoms = batoms
-        self.atoms = batoms.atoms
-        self.bbox, self.w, self.h = get_bbox(self.bbox, self.atoms, self.show_unit_cell)
+        #
+        if 'Cube' in bpy.data.objects:
+            bpy.data.objects.remove(bpy.data.objects["Cube"], do_unlink=True)
+        self.output_image = output_image
         self.scene = bpy.context.scene
         if 'blase' in bpy.data.collections:
             self.coll = bpy.data.collections['blase']
@@ -85,6 +75,8 @@ class Blase():
         camera.data.dof.aperture_fstop = self.fstop
         camera.data.type = self.camera_type
         # image size and target
+        self.w = (self.bbox[0][1] - self.bbox[0][0])
+        self.h = (self.bbox[1][1] - self.bbox[1][0])
         self.com = np.mean(self.bbox, axis=1)
         if self.camera_target is None:
             self.camera_target = self.com
@@ -160,13 +152,13 @@ class Blase():
         current_object = bpy.context.object
         current_object.data.materials.append(material)
 
-    def render(self, outfile = None):
+    def render(self, output_image = None):
         """
         """
         # render settings
-        if outfile:
-            self.outfile = outfile
-        self.directory = os.path.split(self.outfile)[0]
+        if output_image:
+            self.output_image = output_image
+        self.directory = os.path.split(self.output_image)[0]
         if self.directory and not os.path.exists(self.directory):
                 os.makedirs(self.directory)  # cp2k expects dirs to exist
         self.scene.render.image_settings.file_format = 'PNG'
@@ -189,10 +181,10 @@ class Blase():
         self.scene.render.resolution_x = self.resolution_x
         self.scene.render.resolution_y = int(self.resolution_x*self.h/self.w)
         print('dimension: ', self.scene.render.resolution_x, self.scene.render.resolution_y)
-        self.scene.render.filepath = '{0}'.format(self.outfile)
+        self.scene.render.filepath = '{0}'.format(self.output_image)
         if self.save_to_blend:
-            print('saving to {0}.blend'.format(self.outfile))
-            bpy.ops.wm.save_as_mainfile('EXEC_SCREEN', filepath = '{0}.blend'.format(self.outfile))
+            print('saving to {0}.blend'.format(self.output_image))
+            bpy.ops.wm.save_as_mainfile('EXEC_SCREEN', filepath = '{0}.blend'.format(self.output_image))
         elif self.run_render:
             bpy.ops.render.render(write_still = 1, animation = self.animation)
     def export(self, filename = 'blender-ase.obj'):
@@ -213,8 +205,3 @@ class Blase():
             bpy.data.objects['Camera'].location = loc
             self.render(self, filename + '_{0:3d}'.format(i))
             i += 1
-
-    def export_xyz(self, filename):
-        '''
-        '''
-        self.atoms.write(filename)

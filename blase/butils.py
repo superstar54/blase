@@ -57,7 +57,8 @@ def read_blase_collection(coll):
     if cell_vertexs:
         cell = [cell_vertexs[4], cell_vertexs[2], cell_vertexs[1]]
         atoms.cell = cell
-        atoms.pbc = [True, True, True]
+        atoms.pbc = coll.blase.pbc
+    # coll property
     # self.atoms = atoms
     batoms = Batoms(atoms, name = name, coll = coll, scale = scale)
     return batoms

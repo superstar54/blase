@@ -9,25 +9,14 @@ import pickle
 inputfile = 'blase.inp'
 
 def main():
-    print('='*30)
-    print('Running blender')
-    print('='*30)
     with open(inputfile, 'rb') as f:
-        atoms, kwargs = pickle.load(f)
+        atoms, batoms, blase = pickle.load(f)
     #
-    from blase.bio import Blase
-    print('Rendering atoms')
-    batoms = Batoms(atoms)
-    obj = Blase(batoms, **kwargs)
-    obj.render()
-    # for function in bobj.functions:
-        # name, paras = function
-        # getattr(bobj, name)(**paras)
-    # if bobj.'run_render':
-    # bobj.load_frames()
-    
-    # bobj.render()
-    # bobj.export('h2o.xyz')
+    batoms = Batoms(atoms, **batoms)
+    batoms.draw()
+    # batoms.load_frames()
+    batoms.render(**blase)
+    print('-'*20)
     print('\n Finished!')
 
 #

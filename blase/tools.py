@@ -70,17 +70,20 @@ def get_bondpairs(atoms, cutoff=1.0, add_bonds = {}, remove_bonds = {}):
 
 
 
-def default_atom_kind(element, positions, color = 'jmol'):
+def default_atom_kind(element, positions, color = 'VESTA'):
     """
     """
     from ase.data import chemical_symbols
     from ase.data.colors import jmol_colors, cpk_colors
+    from blase.default_data import vesta_color
     atom_kind = {}
     number = chemical_symbols.index(element)
     if color.upper() == 'JMOL':
         color = jmol_colors[number]
     elif color.upper() == 'CPK':
         color = jmol_colors[number]
+    elif color.upper() == 'VESTA':
+        color = vesta_color[element]
     radius = covalent_radii[number]
     atom_kind['element'] = element
     atom_kind['color'] = color
@@ -89,17 +92,20 @@ def default_atom_kind(element, positions, color = 'jmol'):
     atom_kind['positions'] = positions
     atom_kind['balltype'] = None
     return atom_kind
-def default_bond_kind(element, color = 'jmol'):
+def default_bond_kind(element, color = 'VESTA'):
     """
     """
     from ase.data import chemical_symbols
     from ase.data.colors import jmol_colors, cpk_colors
+    from blase.default_data import vesta_color
     bond_kind = {}
     number = chemical_symbols.index(element)
     if color.upper() == 'JMOL':
         color = jmol_colors[number]
     elif color.upper() == 'CPK':
         color = jmol_colors[number]
+    elif color.upper() == 'VESTA':
+        color = vesta_color[element]
     bond_kind['element'] = element
     bond_kind['color'] = color
     bond_kind['transmit'] = 1.0
@@ -124,7 +130,7 @@ def get_atom_kinds(atoms, scale = 1.0, props = {}):
         atom_kinds[kind] = {}
         element = kind.split('_')[0]
         inds = [atom.index for atom in atoms if atoms.info['kinds'][atom.index]==kind]
-        atom_kind = default_atom_kind(element, atoms.positions[[inds]])
+        atom_kind = default_atom_kind(element, atoms.positions[inds])
         atom_kinds[kind] = atom_kind
         atom_kind['radius'] = atom_kind['radius']
         atom_kind['scale'] = newscale[kind]
@@ -135,7 +141,7 @@ def get_atom_kinds(atoms, scale = 1.0, props = {}):
                     atom_kinds[kind][prop] = value
     print('get_atom_kinds: {0:10.2f} s'.format(time.time() - tstart))
     return atom_kinds
-def get_bond_kinds(atoms, bondlist):
+def get_bond_kinds(atoms, atoms_kinds, bondlist):
     '''
     Build faces for instancing bonds.
     The radius of bonds is determined by nbins.
@@ -159,8 +165,11 @@ def get_bond_kinds(atoms, bondlist):
             ind2, offset = bond
             kind2 = atoms.info['kinds'][ind2]
             R = np.dot(offset, atoms.cell)
-            pos = [atoms.positions[ind1],
-                   atoms.positions[ind2] + R]
+            vec = atoms.positions[ind1] - (atoms.positions[ind2] + R)
+            length = np.linalg.norm(vec)
+            nvec = vec/length
+            pos = [atoms.positions[ind1] - nvec*atoms_kinds[kind1]['radius']*atoms_kinds[kind1]['scale'][0]*0.5,
+                   atoms.positions[ind2] + R + nvec*atoms_kinds[kind2]['radius']*atoms_kinds[kind2]['scale'][0]*0.5]
             center0 = (pos[0] + pos[1])/2.0
             vec = pos[0] - pos[1]
             length = np.linalg.norm(vec)
@@ -286,14 +295,17 @@ def search_pbc(atoms, cutoff = [0.01, 0.01, 0.01]):
     """
     cutoffs: float or list
     """
+    bdatoms = Atoms()
+    index = {}
+    if not atoms.pbc.any():
+        return bdatoms, index
     if isinstance(cutoff, float):
         cutoff = [cutoff]*3
     cutoff = 0.5 - np.array(cutoff)
     print('Search pbc: ')
     natoms = len(atoms)
     positions = atoms.get_scaled_positions()
-    bdatoms = Atoms()
-    index = {}
+    
     na = 0
     for i in range(natoms):
         index[i] = []
@@ -328,7 +340,6 @@ def get_bbox(bbox, atoms, show_unit_cell = True):
     if bbox is None:
         bbox = np.zeros([3, 2])
         positions = atoms.positions
-        print(positions)
         cell_vertices = get_cell_vertices(atoms.cell)
         R = 4.0
         for i in range(3):
@@ -341,12 +352,7 @@ def get_bbox(bbox, atoms, show_unit_cell = True):
                 P2 = max(P2, C2)
             bbox[i] = [P1, P2]
         bbox = bbox
-        w = bbox[0][1] - bbox[0][0]
-        h = bbox[1][1] - bbox[1][0]
-    else:
-        w = (bbox[0][1] - bbox[0][0])
-        h = (bbox[1][1] - bbox[1][0])
-    return bbox, w, h
+    return bbox
 
 
 if __name__ == "__main__":

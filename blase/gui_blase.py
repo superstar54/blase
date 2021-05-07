@@ -31,11 +31,11 @@ from blase.butils import read_blase_collection_list, read_blase_collection
 class BlaseSettings(bpy.types.PropertyGroup):
     is_blase: BoolProperty(name="is_blase", default=False)
     model_type: StringProperty(name="model_type", default = '0')
-    # scale: FloatVectorProperty(name="scale", default = [1.0, 1.0, 1.0], size = 3)
     pbc: BoolVectorProperty(name="pbc", default = [False, False, False], size = 3)
+    cell: FloatVectorProperty(name="cell", default = [0, 0, 0, 0, 0, 0, 0, 0, 0], size = 9)
     boundary: FloatVectorProperty(name="boundary", default = [0.0, 0.0, 0.0], size = 3)
 class BlaseAtom(bpy.types.PropertyGroup):
-    symbol: StringProperty(name="model_type")
+    symbol: StringProperty(name="symbol")
     position: FloatVectorProperty(name="position", size = 3)
     tag: IntProperty(name="tag")
     
@@ -106,11 +106,16 @@ class Blase_PT_prepare(Panel):
         col.operator("blase.add_bulk")
         col.operator("blase.add_atoms")
 
+        box = layout.box()
+        col = box.column(align=True)
+        col.label(text="Movie")
+        col.prop(blpanel, "movie")
         
         box = layout.box()
         col = box.column(align=True)
         col.label(text="Render atoms")
         col.prop(blpanel, "output_image")
+
 
 
         box = layout.box()
@@ -150,6 +155,11 @@ class BlaseProperties(bpy.types.PropertyGroup):
         blpanel = bpy.context.scene.blpanel
         print('Callback_render_atoms')
         render_atoms(blpanel.collection_list, blpanel.output_image)
+    def Callback_load_frames(self, context):
+        blpanel = bpy.context.scene.blpanel
+        print('Callback_load_frames')
+        load_frames(blpanel.collection_list, blpanel.movie)
+
 
     
     collection_list: EnumProperty(
@@ -212,6 +222,9 @@ class BlaseProperties(bpy.types.PropertyGroup):
     output_image: StringProperty(
         name = "Output image", default='blase.png',
         description = "output render image", update = Callback_render_atoms)
+    movie: IntProperty(
+        name = "Load frames", default=1,
+        description = "load frames", update = Callback_load_frames)
 
 
 # Button for export atoms
@@ -525,10 +538,21 @@ def modify_boundary(collection_name, cutoff, batoms = None):
         # batoms.draw_atoms_boundary(cutoff=cutoff)
     batoms.draw()
 
-def render_atoms(collection_name, output_image):
+def render_atoms(collection_name, output_image = 'bout.png', batoms = None):
     """
     """
     from blase.bio import Blase
     print('Rendering atoms')
-    obj = Blase(collection_name, outfile=output_image)
-    obj.render()
+    coll = bpy.data.collections[collection_name]
+    if not batoms:
+        batoms = read_blase_collection(coll)
+    batoms.render(output_image = output_image)
+def load_frames(collection_name, movie, batoms = None):
+    """
+    """
+    from blase.bio import Blase
+    print('Rendering atoms')
+    coll = bpy.data.collections[collection_name]
+    if not batoms:
+        batoms = read_blase_collection(coll)
+    batoms.load_frames()
