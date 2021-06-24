@@ -152,13 +152,13 @@ def draw_bonds(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = Non
                              source = source,
                              bondlinewidth = bondlinewidth,
                              material_style = material_style)
-def draw_bond_kind(kind, coll_bond_kinds, 
-                         datas, 
-                         bond_list= None, 
-                         source = None, 
-                         bondlinewidth = None,
-                         bsdf_inputs = None, 
-                         material_style = 'plastic'):
+def draw_bond_kind(kind, 
+                   coll_bond_kinds, 
+                   datas, 
+                   source = None, 
+                   bondlinewidth = None,
+                   bsdf_inputs = None, 
+                   material_style = 'plastic'):
     name = coll_bond_kinds.name.split('_')[0]
     tstart = time.time()
     material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
@@ -237,15 +237,13 @@ def draw_bonds_2(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = N
         bpy.data.collections['instancers'].objects.link(cylinder)
         coll_bond_kinds.objects.link(obj_bond)        
         print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
-def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= None, bsdf_inputs = None, material_style = 'plastic'):
+def draw_polyhedras(coll_polyhedra_kinds, 
+                    polyhedra_kinds, 
+                    bsdf_inputs = None, 
+                    material_style = 'blase'):
     '''
     Draw polyhedras
     '''
-    if not  coll:
-        coll = bobj.coll
-    coll_polyhedra_kinds = [c for c in coll.children if 'polyhedras' in c.name][0]
-    if not polyhedra_kinds:
-        polyhedra_kinds = bobj.polyhedra_kinds
     if not bsdf_inputs:
         bsdf_inputs = material_styles_dict[material_style]
     #
@@ -254,6 +252,21 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
     # pprint.pprint(polyhedra_kinds)
     source = bond_source(vertices=4)
     for kind, datas in polyhedra_kinds.items():
+        print('kind: ', kind)
+        draw_polyhedra_kind(kind, 
+                            coll_polyhedra_kinds, 
+                            datas,
+                            bsdf_inputs = bsdf_inputs, 
+                            source = source,
+                            material_style = material_style
+                            )
+
+def draw_polyhedra_kind(kind, 
+                        coll_polyhedra_kinds, 
+                        datas, 
+                        source = None, 
+                        bsdf_inputs = None, 
+                        material_style = 'blase'):
         tstart = time.time()
         material = bpy.data.materials.new('polyhedra_kind_{0}'.format(kind))
         material.diffuse_color = np.append(datas['color'], datas['transmit'])
@@ -261,14 +274,14 @@ def draw_polyhedras(bobj, coll = None, polyhedra_kinds = None, polyhedra_dict= N
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
         principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
-        principled_node.inputs['Alpha'].default_value = polyhedra_kinds[kind]['transmit']
+        principled_node.inputs['Alpha'].default_value = datas['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
         datas['materials'] = material
         #
         # create new mesh structure
         mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
-        # mesh.from_pydata(polyhedra_kinds[kind]['vertices'], polyhedra_kinds[kind]['edges'], polyhedra_kinds[kind]['faces'])  
+        # mesh.from_pydata(datas['vertices'], datas['edges'], datas['faces'])  
         mesh.from_pydata(datas['vertices'], [], datas['faces'])  
         mesh.update()
         for f in mesh.polygons:

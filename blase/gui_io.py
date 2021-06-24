@@ -171,7 +171,7 @@ def import_blase(inputfile,
     else:
         images = inputfile
     print(images)
-    bobj = Batoms(images, name = name, model_type=model_type) #, **kwargs)
+    bobj = Batoms(atoms = images, name = name, model_type=model_type) #, **kwargs)
     bobj.draw()
 
 

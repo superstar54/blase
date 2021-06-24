@@ -7,17 +7,25 @@ from ase.data import covalent_radii
 
 
 atoms = read('datas/tio2.cif')
-atoms = atoms*[2, 2, 2]
+atoms = atoms*[2, 1, 1]
 atoms.pbc = False
+atoms.info['species'] = atoms.get_chemical_symbols()
+atoms.info['species'][0] = 'Ti_1'
 # view(atoms)
 # pprint(bond_list)
-kwargs = {
-    'name': 'tio2',
-        #   'show_unit_cell': 1, 
-          'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
-        #   'radii': 0.4,
-        #   'bond_cutoff': 1.0,
+
+batoms = {
+        'model_type': '2',
+        # 'show_unit_cell': False,
+        'remove_bonds': {'Ti_1':['O']},
+        'boundary': [0.00, 0.00, 0.00],
+        'polyhedra_dict': {'Ti': ['O', 'N']},
+        'color': 'VESTA',
+        }
+blase = {
+          # 'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
+          'output_image': 'figs/test-search-bonds-1',
           'display': True,
-          'outfile': 'figs/test-search-bonds',
-          }
-write_blender(atoms, **kwargs)
+  }
+
+write_blender(atoms, batoms, blase)

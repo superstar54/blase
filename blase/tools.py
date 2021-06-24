@@ -47,22 +47,27 @@ def get_bondpairs(atoms, cutoff=1.0, add_bonds = {}, remove_bonds = {}):
     # bondpairs = []
     bondpairs = {}
     natoms = len(atoms)
+    if 'species' not in atoms.info:
+        atoms.info['species'] = atoms.get_chemical_symbols()
+    # print(atoms.info['species'])
     for a in range(natoms):
         bondpairs[a] = []
         indices, offsets = nl.get_neighbors(a)
         # print(a, indices)
-        ele1 = atoms[a].symbol
+        ele1 = atoms.info['species'][a]
         for a2, offset in zip(indices, offsets):
-            ele2 = atoms[a2].symbol
+            ele2 = atoms.info['species'][a2]
             flag = False
-            if ele2 in default_bonds[ele1] or ele1 in default_bonds[ele2]:
+            if ele2.split('_')[0] in default_bonds[ele1.split('_')[0]] or ele1.split('_')[0] in default_bonds[ele2.split('_')[0]]:
                 flag = True
             for key, kinds in remove_bonds.items():
                 for kind in kinds:
-                    if atoms[a].symbol == key and kind == '*' \
-                       or atoms[a].symbol == key and atoms[a2].symbol == kind \
-                       or atoms[a].symbol == kind and atoms[a2].symbol == key:
+                    # print(key, kind, atoms.info['species'][a], atoms.info['species'][a2])
+                    if atoms.info['species'][a] == key and kind == '*' \
+                       or atoms.info['species'][a] == key and atoms.info['species'][a2] == kind \
+                       or atoms.info['species'][a] == kind and atoms.info['species'][a2] == key:
                         flag = False
+                        # print(flag)
             if flag:
                 bondpairs[a].append([a2, offset])
     print('get_bondpairs: {0:10.2f} s'.format(time.time() - tstart))
@@ -70,7 +75,7 @@ def get_bondpairs(atoms, cutoff=1.0, add_bonds = {}, remove_bonds = {}):
 
 
 
-def default_atom_kind(element, positions, color = 'VESTA'):
+def default_atom_kind(element, positions, color = 'JMOL'):
     """
     """
     from ase.data import chemical_symbols
@@ -92,12 +97,13 @@ def default_atom_kind(element, positions, color = 'VESTA'):
     atom_kind['positions'] = positions
     atom_kind['balltype'] = None
     return atom_kind
-def default_bond_kind(element, color = 'VESTA'):
+def default_bond_kind(element, color = 'JMOL'):
     """
     """
     from ase.data import chemical_symbols
     from ase.data.colors import jmol_colors, cpk_colors
     from blase.default_data import vesta_color
+    # print('color: ', color)
     bond_kind = {}
     number = chemical_symbols.index(element)
     if color.upper() == 'JMOL':
@@ -115,22 +121,25 @@ def default_bond_kind(element, color = 'VESTA'):
     bond_kind['verts'] = []
     bond_kind['faces'] = []
     return bond_kind
-def get_atom_kinds(atoms, scale = 1.0, props = {}):
+def get_atom_kinds(atoms, scale = 1.0, props = {}, color = 'JMOL'):
     tstart = time.time()
-    if 'kinds' not in atoms.info:
-        atoms.info['kinds'] = atoms.get_chemical_symbols()
-    kinds = list(set(atoms.info['kinds']))
+    if 'species' not in atoms.info:
+        atoms.info['species'] = atoms.get_chemical_symbols()
+    kinds = list(set(atoms.info['species']))
     if isinstance(scale, float):
         newscale = {kind:[scale, scale, scale] for kind in kinds}
     elif isinstance(scale, dict):
         newscale = scale
     # print(kinds)
     atom_kinds = {}
+    # print(atoms.info['species'])
     for kind in kinds:
+        print(kind)
         atom_kinds[kind] = {}
         element = kind.split('_')[0]
-        inds = [atom.index for atom in atoms if atoms.info['kinds'][atom.index]==kind]
-        atom_kind = default_atom_kind(element, atoms.positions[inds])
+        print(len(atoms), len(atoms.info['species']))
+        inds = [atom.index for atom in atoms if atoms.info['species'][atom.index]==kind]
+        atom_kind = default_atom_kind(element, atoms.positions[inds], color = color)
         atom_kinds[kind] = atom_kind
         atom_kind['radius'] = atom_kind['radius']
         atom_kind['scale'] = newscale[kind]
@@ -141,7 +150,7 @@ def get_atom_kinds(atoms, scale = 1.0, props = {}):
                     atom_kinds[kind][prop] = value
     print('get_atom_kinds: {0:10.2f} s'.format(time.time() - tstart))
     return atom_kinds
-def get_bond_kinds(atoms, atoms_kinds, bondlist):
+def get_bond_kinds(atoms, atoms_kinds, bondlist, color = 'JMOL'):
     '''
     Build faces for instancing bonds.
     The radius of bonds is determined by nbins.
@@ -152,18 +161,18 @@ def get_bond_kinds(atoms, atoms_kinds, bondlist):
     tstart = time.time()
     # bond_kinds = copy.deepcopy(atom_kinds)
     bond_kinds = {}
-    if 'kinds' not in atoms.info:
-        atoms.info['kinds'] = atoms.get_chemical_symbols()
+    if 'species' not in atoms.info:
+        atoms.info['species'] = atoms.get_chemical_symbols()
     for ind1, pairs in bondlist.items():
-        kind1 = atoms.info['kinds'][ind1]
+        kind1 = atoms.info['species'][ind1]
         element = kind1.split('_')[0]
-        bond_kind = default_bond_kind(element)
+        bond_kind = default_bond_kind(element, color = color)
         if kind1 not in bond_kinds:
             bond_kinds[kind1] = bond_kind
         # print(ind1, kind, pairs)
         for bond in pairs:
             ind2, offset = bond
-            kind2 = atoms.info['kinds'][ind2]
+            kind2 = atoms.info['species'][ind2]
             R = np.dot(offset, atoms.cell)
             vec = atoms.positions[ind1] - (atoms.positions[ind2] + R)
             length = np.linalg.norm(vec)
@@ -195,6 +204,44 @@ def get_bond_kinds(atoms, atoms_kinds, bondlist):
     print('get_bond_kinds: {0:10.2f} s'.format(time.time() - tstart))
     return bond_kinds
 
+def get_polyhedras(atoms, atom_kinds, bondlist = {}, polyhedra_dict = {}):
+    """
+    Two modes:
+    (1) Search atoms bonded to kind
+    polyhedra_dict: {'kind': ligands}
+    """
+    from scipy.spatial import ConvexHull
+    from ase.data import covalent_radii
+    from ase.neighborlist import NeighborList
+    tstart = time.time()
+    polyhedra_kinds = {}
+    # loop center atoms
+    # for ind1, pairs in bondlist.items():
+        # kind = atoms.info['species'][ind1]
+    for kind, ligand in polyhedra_dict.items():
+        inds = [atom.index for atom in atoms if atom.symbol == kind]
+        for ind in inds:
+            vertice = []
+            for bond in bondlist[ind]:
+            # indices, offsets = nl.get_neighbors(ind)
+            # for a2, offset in zip(indices, offsets):
+                a2, offset = bond
+                if atoms[a2].symbol in ligand:
+                    temp_pos = atoms[a2].position + np.dot(offset, atoms.cell)
+                    vertice.append(temp_pos)
+            nverts = len(vertice)
+            # print(ind, indices, nverts)
+            if nverts >3:
+                # print(ind, vertice)
+                # search convex polyhedra
+                hull = ConvexHull(vertice)
+                face = hull.simplices
+                #
+                # print(ind)
+                nverts = len(polyhedra_kinds[kind]['vertices'])
+                face = face + nverts
+                edge = []
+
 def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.8, polyhedra_dict = {}):
     """
     Two modes:
@@ -208,7 +255,7 @@ def get_polyhedra_kinds(atoms, atom_kinds, bondlist = {}, transmit = 0.8, polyhe
     polyhedra_kinds = {}
     # loop center atoms
     # for ind1, pairs in bondlist.items():
-        # kind = atoms.info['kinds'][ind1]
+        # kind = atoms.info['species'][ind1]
     for kind, ligand in polyhedra_dict.items():
         # print(kind, ligand)
         if kind not in polyhedra_kinds.keys():
@@ -296,9 +343,8 @@ def search_pbc(atoms, cutoff = [0.01, 0.01, 0.01]):
     cutoffs: float or list
     """
     bdatoms = Atoms()
+    bdatoms.info['species'] = []
     index = {}
-    if not atoms.pbc.any():
-        return bdatoms, index
     if isinstance(cutoff, float):
         cutoff = [cutoff]*3
     cutoff = 0.5 - np.array(cutoff)
@@ -320,12 +366,17 @@ def search_pbc(atoms, cutoff = [0.01, 0.01, 0.01]):
                     temp_pos = positions[i] + np.sign(dv)*[l, m, n]
                     temp_pos = temp_pos.dot(atoms.cell)
                     bdatoms = bdatoms + Atom(atoms[i].symbol, temp_pos)
+                    bdatoms.info['species'].append(atoms.info['species'][i])
                     index[i].append(na)
                     na += 1
 
     return bdatoms, index
 
 def get_cell_vertices(cell):
+    """
+    """
+    cell = np.array(cell)
+    cell = cell.reshape(3, 3)
     cell_vertices = np.empty((2, 2, 2, 3))
     for c1 in range(2):
         for c2 in range(2):

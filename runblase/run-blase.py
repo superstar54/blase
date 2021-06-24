@@ -12,7 +12,7 @@ def main():
     with open(inputfile, 'rb') as f:
         atoms, batoms, blase = pickle.load(f)
     #
-    batoms = Batoms(atoms, **batoms)
+    batoms = Batoms(atoms = atoms, **batoms)
     batoms.draw()
     # batoms.load_frames()
     batoms.render(**blase)

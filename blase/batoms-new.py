@@ -17,6 +17,7 @@ from blase.bdraw import draw_cell, draw_atoms, draw_atom_kind, draw_bonds, draw_
 import numpy as np
 from ase.cell import Cell
 import time
+from blase.data import default_settings, material_styles_dict
 
 
 
@@ -82,26 +83,23 @@ class Batoms():
                  boundary = [0.0, 0.0, 0.0],
                  add_bonds = {}, 
                  remove_bonds = {},
-                 polyhedra_dict = {},
                  show_unit_cell = True,
                  kind_props = {},
-                 color = 'JMOL',
+                 bsdf_inputs = None, 
+                 material_style = 'blase',
                  movie = False,
                  draw = False, 
                  ):
         #
         self.scene = bpy.context.scene
-        self.scale = scale,
+
+        
         self.add_bonds = add_bonds
         self.remove_bonds = remove_bonds
-        self.polyhedra_dict = polyhedra_dict
         self.show_unit_cell = show_unit_cell
-        self.kind_props = kind_props
         self.name = name
-        self.color = color
         if atoms:
             print('Build from atoms')
-            print(atoms.info)
             if not isinstance(atoms, list):
                 atoms = [atoms]
             self.images = atoms
@@ -126,6 +124,16 @@ class Batoms():
             self.atoms = self.batoms.copy()
         else:
             raise Exception("Failed, either atoms or coll should be provided!"%self.name)
+        #
+        if 'kinds' not in self.batoms.info:
+            self.atoms.info['kinds'] = self.atoms.get_chemical_symbols()
+        self.kinds = list(set(self.atoms.info['kinds']))
+        self.scale = scale
+        self.kind_props = kind_props
+        self.bsdf_inputs = bsdf_inputs
+        self.material_style = material_style
+        if not self.bsdf_inputs:
+            self.bsdf_inputs = material_styles_dict[self.material_style]
         if draw:
             self.draw()
         if movie:
@@ -184,9 +192,101 @@ class Batoms():
         if self.atoms.pbc.any() and boundary.any():
             bd_atoms, bd_index = search_pbc(self.atoms, self.coll.blase.boundary)
             self.atoms = self.batoms + bd_atoms
-            self.atoms.info['species'] = self.atoms.info['species'] + bd_atoms.info['species']
         else:
             self.atoms = self.batoms
+    def get_all_default_kinds(self, color_style = 'VESTA'):
+        """
+        default properties for all kinds:
+        (1) element
+        (2) color
+        """
+        from ase.data import chemical_symbols
+        from ase.data import covalent_radii
+        from ase.data.colors import jmol_colors, cpk_colors
+        from blase.default_data import vesta_color
+        self.default_kind_props = {}
+        for kind in self.kinds:
+            inds = [atom.index for atom in self.atoms if self.atoms.info['kinds'][atom.index]==kind]
+            prop = {}
+            element = kind.split('_')[0]
+            number = chemical_symbols.index(element)
+            if color_style.upper() == 'JMOL':
+                color = jmol_colors[number]
+            elif color_style.upper() == 'CPK':
+                color = jmol_colors[number]
+            elif color_style.upper() == 'VESTA':
+                color = vesta_color[element]
+            radius = covalent_radii[number]
+            prop['element'] = element
+            prop['color'] = color
+            prop['transmit'] = 1.0
+            prop['scale'] = [self.scale, self.scale, self.scale]
+            prop['radius'] = radius
+            prop['positions'] = self.atoms.positions[inds]
+            prop['balltype'] = None
+            if kind in self.kind_props:
+                prop.update(self.kind_props[kind])
+            # materials
+            mat_name = 'mat_{0}_{1}'.format(self.name, kind)
+            for mat in bpy.data.materials:
+                if mat_name == mat.name:
+                    bpy.data.materials.remove(mat)
+            material = bpy.data.materials.new(mat_name)
+            material.diffuse_color = np.append(color, 1.0)
+            material.metallic = self.bsdf_inputs['Metallic']
+            material.roughness = self.bsdf_inputs['Roughness']
+            # material.blend_method = 'BLEND'
+            material.use_nodes = True
+            principled_node = material.node_tree.nodes['Principled BSDF']
+            principled_node.inputs['Base Color'].default_value = np.append(color, 1.0)
+            principled_node.inputs['Alpha'].default_value = 1.0
+            for key, value in self.bsdf_inputs.items():
+                principled_node.inputs[key].default_value = value
+            prop['materials'] = material
+            #
+            # sphere
+            sphere_name = 'sphere_atom_{0}_{1}'.format(self.name, kind)
+            for sphere in bpy.data.objects:
+                if sphere_name == sphere.name:
+                    bpy.data.objects.remove(sphere)
+            bpy.ops.mesh.primitive_uv_sphere_add(radius = radius) #, segments=32, ring_count=16)
+            sphere = bpy.context.view_layer.objects.active
+            sphere.scale = prop['scale']
+            sphere.name = sphere_name
+            sphere.data.materials.append(material)
+            bpy.ops.object.shade_smooth()
+            sphere.hide_set(True)
+            prop['sphere'] = sphere
+            self.coll.children['%s_instancers'%self.name].objects.link(sphere)
+            self.default_kind_props[kind] = prop
+    def draw_atoms(self, scale = None, props = {}):
+        """
+        atom_kinds
+        Draw atoms
+        bsdf_inputs: dict
+            The key and value for principled_bsdf node
+        material_style: string
+            Select materials type from ['blase', 'glass', 'ceramic', 'plastic'].
+        """
+        print('--------------Draw atoms--------------')
+        for obj in self.coll.children['%s_atoms'%self.name].all_objects:
+            bpy.data.objects.remove(obj)
+        # for obj in self.coll.children['%s_instancers'%self.name].all_objects:
+        #     bpy.data.objects.remove(obj)
+        self.search_boundary()
+        self.get_all_default_kinds(self.atoms, scale = self.scale, props = props)
+        for kind, props in self.default_kind_props.items():
+            mesh = bpy.data.meshes.new('atom_{0}_{1}'.format(self.name, kind))
+            obj_atom = bpy.data.objects.new('atom_{0}_{1}'.format(self.name, kind), mesh)
+            # Associate the vertices
+            obj_atom.data.from_pydata(props['positions'], [], [])
+            # Make the object parent of the cube
+            props['sphere'].parent = obj_atom
+            # Make the object dupliverts
+            obj_atom.instance_type = 'VERTS'
+            self.coll.children['%s_atoms'%self.name].objects.link(obj_atom)
+            # print('atoms: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+        
     def draw_cell(self):
         """
         """
@@ -196,22 +296,7 @@ class Batoms():
             bpy.data.objects.remove(obj)
         if self.show_unit_cell:
             draw_cell(self.coll.children['%s_cell'%self.name], cell_vertices)
-    def draw_atoms(self, scale = None, kind_props = {}):
-        """
-        atom_kinds
-        """
-        print('--------------Draw atoms--------------')
-        for obj in self.coll.children['%s_atoms'%self.name].all_objects:
-            bpy.data.objects.remove(obj)
-        for obj in self.coll.children['%s_instancers'%self.name].all_objects:
-            bpy.data.objects.remove(obj)
-        if scale:
-            self.scale = scale
-        if not kind_props:
-            kind_props = self.kind_props
-        self.search_boundary()
-        self.atom_kinds = get_atom_kinds(self.atoms, scale = self.scale, props = kind_props, color = self.color)
-        draw_atoms(self.coll.children['%s_atoms'%self.name], self.atom_kinds)
+    
     def draw_bonds(self, cutoff = 1.0):
         """
         bond_kinds
@@ -219,18 +304,17 @@ class Batoms():
         print('--------------Draw bonds--------------')
         for obj in self.coll.children['%s_bonds'%self.name].all_objects:
             bpy.data.objects.remove(obj)
-        print(self.atoms.info)
         self.bond_list = get_bondpairs(self.atoms, add_bonds = self.add_bonds, remove_bonds=self.remove_bonds)
-        self.bond_kinds = get_bond_kinds(self.atoms, self.atom_kinds, self.bond_list, color = self.color)
+        self.bond_kinds = get_bond_kinds(self.atoms, self.atom_kinds, self.bond_list)
         draw_bonds(self.coll.children['%s_bonds'%self.name], self.bond_kinds)
     def draw_polyhedras(self, cutoff = 1.0):
         """
         bond_kinds
         """
         print('--------------Draw bonds--------------')
-        for obj in self.coll.children['%s_polyhedras'%self.name].all_objects:
+        for obj in self.coll.children['%s_bonds'%self.name].all_objects:
             bpy.data.objects.remove(obj)
-        polyhedra_kinds = get_polyhedra_kinds(self.atoms, self.atom_kinds, self.bond_list, polyhedra_dict = self.polyhedra_dict)
+        polyhedra_kinds = get_polyhedra_kinds(self.atoms, self.atom_kinds, self.bond_list, polyhedra_dict = polyhedra_dict)
         draw_polyhedras(self.coll.children['%s_polyhedras'%self.name], polyhedra_kinds)
     def draw_isosurface(self):
         """
@@ -246,6 +330,7 @@ class Batoms():
     def draw(self, model_type = None):
         """
         """
+        self.get_all_default_kinds()
         if not model_type:
             model_type = self.coll.blase.model_type
         else:
@@ -288,7 +373,7 @@ class Batoms():
                 bm.verts.new(pos)
             bm.to_mesh(obj.data)
         else:
-            atom_kind = default_atom_kind(element, positions, color=self.color)
+            atom_kind = default_atom_kind(element, positions)
             draw_atom_kind(element, self.coll.children['%s_atoms'%self.name], atom_kind)
         # ase atoms
         self.atoms.symbols[index] = element

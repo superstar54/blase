@@ -30,12 +30,13 @@ if __name__ == "__main__":
     from ase.io import read, write
     from ase.build import molecule, bulk
     from ase.visualize import view
+    from ase.data.colors import jmol_colors
     # test pbc
     # atoms = bulk('Pt', cubic = True)
-    # atoms = read('../examples/datas/ter-001-la.cif')
+    atoms = read('../examples/datas/ter-001-la.cif')
     # atoms = atoms*[3, 3, 1]
     # print(atoms)
-    atoms = read('../examples/datas/ceo2.cif')
+    # atoms = read('../examples/datas/ceo2.cif')
     # images = []
     # for i in range(10):
         # atoms.positions += np.array([0, 0, 0.2])
@@ -47,11 +48,13 @@ if __name__ == "__main__":
     # atoms.pbc = True
     batoms = {
     # 'show_unit_cell': False,
-    'model_type': '1',
+    'model_type': '0',
     # 'scale': 0.5,
-    # 'boundary': [0.05, 0.05, 0.00],
-    # 'remove_bonds': {'La':['O', 'N']},
+    'boundary': [0.05, 0.05, 0.00],
+    'remove_bonds': {'La':['O', 'N']},
+    # 'polyhedra_dict': {'Ti': ['O', 'N']},
     # 'movie': True,
+    'kind_props':{'La': {'color': jmol_colors[26]}},
     }
     blase = {
         #   'camera_loc': camera_loc,  # distance from camera to front atom
@@ -65,5 +68,5 @@ if __name__ == "__main__":
           }
           
     write_blender(atoms, batoms, blase, 
-                    # display = True,
+                    display = True,
                 )

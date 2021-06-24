@@ -31,36 +31,36 @@ def read_blase_collection(coll):
     name = coll.name
 
     # atoms
-    for obj in coll.children['%s_atoms'%name].all_objects:
-        ele = obj.name.split('_')[2]
-        if len(obj.children) != 0:
-            for vertex in obj.data.vertices:
-                location = obj.matrix_world @ vertex.co
-                atoms.append(Atom(symbol = ele, position = location))
-        else:
-            if not obj.parent:
-                location = obj.location
-                atoms.append(Atom(ele, location))
+    # for obj in coll.children['%s_atoms'%name].all_objects:
+    #     ele = obj.name.split('_')[2]
+    #     if len(obj.children) != 0:
+    #         for vertex in obj.data.vertices:
+    #             location = obj.matrix_world @ vertex.co
+    #             atoms.append(Atom(symbol = ele, position = location))
+    #     else:
+    #         if not obj.parent:
+    #             location = obj.location
+    #             atoms.append(Atom(ele, location))
     # atoms properties
     scale = {}
     for obj in coll.children['%s_instancers'%name].all_objects:
         ele = obj.name.split('_')[3]
         scale[ele] = obj.scale
     # cell
-    coll_cell = coll.children['%s_cell'%name]
-    cell_vertexs = []
-    if 'point_cell' in coll_cell.all_objects.keys():
-        obj = coll_cell.all_objects['point_cell']
-        for vertex in obj.data.vertices:
-            location = obj.matrix_world @ vertex.co
-            cell_vertexs.append(location)
-    if cell_vertexs:
-        cell = [cell_vertexs[4], cell_vertexs[2], cell_vertexs[1]]
-        atoms.cell = cell
-        atoms.pbc = coll.blase.pbc
+    # coll_cell = coll.children['%s_cell'%name]
+    # cell_vertexs = []
+    # if 'point_cell' in coll_cell.all_objects.keys():
+    #     obj = coll_cell.all_objects['point_cell']
+    #     for vertex in obj.data.vertices:
+    #         location = obj.matrix_world @ vertex.co
+    #         cell_vertexs.append(location)
+    # if cell_vertexs:
+    #     cell = [cell_vertexs[4], cell_vertexs[2], cell_vertexs[1]]
+    #     atoms.cell = cell
+    #     atoms.pbc = coll.blase.pbc
     # coll property
     # self.atoms = atoms
-    batoms = Batoms(atoms, name = name, coll = coll, scale = scale)
+    batoms = Batoms(name = name, coll = coll, scale = scale)
     return batoms
 def read_atoms_select():
     '''   
