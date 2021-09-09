@@ -32,9 +32,9 @@ Option 3: Use the blase's GUI
 |h2o-3|
 
 
-.. |h2o| image:: ../_static/h2o.png
+.. |h2o| image:: _static/h2o.png
    :width: 3cm
-.. |h2o-2| image:: ../_static/h2o-2.png
+.. |h2o-2| image:: _static/h2o-2.png
    :width: 20cm
-.. |h2o-3| image:: ../_static/h2o-3.png
+.. |h2o-3| image:: _static/h2o-3.png
    :width: 20cm
