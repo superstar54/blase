@@ -1,6 +1,6 @@
 ### Blase
 
-<img src="examples/figs/b-c2h6so.png" align="right" width="200"/>
+<img src="docs/source/_static/b-c2h6so.png" align="right" width="200"/>
 
 
 Python module for drawing and rendering ASE (Atomic Simulation Environment) atoms and molecules objects using blender.
@@ -15,10 +15,6 @@ For the introduction of ASE , please visit https://wiki.fysik.dtu.dk/ase/index.h
 * GPU rendering and HPC jobs
 
 
-### Panel added
-
-
-
 ### Author
 * Xing Wang  <xingwang1991@gmail.com>
 
@@ -27,42 +23,22 @@ For the introduction of ASE , please visit https://wiki.fysik.dtu.dk/ase/index.h
 * Python
 * Blender
 * ASE
-* Skimage
-
-### Installation
-
-Clone this repo. Add it to your PYTHONPATH and PATH. On windows, you can edit the system environment variables.
-
-``` sh
-export PYTHONPATH=~/apps/blase:$PYTHONPATH
-export PATH=~/apps/blase/bin:$PATH
-export BLASE_PATH="~/apps/blase/"
-```
-
-You can specify the location of blender by ```sh export BLENDER_COMMAND="~/bin/blender" ```, otherwise blase will use the default blender command in the system.
-
-#### Install ASE in Blender
-* go to the python directory, e.g. ```blender-2.92.0/2.92/python/bin```
-* install pip, ```./python3.7m -m ensurepip```
-* install ase, ```./pip3 install --upgrade ase```
-* install scikit-image, ```./pip3 install scikit-image```
+* Scikit-image
 
 
 ### How to use
-* Run from command line directly, supporting functions from build inside blase.  ```blase_gui h2o.xyz ```
 
-* Run from python code directly, supporting functions from build inside blase.  ``` python examples/c2h6so.py ```
-
-
-* Run from blender, supporting full functions from blender. ``` blender -b -P examples/b-c2h6so.py ```
-
+- [Installation](docs/source/install.rst)
+- [getting-started](docs/source/getting-started.rst)
+- [tutorial](docs/source/tutorial.rst)
+- [gallery](docs/source/gallery.rst)
 
 
 ### Examples
 
 #### Draw molecule with bonds
 
-A example of C<sub>2</sub>H<sub>6</sub>SO molecule. See examples/c2h6so.py
+A example of C<sub>2</sub>H<sub>6</sub>SO molecule.
 
 ``` python
 from ase.build import molecule
@@ -74,11 +50,11 @@ blase = {'output_image': 'figs/c2h6so',}
 write_blender(batoms, blase)
 ```
 
-<img src="examples/figs/c2h6so.png" width="500"/>
+<img src="docs/source/_static/c2h6so.png" width="500"/>
 
 
 #### PDB file
-A example to read atoms from exist PDB file. See examples/apt.py
+A example to read atoms from exist PDB file.
 
 ```python
 from ase.io import read, write
@@ -99,7 +75,7 @@ blase = {
   }
 write_blender(batoms, blase)
 ```
-<img src="examples/figs/atp.png" width="500"/>
+<img src="docs/source/_static/atp.png" width="500"/>
 
 
 #### Draw isosurface for electron density
@@ -123,10 +99,10 @@ blase = {
           }
 write_blender(batoms, blase)
 ````
-<img src="examples/figs/h2o-homo-cube.png" width="500"/>
+<img src="docs/source/_static/cube.png" width="500"/>
 
 #### Polyhedra
-A example to draw polyhedra. See examples/tio2-polyhedra.py
+A example to draw polyhedra.
 
 ```python
 from ase.io import read
@@ -143,11 +119,11 @@ blase = {
   }
 write_blender(batoms, blase)
 ```
-<img src="examples/figs/tio2-polyhedra.png" width="500"/>
+<img src="docs/source/_static/tio2-polyhedra.png" width="500"/>
 
 #### Draw nanoparticle
 
-Build nanoparticle using ASE, then draw the nanoparticle on a mirror. See examples/wulff.py
+Build nanoparticle using ASE, then draw the nanoparticle on a mirror.
 
 ``` python
 from ase.cluster import wulff_construction
@@ -176,24 +152,24 @@ blase = {
   }
 write_blender(batoms, blase, display = True)
 ````
-<img src="examples/figs/wulff.png" width="500"/>
+<img src="docs/source/_static/wulff.png" width="500"/>
 
 #### Draw molecule on nanoparticle surface
 
 A example of molecules adsorbed on nanoparticle.
 
-<img src="examples/figs/np-mol.png" width="500"/>
+<img src="docs/source/_static/np-mol.png" width="500"/>
 
 
 #### Draw oxide monolayer on metal (111) surface
 
-<img src="examples/figs/111-ti2o3-hc-CYCLES-3000.png" width="500"/>
+<img src="docs/source/_static/monolayer.png" width="500"/>
 
 
 #### Animation
 Cut stepped surface from ceria oxide
 
-![]<img src="examples/figs/ceo2-buok-cut-step-CYCLES-1000.gif" width="500"/>
+![]<img src="docs/source/_static/animation.gif" width="500"/>
 
 
 
@@ -214,8 +190,8 @@ kwargs = {'show_unit_cell': 1,
           }
 write_blender(atoms, **kwargs)
 ```
-<img src="examples/figs/test-search-bonds.png" width="500"/>
-<img src="examples/figs/test-search-molecule.png" width="500"/>
+<img src="docs/source/_static/test-search-bonds.png" width="500"/>
+<img src="docs/source/_static/test-search-molecule.png" width="500"/>
 
 #### Set different kind of atoms for the same element
 ````python
@@ -251,7 +227,7 @@ blase = {
   }
 write_blender(batoms, blase)
 ````
-<img src="examples/figs/kinds.png" width="300"/>
+<img src="docs/source/_static/kinds.png" width="300"/>
 
 
 
@@ -278,39 +254,6 @@ The performance is show below. The speed scales well with number of cpu.
 
 
 
-#### Set materials type for atoms
-
-Select materials type from ['blase', 'glass', 'ceramic', 'plastic'].
-
-``` python
-bobj.draw_atoms(material_type = 'blase')
-````
-
-Or set your own materials by setting the bsdf_inputs dict.
-
-``` python
-bsdf_inputs = {'Metallic': 1.0, 'Specular': 1.0, 'Roughness': 0.01, }
-bobj.draw_atoms(bsdf_inputs = bsdf_inputs)
-````
-
-
-### Tips
-
-#### Edit the studio light
-The Workbench engine use the studio light instead of the lights in the scene. To make you image more brighter. You can add an new Studio light. https://docs.blender.org/manual/en/latest/editors/preferences/lights.html#prefs-lights-studio. Please save it to as ```StudioLight_blase.sl```. Then Blase will use this one when Workbench engined is used.
-
-
-#### change rotation center of viewport to selected object.
-
-https://blender.stackexchange.com/questions/179289/how-do-i-rotate-my-viewport-around-the-position-of-my-cursor
-
-
-#### grid setting
-https://www.katsbits.com/codex/grid/
-
-
 ### To do
 
 * cut boundary for isosurface
-* add panel to manipulate the atoms interactively
-* add animation

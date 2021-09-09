@@ -1,6 +1,4 @@
 material_styles_dict = {
-            'jmol'    : {'Specular': 1.0, 'Roughness': 0.001, 'Metallic': 1.0},
-            'ase3'    : {'Metallic': 1.0, 'Roughness': 0.001},
             'ceramic' : {'Subsurface': 0.1, 'Metallic': 0.02, 'Specular': 0.5, 'Roughness': 0.0},
             'plastic' : {'Metallic': 0.0, 'Specular': 0.5, 'Roughness': 1.0, },
             'glass'   : {'Metallic': 0.0, 'Specular': 0.5, 'Roughness': 0.0, 'Transmission': 0.98},

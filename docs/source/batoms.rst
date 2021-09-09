@@ -22,6 +22,7 @@ possible keywords are: ``boundary``, ``show_unit_cell``, ``isosurface``, ``kind_
 ``color`` and ``draw``.
 
 
+
 model_type
 ===================
 
@@ -40,6 +41,23 @@ Here, four models can be set:
 or,
 
 >>> h2o.set_model_type('1')
+
+
+materials type
+===================
+
+Set materials type for atoms. Select materials type from ['blase', 'glass', 'ceramic', 'plastic', 'mirror'].
+
+>>> h2o = Batoms(atoms = atoms, name = 'h2o', model_type = '1', material_style = 'mirror')
+
+.. image:: _static/h2o-mirror.png
+   :width: 3cm
+
+
+Or set your own materials by setting the bsdf_inputs dict.
+
+>>> bsdf_inputs = {'Metallic': 1.0, 'Specular': 1.0, 'Roughness': 0.01, }
+>>> h2o = Batoms(atoms = atoms, name = 'h2o', model_type = '1', bsdf_inputs = bsdf_inputs)
 
 
 Other methods

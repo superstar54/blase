@@ -93,6 +93,8 @@ class Batoms():
                  isosurface = [],
                  kind_props = {},
                  color = 'JMOL',
+                 material_style = 'blase',
+                 bsdf_inputs = None,
                  movie = False,
                  draw = False, 
                  ):
@@ -109,6 +111,8 @@ class Batoms():
         self.kind_props = kind_props
         self.name = name
         self.color = color
+        self.material_style = material_style
+        self.bsdf_inputs = bsdf_inputs
         if atoms:
             if not isinstance(atoms, list):
                 atoms = [atoms]
@@ -260,7 +264,9 @@ class Batoms():
             kind_props = self.kind_props
         self.search_boundary()
         self.atom_kinds = get_atom_kinds(self.atoms, scale = self.scale, props = kind_props, color = self.color)
-        draw_atoms(self.coll.children['%s_atoms'%self.name], self.atom_kinds)
+        draw_atoms(self.coll.children['%s_atoms'%self.name], 
+                    self.atom_kinds, bsdf_inputs = self.bsdf_inputs, 
+                    material_style = self.material_style)
     def draw_bonds(self, cutoff = 1.0):
         """
         Draw bonds.
