@@ -11,6 +11,7 @@ For the introduction of ASE , please visit https://wiki.fysik.dtu.dk/ase/index.h
 * Ball & stick
 * Polyhedral
 * Meta ball
+* GUI
 * GPU rendering and HPC jobs
 
 
@@ -44,6 +45,7 @@ You can specify the location of blender by ```sh export BLENDER_COMMAND="~/bin/b
 * go to the python directory, e.g. ```blender-2.92.0/2.92/python/bin```
 * install pip, ```./python3.7m -m ensurepip```
 * install ase, ```./pip3 install --upgrade ase```
+* install scikit-image, ```./pip3 install scikit-image```
 
 
 ### How to use
@@ -64,58 +66,117 @@ A example of C<sub>2</sub>H<sub>6</sub>SO molecule. See examples/c2h6so.py
 
 ``` python
 from ase.build import molecule
-from blase.tools import get_bondpairs, write_blender
+from runblase import write_blender
 
 atoms = molecule('C2H6SO')
-atoms.center(vacuum  = 1.0)
+batoms = {'atoms': atoms, 'model_type': '1'}
+blase = {'output_image': 'figs/c2h6so',}
+write_blender(batoms, blase)
+```
 
-camera_loc = atoms[3].position + [30, 0, 10]
-
-kwargs = {'show_unit_cell': 0, 
-          'engine': 'CYCLES', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
-          'camera_loc': camera_loc,  # distance from camera to front atom
-          'camera_type': 'PERSP',  #  ['PERSP', 'ORTHO', 'PANO']
-          'camera_lens': 100,  #
-          'camera_target': atoms[3].position, #
-          'ortho_scale': None, #
-          'radii': 0.6, 
-          'bonds': 'all',
-        'functions': [['add_light', {'loc': [10, 0, 10], 'light_type': 'POINT'}],
-                      ['draw_plane', {'size': 100, 'loc': (0, 0, -0.0), 'color': (0, 0, 0, 1.0), 'material_style': 'mirror'}]],
-          'outfile': 'c2h6so-cycles'}
-write_blender(atoms, **kwargs)
-````
-
-<img src="examples/figs/c2h6so-cycles.png" width="500"/>
+<img src="examples/figs/c2h6so.png" width="500"/>
 
 
 #### PDB file
-A example to read atoms from exist PDB file.
+A example to read atoms from exist PDB file. See examples/apt.py
 
 ```python
-from ase.build import molecule
-from ase.io import read
-from blase.tools import get_bondpairs, write_blender
+from ase.io import read, write
+from runblase import write_blender
 
-atoms = read('ATP.pdb')
+atoms = read('datas/ATP.pdb')
 atoms.positions[:, 2] -= min(atoms.positions[:, 2]) - 2
 camera_loc = atoms[3].position + [50, 0, 20]
-
-kwargs = {'show_unit_cell': 0, 
-          'engine': 'CYCLES', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
+batoms = {'atoms': atoms, 'model_type': '1'}
+blase = {
+          'engine': 'CYCLES', #'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES'
           'camera_loc': camera_loc,  # distance from camera to front atom
           'camera_type': 'PERSP',  #  ['PERSP', 'ORTHO', 'PANO']
           'camera_lens': 100,  #
           'camera_target': atoms[3].position, #
-          'ortho_scale': None, #
-          'radii': 0.6, 
-          'bonds': 'all',
-          'functions': [['draw_plane', {'size': 1000, 'loc': (0, 0, -1.0)}]],
-          # 'resolution_x': 2000,
-          'outfile': 'atp-cycles'}
-write_blender(atoms, **kwargs)
+          'functions': [['draw_plane', {'size': 1000, 'location': (0, 0, -1.0),  'color': [1.0, 1.0, 1.0, 1.0]}]],
+          'output_image': 'figs/atp',
+  }
+write_blender(batoms, blase)
 ```
-<img src="examples/figs/atp-cycles.png" width="500"/>
+<img src="examples/figs/atp.png" width="500"/>
+
+
+#### Draw isosurface for electron density
+
+Read cube files, then draw atoms and isosurface. Here is a example of isosurface of H<sub>2</sub>O HOMO orbital.
+
+``` python
+from ase.io.cube import read_cube_data
+from runblase import write_blender
+
+data, atoms = read_cube_data('datas/h2o-homo.cube')
+batoms = {'atoms': atoms,
+          'model_type': '1',
+          'show_unit_cell': True, 
+          'isosurface': [data, -0.002, 0.002],
+          }
+blase = {
+          'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
+          'bbox': [[0, 10], [0, 10], [0, 10]], # set range for the box
+          'output_image': 'figs/h2o-homo-cube',
+          }
+write_blender(batoms, blase)
+````
+<img src="examples/figs/h2o-homo-cube.png" width="500"/>
+
+#### Polyhedra
+A example to draw polyhedra. See examples/tio2-polyhedra.py
+
+```python
+from ase.io import read
+from runblase import write_blender
+
+atoms = read('datas/tio2.cif')
+batoms = {'atoms': atoms,
+        'model_type': '2',
+        'polyhedra_dict': {'Ti': ['O']},
+        'color': 'VESTA',
+        }
+blase = {
+          'output_image': 'figs/tio2-polyhedra',
+  }
+write_blender(batoms, blase)
+```
+<img src="examples/figs/tio2-polyhedra.png" width="500"/>
+
+#### Draw nanoparticle
+
+Build nanoparticle using ASE, then draw the nanoparticle on a mirror. See examples/wulff.py
+
+``` python
+from ase.cluster import wulff_construction
+from ase.visualize import view
+from runblase import write_blender
+
+surfaces = [(1, 1, 1), (1, 0, 0)]
+energies = [1.28, 1.69]
+atoms = wulff_construction('Au', surfaces, energies, 5000, 'fcc')
+atoms.center(vacuum=2.0)
+# view(atoms)
+camera_loc =  atoms.get_center_of_mass() + [0, -300, 200]
+
+batoms = {'atoms': atoms,
+        'model_type': '0',
+        'show_unit_cell': False,
+        }
+blase = {
+          'engine': 'CYCLES', #'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES'
+          'camera_loc': camera_loc,  # distance from camera to front atom
+          'camera_type': 'PERSP',  #  ['PERSP', 'ORTHO', 'PANO']
+          'camera_lens': 100,  #
+          'camera_target': atoms.get_center_of_mass(), #
+          'functions': [['draw_plane', {'size': 1000, 'location': (0, 0, -1.0),  'color': [1.0, 1.0, 1.0, 1.0], 'material_style': 'mirror'}]],
+          'output_image': 'figs/wulff',
+  }
+write_blender(batoms, blase, display = True)
+````
+<img src="examples/figs/wulff.png" width="500"/>
 
 #### Draw molecule on nanoparticle surface
 
@@ -135,48 +196,9 @@ Cut stepped surface from ceria oxide
 ![]<img src="examples/figs/ceo2-buok-cut-step-CYCLES-1000.gif" width="500"/>
 
 
-#### Draw isosurface for electron density
-
-Read cube files, then draw atoms and isosurface. Here is a example of isosurface of Pt/Ti<sub>2</sub>O<sub>3</sub> interface.
-
-``` python
-from ase.io.cube import read_cube_data
-from blase.tools import write_blender
-
-data, atoms = read_cube_data('test.cube')
-kwargs = {'show_unit_cell': 1, 
-          'radii': 0.4, 
-          'functions': [['draw_isosurface', {'density_grid': data, 'cut_off': -0.002}],
-                        ['draw_isosurface', {'density_grid': data, 'cut_off': 0.002, 'color': (0.0, 0.0, 1.0)}]],
-          'rotations': [[90, '-x'], [30, 'y']],
-          'outfile': 'testcube'}
-
-write_blender(atoms, display=False, **kwargs)
-````
-<img src="examples/figs/testcube.png" width="500"/>
 
 
-#### Polyhedra
-A example to draw polyhedra.
 
-```python
-from ase.io import read, write
-from blase.tools import write_blender
-
-atoms = read('tio2.cif')
-kwargs = {'show_unit_cell': 1, 
-          'engine': 'BLENDER_WORKBENCH',
-          'radii': 0.6,
-          'bond_cutoff': 1.0,
-          'search_pbc': {'search_dict': {'Ti': ['O']}},
-          'polyhedra_dict': {'Ti': ['O']},
-          'outfile': 'figs/test-search-bonds',
-          }
-write_blender(atoms, **kwargs)
-
-```
-<img src="examples/figs/test-search-bonds.png" width="500"/>
-<img src="examples/figs/test-search-bonds-2.png" width="500"/>
 
 #### Search molecule bonds out of unit cell
 ```python
@@ -192,66 +214,44 @@ kwargs = {'show_unit_cell': 1,
           }
 write_blender(atoms, **kwargs)
 ```
+<img src="examples/figs/test-search-bonds.png" width="500"/>
 <img src="examples/figs/test-search-molecule.png" width="500"/>
-
-#### Cut surface
-A example to cut (110) surface, with distance from origin to be d.
-```python
-from ase.build import bulk
-from blase.tools import write_blender
-
-atoms = bulk('Pt', cubic = True)
-atoms = atoms*[6, 6, 6]
-
-kwargs = {'show_unit_cell': 1, 
-          'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
-          'radii': 1.0,
-          # 'display': True,
-          'boundary_list': [{'d': 10.0, 'index': [1, 1, 0]}],
-          'outfile': 'figs/test-boundary',
-          }
-write_blender(atoms, **kwargs)
-```
-<img src="examples/figs/test-boundary.png" width="500"/>
-
-
-
 
 #### Set different kind of atoms for the same element
 ````python
-#!/usr/bin/env python
-from ase.build import surface, fcc111
-from ase.visualize import view
-from blase.tools import get_bondpairs, write_blender
+from ase.build import fcc111
+from runblase import write_blender
 #============================================================
 atoms = fcc111('Pt', (7, 7, 3), vacuum=0.0)
-kinds = []
 kind_props = {
 'Pt_0': {'color': [208/255.0, 208/255.0, 224/255.0]},
 'Pt_1': {'color': [225/255.0, 128/255.0, 0/255.0]},
 'Pt_2': {'color': [0/255.0, 191/255.0, 56/255.0]},
 }
+atoms.info['species'] = []
 for i in range(len(atoms)):
      ind = int((atoms[i].x/5))
      kind = atoms[i].symbol + '_{0}'.format(ind)
-     kinds.append(kind)
-atoms.kinds = kinds
+     atoms.info['species'].append(kind)
 
 camera_loc = atoms.get_center_of_mass() + [0, -60, 30]
 
-kwargs = {'show_unit_cell': 0, 
+batoms = {'atoms': atoms,
+          'kind_props': kind_props,
+          'model_type': '0',
+          'color': 'VESTA',
+        }
+blase = {
+          'engine': 'CYCLES',
           'camera_loc': camera_loc,  # distance from camera to front atom
           'camera_type': 'PERSP',  #  ['PERSP', 'ORTHO', 'PANO']
           'camera_lens': 100,  #
           'camera_target': atoms.get_center_of_mass(), #
-          'ortho_scale': None, #
-          'kind_props': kind_props,
-          'resolution_x': 1000,
-          'outfile': 'test-kinds',
-          }
-write_blender(atoms, **kwargs)
+          'output_image': 'figs/kinds',
+  }
+write_blender(batoms, blase)
 ````
-<img src="examples/figs/test-kinds.png" width="300"/>
+<img src="examples/figs/kinds.png" width="300"/>
 
 
 
