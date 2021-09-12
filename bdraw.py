@@ -7,7 +7,7 @@ from blase.tools import get_cell_vertices
 import time
 ######################################################
 #========================================================
-def draw_cell(coll_cell, cell_vertices, celllinewidth = 0.01):
+def draw_cell(coll_cell, cell_vertices, name = None, celllinewidth = 0.01):
     """
     Draw unit cell
     """
@@ -20,17 +20,17 @@ def draw_cell(coll_cell, cell_vertices, celllinewidth = 0.01):
         # draw points
         bpy.ops.mesh.primitive_uv_sphere_add(radius = celllinewidth) #, segments=32, ring_count=16)
         sphere = bpy.context.view_layer.objects.active
-        sphere.name = 'sphere_cell'
+        sphere.name = 'instancer_cell_%s_sphere'%name
         sphere.data.materials.append(material)
         bpy.ops.object.shade_smooth()
         sphere.hide_set(True)
         mesh = bpy.data.meshes.new('point_cell' )
-        obj_cell = bpy.data.objects.new('point_cell', mesh )
+        obj_cell = bpy.data.objects.new('cell_%s_point'%name, mesh )
         # Associate the vertices
         obj_cell.data.from_pydata(cell_vertices, [], [])
         sphere.parent = obj_cell
         obj_cell.instance_type = 'VERTS'
-        bpy.data.collections['%s'%name].children['%s_instancers'%name].objects.link(sphere)
+        bpy.data.collections['%s'%name].children['%s_instancer'%name].objects.link(sphere)
         coll_cell.objects.link(obj_cell)
         #
         # edges
@@ -60,27 +60,14 @@ def draw_cell(coll_cell, cell_vertices, celllinewidth = 0.01):
         mesh.update()
         for f in mesh.polygons:
             f.use_smooth = True
-        obj_edge = bpy.data.objects.new("edge_cell", mesh)
+        obj_edge = bpy.data.objects.new("cell_%s_edge"%name, mesh)
         obj_edge.data = mesh
         obj_edge.data.materials.append(material)
         bpy.ops.object.shade_smooth()
         coll_cell.objects.link(obj_edge)
 
-def draw_atoms(coll_atom_kinds, atom_kinds, bsdf_inputs = None, material_style = 'blase', make_real = False):
-    '''
-    Draw atoms
-    bsdf_inputs: dict
-        The key and value for principled_bsdf node
-    material_style: string
-        Select materials type from ['blase', 'glass', 'ceramic', 'plastic'].
-    '''
-    # build materials
-    for kind, datas in atom_kinds.items():
-        draw_atom_kind(kind, coll_atom_kinds = coll_atom_kinds, datas = datas, bsdf_inputs = bsdf_inputs, material_style = material_style)
-    
-def draw_atom_kind(kind, coll_atom_kinds = None, datas = None, bsdf_inputs = None, material_style = 'blase'):
+def draw_atom_kind(kind, coll_atom_kinds = None, datas = None, name = None, bsdf_inputs = None, material_style = 'blase'):
     tstart = time.time()
-    name = coll_atom_kinds.name.split('_')[0]
     if not bsdf_inputs:
         bsdf_inputs = material_styles_dict[material_style]
     material = bpy.data.materials.new('atom_{0}_{1}'.format(name, kind))
@@ -96,7 +83,6 @@ def draw_atom_kind(kind, coll_atom_kinds = None, datas = None, bsdf_inputs = Non
         principled_node.inputs[key].default_value = value
     datas['materials'] = material
     #
-    # print(datas['positions'][0])
     if datas['balltype'] == 'meta':
         print('metaball', kind)
         mbdata = bpy.data.metaballs.new('atom_{0}_{1}'.format(name, kind))
@@ -109,7 +95,6 @@ def draw_atom_kind(kind, coll_atom_kinds = None, datas = None, bsdf_inputs = Non
             mbele.co = co
             mbele.radius = datas['radius']*2.0
             mbele.stiffness = 1.0
-        # STRUCTURE.append(obj_atom)
         coll_atom_kinds.objects.link(obj_atom)
     else:
         bpy.ops.mesh.primitive_uv_sphere_add(radius = datas['radius']) #, segments=32, ring_count=16)
@@ -123,44 +108,42 @@ def draw_atom_kind(kind, coll_atom_kinds = None, datas = None, bsdf_inputs = Non
         sphere.hide_set(True)
         mesh = bpy.data.meshes.new('atom_{0}_{1}'.format(name, kind))
         obj_atom = bpy.data.objects.new('atom_{0}_{1}'.format(name, kind), mesh )
-        # Associate the vertices
         obj_atom.data.from_pydata(datas['positions'], [], [])
-        # Make the object parent of the cube
         sphere.parent = obj_atom
-        # Make the object dupliverts
         obj_atom.instance_type = 'VERTS'
-        bpy.data.collections['%s'%name].children['%s_instancers'%name].objects.link(sphere)
+        bpy.data.collections['%s'%name].children['%s_instancer_atom'%name].objects.link(sphere)
         coll_atom_kinds.objects.link(obj_atom)
     print('atoms: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
-def draw_bonds(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = None, bsdf_inputs = None, material_style = 'plastic'):
-    '''
-    Draw atom bonds
-    '''
-    if not bsdf_inputs:
-        bsdf_inputs = material_styles_dict[material_style]
-    vertices = 16
-    # if not vertices:
-    	# if len(bobj.atoms) > 200:
-	        # vertices=8
-    	# else:
-    		# vertices = 16
-    source = bond_source(vertices = vertices)
-    #
-    for kind, datas in bond_kinds.items():
-        draw_bond_kind(kind, coll_bond_kinds, 
-                             datas, 
-                             bsdf_inputs = bsdf_inputs, 
-                             source = source,
-                             bondlinewidth = bondlinewidth,
-                             material_style = material_style)
+def draw_text(coll_text = None, atoms = None, type = None):
+    tstart = time.time()
+    positions = atoms.positions
+    n = len(positions)
+    for i in range(n):
+        location = positions[i] + np.array([0, 0, 1.0])
+        FontCurve = bpy.data.curves.new(type="FONT",name="myFontCurve")
+        ob = bpy.data.objects.new("myFontOb",FontCurve)
+        if type == 0:
+            ob.data.body = "%s"%i
+        elif type == 1:
+            ob.data.body = "%s"%atoms[i].symbol
+        ob.location = location
+        coll_text.objects.link(ob)
+    print('text: {0:10.2f} s'.format(time.time() - tstart))
+
+
 def draw_bond_kind(kind, 
                    coll_bond_kinds, 
                    datas, 
+                   name = None,
                    source = None, 
-                   bondlinewidth = None,
+                   bondlinewidth = 0.10,
                    bsdf_inputs = None, 
                    material_style = 'plastic'):
+    if not bsdf_inputs:
+        bsdf_inputs = material_styles_dict[material_style]
+    vertices = 16
+    source = bond_source(vertices = vertices)
     name = coll_bond_kinds.name.split('_')[0]
     tstart = time.time()
     material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
@@ -176,7 +159,6 @@ def draw_bond_kind(kind,
         principled_node.inputs[key].default_value = value
     datas['materials'] = material
     #
-    # print(datas['normals'])
     verts, faces = cylinder_mesh_from_instance(datas['centers'], datas['normals'], datas['lengths'], bondlinewidth, source)
     mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
     mesh.from_pydata(verts, [], faces)  
@@ -192,17 +174,12 @@ def draw_bond_kind(kind,
 
 def draw_bonds_2(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = None, bsdf_inputs = None, material_style = 'plastic'):
     '''
-    Draw atom bonds
+    Draw atom bonds. Using instancing method
+    
     '''
     if not bsdf_inputs:
         bsdf_inputs = material_styles_dict[material_style]
     vertices = 16
-    # if not vertices:
-    	# if len(bobj.atoms) > 200:
-	        # vertices=8
-    	# else:
-    		# vertices = 16
-    # print(bond_kinds)
     for kind, datas in bond_kinds.items():
         tstart = time.time()
         material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
@@ -236,39 +213,22 @@ def draw_bonds_2(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = N
         # obj_bond.select_set(True)
         # bpy.data.objects['bond_kind_{0}'.format(kind)].select_set(True)
         # STRUCTURE.append(obj_bond)
-        bpy.data.collections['instancers'].objects.link(cylinder)
+        bpy.data.collections['instancer'].objects.link(cylinder)
         coll_bond_kinds.objects.link(obj_bond)        
         print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
-def draw_polyhedras(coll_polyhedra_kinds, 
-                    polyhedra_kinds, 
-                    bsdf_inputs = None, 
-                    material_style = 'blase'):
-    '''
-    Draw polyhedras
-    '''
-    if not bsdf_inputs:
-        bsdf_inputs = material_styles_dict[material_style]
-    #
-    
-    # import pprint
-    # pprint.pprint(polyhedra_kinds)
-    source = bond_source(vertices=4)
-    for kind, datas in polyhedra_kinds.items():
-        print('kind: ', kind)
-        draw_polyhedra_kind(kind, 
-                            coll_polyhedra_kinds, 
-                            datas,
-                            bsdf_inputs = bsdf_inputs, 
-                            source = source,
-                            material_style = material_style
-                            )
 
 def draw_polyhedra_kind(kind, 
                         coll_polyhedra_kinds, 
                         datas, 
+                        name = None,
                         source = None, 
                         bsdf_inputs = None, 
                         material_style = 'blase'):
+        """
+        """
+        source = bond_source(vertices=4)
+        if not bsdf_inputs:
+            bsdf_inputs = material_styles_dict[material_style]
         tstart = time.time()
         material = bpy.data.materials.new('polyhedra_kind_{0}'.format(kind))
         material.diffuse_color = np.append(datas['color'], datas['transmit'])

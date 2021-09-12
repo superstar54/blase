@@ -24,7 +24,6 @@ from ase import Atom, Atoms
 from ase.build import molecule, bulk
 import json
 from blase.bio import Blase
-from blase.bdraw import draw_cell, draw_atoms, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 from blase.butils import read_blase_collection_list, read_blase_collection
 
 
@@ -34,10 +33,21 @@ class BlaseSettings(bpy.types.PropertyGroup):
     pbc: BoolVectorProperty(name="pbc", default = [False, False, False], size = 3)
     cell: FloatVectorProperty(name="cell", default = [0, 0, 0, 0, 0, 0, 0, 0, 0], size = 9)
     boundary: FloatVectorProperty(name="boundary", default = [0.0, 0.0, 0.0], size = 3)
+
+class BatomSettings(bpy.types.PropertyGroup):
+    is_batom: BoolProperty(name="is_batom", default=False)
+    species: StringProperty(name="species", default = '0')
+
 class BlaseAtom(bpy.types.PropertyGroup):
     symbol: StringProperty(name="symbol")
     position: FloatVectorProperty(name="position", size = 3)
     tag: IntProperty(name="tag")
+class BlaseBond(bpy.types.PropertyGroup):
+    symbol1: StringProperty(name="symbol1")
+    symbol2: StringProperty(name="symbol2")
+    bondlength: FloatProperty(name="bondlength", description = "bondlength", default = 2.0)
+    polyhedra: BoolProperty(name="polyhedra", default=False)
+    search: BoolProperty(name="search", default=False)
     
 # The panel.
 class Blase_PT_prepare(Panel):

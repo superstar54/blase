@@ -1,5 +1,5 @@
 from ase.io import read
-from runblase import write_blender
+from blaseio import write_blender
 
 atoms = read('datas/tio2.cif')
 batoms = {'atoms': atoms,
@@ -8,6 +8,6 @@ batoms = {'atoms': atoms,
         'color': 'VESTA',
         }
 blase = {
-          'output_image': 'figs/tio2-polyhedra',
+          'output_image': 'tio2-polyhedra',
   }
 write_blender(batoms, blase)

@@ -42,17 +42,14 @@ def read_blase_collection(coll):
     '''
     atoms = Atoms()
     name = coll.name
-
-    
     # atoms properties
     scale = {}
-    for obj in coll.children['%s_instancers'%name].all_objects:
-        ele = obj.name.split('_')[3]
-        scale[ele] = obj.scale
-    
+    for obj in coll.children['%s_instancer'%name].all_objects:
+        species = '_'.join(obj.name.split('_')[2:])
+        scale[species] = obj.scale
     # coll property
     # self.atoms = atoms
-    batoms = Batoms(name = name, coll = coll, scale = scale)
+    batoms = Batoms(name = name, coll = coll, scale = scale, draw = False)
     return batoms
 def read_atoms_select():
     '''   

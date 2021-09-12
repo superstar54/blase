@@ -63,7 +63,12 @@ On Windows, start Blender, open a Python console and run the following code::
     subprocess.call([path, "-m", "pip", "install", "ase"])
     subprocess.call([path, "-m", "pip", "install", "scikit-image"])
  
-.. _download:
+.. note::
+
+   You could avoild install inside Blender by setting bl to use system python package::
+
+    export BLENDER_COMMAND='blender --python-use-system-env'
+
 
 Install Blase
 ========================
@@ -81,7 +86,13 @@ You can get the source from https://github.com/superstar54/blase.
     And then compress the blase folder to a `zip-file`.
 
 Then install blase as a addon in Blender. Please vist here to learn how to install a addon with zip files. 
-https://docs.blender.org/manual/en/latest/editors/preferences/addons.html. Don't forget to enable the addon.
+https://docs.blender.org/manual/en/latest/editors/preferences/addons.html. 
+
+
+Don't forget to enable the addon. You can enable in the Preferences setting. Or, open a Blender Python console, and run::
+
+    import addon_utils
+    addon_utils.enable('blase', default_set=True)
 
 
 Environment variables
@@ -94,6 +105,7 @@ First, we need to get the full path to the blase package. Start Blender, in the 
 
 On Linux, set these permanently in your :file:`~/.bashrc` file::
 
+    export BLENDER_COMMAND='blender --python-use-system-env'
     export PYTHONPATH=<path-to-blase-package>:$PYTHONPATH
     export PATH=<path-to-blase-package>bin/:$PATH
     export BLASE_PATH=<path-to-blase-package>/bin/

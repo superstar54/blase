@@ -14,7 +14,6 @@ from ase.io import read
 from ase.io.cube import read_cube_data
 import pickle
 from blase.bio import Blase
-from blase.bdraw import draw_cell, draw_atoms, draw_bonds, draw_polyhedras, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 from blase.batoms import Batoms
 
 # -----------------------------------------------------------------------------

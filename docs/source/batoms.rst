@@ -84,13 +84,18 @@ For example, copy h2o molecule:
 
 For example, delete the second atom in h2o molecule. Please note that index start from 0.
 
->>> h2o.delete([1])
+>>> h2o.delete('H', [1])
+
+Or,
+
+>>> h2o['H'].delete([1])
+
 
 * :meth:`~Batoms.replace`
 
 For example, replace the all H in h2o molecule by S.
 
->>> h2o.replace([1, 2], 'S')
+>>> h2o.replace('H', 'S', [1])
 
 * :meth:`~Batoms.repeat`
 
@@ -125,6 +130,11 @@ Save atoms to file, please vist write method in ASE, https://wiki.fysik.dtu.dk/a
 
 >>> au.write('au111-co.cif')
 
+* :meth:`~Batoms.show_index`
+
+Show the index of atoms.
+
+>>> au.show_index(index_type = 0)
 
 * :meth:`~Batoms.render`
 

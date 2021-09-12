@@ -27,6 +27,7 @@ Blase is a Python package for drawing and rendering ASE (Atomic Simulation Envir
    gui/index
    gallery
    tips
+   faqs
    development
 
 
