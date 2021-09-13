@@ -61,45 +61,24 @@ For example, replace the all H in h molecule by S.
 >>> from ase.build import bulk
 >>> from blase.batom import Batom
 >>> au = bulk('Au', cubic = True)
->>> au = Batom(atoms = au)
->>> au.draw()
+>>> au = Batom(label = 'au', species = 'H', positions = au)
 >>> au.repeat([2, 2, 2])
 
 
 * :meth:`~Batom.extend`
 
->>> from ase.build import molecule, fcc111
->>> from blase.batom import Batom
->>> import numpy as np
->>> co = molecule('CO')
->>> co = Batom(atoms = co, draw = True)
->>> au = fcc111('Au', (5, 5, 4), vacuum=5.0)
->>> au = Batom(atoms = au, draw = True)
->>> co.translate(au.atoms[-1].position + np.array([0, 0, 2]))
->>> au.extend(co)
-
-or,
-
->>> au = au + co
+from blase.batoms import Batom
+h = Batom('h2o', 'H', [[0, 0, 0], [2, 0, 0]])
+o = Batom('h2o', 'O', [[0, 0, 0]])
+o.extend(h)
 
 
-* :meth:`~Batom.write`
-
-Save atoms to file, please vist write method in ASE, https://wiki.fysik.dtu.dk/ase/ase/io/io.html?highlight=write#ase.io.write
-
->>> au.write('au111-co.cif')
 
 * :meth:`~Batom.show_index`
 
 Show the index of atoms.
 
 >>> au.show_index(index_type = 0)
-
-* :meth:`~Batom.render`
-
-Render the atoms, and save to a png image.
-
->>> h2o.render(resolution_x = 1000, output_image = 'h2o.png')
 
 
 List of all Methods

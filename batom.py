@@ -9,9 +9,10 @@ import bpy
 import bmesh
 from mathutils import Vector
 from copy import copy
+from blase.btools import object_mode
 from blase.data import material_styles_dict
 from blase.tools import get_atom_kind
-from blase.bdraw import draw_text, draw_atom_kind, draw_bond_kind, draw_polyhedra_kind
+from blase.bdraw import draw_text, draw_bond_kind, draw_polyhedra_kind
 import numpy as np
 import time
 
@@ -99,6 +100,7 @@ class Batom():
         self.material_style = material_style
         self.bsdf_inputs = bsdf_inputs
         self.species_data = get_atom_kind(self.element, scale = scale, props = self.kind_props, color_style = self.color_style)
+        self.radius = self.species_data['radius']
         self.set_material()
         self.set_instancer()
         self.set_object(positions)
@@ -124,7 +126,12 @@ class Batom():
         else:
             material = bpy.data.materials[self.name]
         self.material = material
+    def object_mode(self):
+        for object in bpy.data.objects:
+            if object.mode == 'EDIT':
+                bpy.ops.object.mode_set(mode = 'OBJECT')
     def set_instancer(self):
+        object_mode()
         name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
         if name not in bpy.data.objects:
             bpy.ops.mesh.primitive_uv_sphere_add(radius = self.species_data['radius']) #, segments=32, ring_count=16)
@@ -165,7 +172,7 @@ class Batom():
     def scale(self, scale):
         self.set_scale(scale)
     def get_scale(self):
-        return self.batom.scale
+        return self.instancer.scale
     def set_scale(self, scale):
         if isinstance(scale, float) or isinstance(scale, int):
             scale = [scale]*3
@@ -191,41 +198,19 @@ class Batom():
                                 (len(positions), natoms))
         for i in range(natoms):
             self.batom.data.vertices[i].co = positions[i]
-    def draw_bond(self, bond_data = {}):
-        """
-        Draw bond.
-        bond_data: dict
-            centers, length, normal
-        """
-        print('--------------Draw %s bonds--------------'%self.species)
-        self.clean_blase_objects('bond')
-        if bond_data:
-            self.bond_data = bond_data
-        draw_bond_kind(self.species, self.coll.children['%s_bond'%self.name], self.bond_data, name = self.name)
         
-    def draw_polyhedra(self, polyhedra_data = {}):
-        """
-        Draw polyhedra.
-
-        polyhedra_data: dict
-        """
-        print('--------------Draw bonds--------------')
-        self.clean_blase_objects('polyhedra')
-        if polyhedra_data:
-            self.polyhedra_data = polyhedra_data
-        if self.polyhedra_data:
-            draw_polyhedra_kind(self.species, self.coll.children['%s_polyhedra'%self.name], self.polyhedra_data)
     def clean_blase_objects(self, object):
         """
         remove all bond object in the bond collection
         """
-        for obj in self.coll.children['%s_%s'%(self.name, object)].all_objects:
-            if obj.name == '%s_%s_%s'%(object, self.name, self.species):
+        for obj in bpy.data.collections['%s_%s'%(self.label, object)].all_objects:
+            if obj.name == '%s_%s_%s'%(object, self.label, self.species):
                 bpy.data.objects.remove(obj)
     def delete_verts(self, index = []):
         """
         delete verts
         """
+        object_mode()
         obj = self.batom
         bm = bmesh.new()
         bm.from_mesh(obj.data)
@@ -297,20 +282,31 @@ class Batom():
             if index < -natoms or index >= natoms:
                 raise IndexError('Index out of range.')
             return self.batom.data.vertices[index].co
-    def __setitem__(self, i, value):
+        if isinstance(index, list):
+            positions = np.array([self.batom.data.vertices[i].co for i in index])
+            return positions
+
+    def __setitem__(self, index, value):
         """Return a subset of the Batom.
 
         i -- int, describing which atom to return.
         """
-        if isinstance(i, int):
+        if isinstance(index, int):
             natoms = len(self)
-            if i < -natoms or i >= natoms:
+            if index < -natoms or index >= natoms:
                 raise IndexError('Index out of range.')
-            self.batom.data.vertices[i].co = value
+            self.batom.data.vertices[index].co = value
+        if isinstance(index, list):
+            for i in index:
+                self.batom.data.vertices[i].co = value[i]
 
     def repeat(self, m, cell):
         """
         In-place repeat of atoms.
+
+        >>> from blase.batom import Batom
+        >>> c = Batom('co', 'C', [[0, 0, 0], [1.2, 0, 0]])
+        >>> c.repeat([3, 3, 3], np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]))
         """
         if isinstance(m, int):
             m = (m, m, m)
@@ -340,9 +336,10 @@ class Batom():
 
         For example, copy H species:
         
-        >>> h_new = h.copy(name = 'h_new')
+        >>> h_new = h.copy(name = 'h_new', species = 'H')
 
         """
+        object_mode()
         name = 'atom_%s_%s'%(label, species)
         obj = bpy.data.objects.new(name, self.batom.data)
         name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
@@ -356,18 +353,39 @@ class Batom():
         Extend batom object by appending batom from *other*.
         
         >>> from blase.batoms import Batom
-        >>> h = Batom('h2o', 'H', [[0, 0, 0], [2, 0, 0]])
-        >>> o = Batom('h2o', 'O', [[0, 0, 0]])
-        >>> o.extend(h)
+        >>> h1 = Batom('h2o', 'H_1', [[0, 0, 0], [2, 0, 0]])
+        >>> h2 = Batom('h2o', 'H_2', [[0, 0, 2], [2, 0, 2]])
+        >>> h = h1 + h2
         """
+        # could also use self.add_vertices(other.positions)
+        object_mode()
         bpy.ops.object.select_all(action='DESELECT')
         self.batom.select_set(True)
         other.batom.select_set(True)
         bpy.context.view_layer.objects.active = self.batom
         bpy.ops.object.join()
+    def __iadd__(self, other):
+        """
+        >>> h1 += h2
+        """
+        self.extend(other)
+        return self
+    def __add__(self, other):
+        """
+        >>> h1 = h1 + h2
+        """
+        self += other
+        return self
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self.batom.data.vertices[i].co
+    def __repr__(self):
+        s = "Batoms('%s', positions = %s" % (self.species, list(self.positions))
+        return s
     def add_vertices(self, positions):
         """
         """
+        object_mode()
         bm = bmesh.new()
         bm.from_mesh(self.batom.data)
         bm.verts.ensure_lookup_table()
@@ -384,6 +402,7 @@ class Batom():
 
         >>> h.translate([0, 0, 5])
         """
+        object_mode()
         bpy.ops.object.select_all(action='DESELECT')
         self.batom.select_set(True)
         bpy.ops.transform.translate(value=displacement)
@@ -402,6 +421,7 @@ class Batom():
         >>> h.rotate(90, 'Z')
 
         """
+        object_mode()
         bpy.ops.object.select_all(action='DESELECT')
         self.batom.select_set(True)
         bpy.ops.transform.rotate(value=angle, orient_axis=axis.upper(), orient_type = orient_type)

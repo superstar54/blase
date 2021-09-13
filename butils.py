@@ -3,6 +3,8 @@ from blase.batoms import Batoms
 from ase import Atom, Atoms
 
 
+
+
 def read_coll(name):
     """
     Read batoms object from a collection name

@@ -32,6 +32,7 @@ class BlaseSettings(bpy.types.PropertyGroup):
     model_type: StringProperty(name="model_type", default = '0')
     pbc: BoolVectorProperty(name="pbc", default = [False, False, False], size = 3)
     cell: FloatVectorProperty(name="cell", default = [0, 0, 0, 0, 0, 0, 0, 0, 0], size = 9)
+    show_unit_cell: BoolProperty(name="show_unit_cell", default = True)
     boundary: FloatVectorProperty(name="boundary", default = [0.0, 0.0, 0.0], size = 3)
 
 class BatomSettings(bpy.types.PropertyGroup):

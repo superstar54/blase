@@ -66,54 +66,6 @@ def draw_cell(coll_cell, cell_vertices, name = None, celllinewidth = 0.01):
         bpy.ops.object.shade_smooth()
         coll_cell.objects.link(obj_edge)
 
-def draw_atom_kind(kind, coll_atom_kinds = None, datas = None, name = None, bsdf_inputs = None, material_style = 'blase'):
-    tstart = time.time()
-    if not bsdf_inputs:
-        bsdf_inputs = material_styles_dict[material_style]
-    material = bpy.data.materials.new('atom_{0}_{1}'.format(name, kind))
-    material.diffuse_color = np.append(datas['color'], datas['transmit'])
-    material.metallic = bsdf_inputs['Metallic']
-    material.roughness = bsdf_inputs['Roughness']
-    # material.blend_method = 'BLEND'
-    material.use_nodes = True
-    principled_node = material.node_tree.nodes['Principled BSDF']
-    principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
-    principled_node.inputs['Alpha'].default_value = datas['transmit']
-    for key, value in bsdf_inputs.items():
-        principled_node.inputs[key].default_value = value
-    datas['materials'] = material
-    #
-    if datas['balltype'] == 'meta':
-        print('metaball', kind)
-        mbdata = bpy.data.metaballs.new('atom_{0}_{1}'.format(name, kind))
-        mbdata.render_resolution = 0.1
-        mbdata.resolution = 0.2
-        obj_atom = bpy.data.objects.new('atom_{0}_{1}'.format(name, kind), mbdata)
-        obj_atom.data.materials.append(material)
-        for co in datas['positions']:
-            mbele = mbdata.elements.new(type = 'BALL')
-            mbele.co = co
-            mbele.radius = datas['radius']*2.0
-            mbele.stiffness = 1.0
-        coll_atom_kinds.objects.link(obj_atom)
-    else:
-        bpy.ops.mesh.primitive_uv_sphere_add(radius = datas['radius']) #, segments=32, ring_count=16)
-        sphere = bpy.context.view_layer.objects.active
-        if isinstance(datas['scale'], float):
-            datas['scale'] = [datas['scale']]*3
-        sphere.scale = datas['scale']
-        sphere.name = 'instancer_atom_{0}_{1}'.format(name, kind)
-        sphere.data.materials.append(material)
-        bpy.ops.object.shade_smooth()
-        sphere.hide_set(True)
-        mesh = bpy.data.meshes.new('atom_{0}_{1}'.format(name, kind))
-        obj_atom = bpy.data.objects.new('atom_{0}_{1}'.format(name, kind), mesh )
-        obj_atom.data.from_pydata(datas['positions'], [], [])
-        sphere.parent = obj_atom
-        obj_atom.instance_type = 'VERTS'
-        bpy.data.collections['%s'%name].children['%s_instancer_atom'%name].objects.link(sphere)
-        coll_atom_kinds.objects.link(obj_atom)
-    print('atoms: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
 def draw_text(coll_text = None, atoms = None, type = None):
     tstart = time.time()
@@ -133,9 +85,9 @@ def draw_text(coll_text = None, atoms = None, type = None):
 
 
 def draw_bond_kind(kind, 
-                   coll_bond_kinds, 
                    datas, 
-                   name = None,
+                   label = None,
+                   coll = None,
                    source = None, 
                    bondlinewidth = 0.10,
                    bsdf_inputs = None, 
@@ -144,7 +96,6 @@ def draw_bond_kind(kind,
         bsdf_inputs = material_styles_dict[material_style]
     vertices = 16
     source = bond_source(vertices = vertices)
-    name = coll_bond_kinds.name.split('_')[0]
     tstart = time.time()
     material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
     material.diffuse_color = np.append(datas['color'], datas['transmit'])
@@ -165,12 +116,13 @@ def draw_bond_kind(kind,
     mesh.update()
     for f in mesh.polygons:
         f.use_smooth = True
-    obj_bond = bpy.data.objects.new("bond_{0}_{1}".format(name, kind), mesh)
+    obj_bond = bpy.data.objects.new("bond_{0}_{1}".format(label, kind), mesh)
     obj_bond.data = mesh
     obj_bond.data.materials.append(material)
     bpy.ops.object.shade_smooth()
-    coll_bond_kinds.objects.link(obj_bond)
+    coll.objects.link(obj_bond)
     print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+    
 
 def draw_bonds_2(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = None, bsdf_inputs = None, material_style = 'plastic'):
     '''
@@ -218,9 +170,9 @@ def draw_bonds_2(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = N
         print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
 def draw_polyhedra_kind(kind, 
-                        coll_polyhedra_kinds, 
                         datas, 
-                        name = None,
+                        label = None,
+                        coll = None,
                         source = None, 
                         bsdf_inputs = None, 
                         material_style = 'blase'):
@@ -248,7 +200,7 @@ def draw_polyhedra_kind(kind,
         mesh.update()
         for f in mesh.polygons:
             f.use_smooth = True
-        obj_polyhedra = bpy.data.objects.new("polyhedra_kind_{0}".format(kind), mesh)
+        obj_polyhedra = bpy.data.objects.new("polyhedra_{0}_{1}_face".format(label, kind), mesh)
         obj_polyhedra.data = mesh
         obj_polyhedra.data.materials.append(material)
         bpy.ops.object.shade_smooth()
@@ -270,13 +222,13 @@ def draw_polyhedra_kind(kind,
         mesh.update()
         for f in mesh.polygons:
             f.use_smooth = True
-        obj_edge = bpy.data.objects.new("edge_kind_{0}".format(kind), mesh)
+        obj_edge = bpy.data.objects.new("polyhedra_{0}_{1}_edge".format(label, kind), mesh)
         obj_edge.data = mesh
         obj_edge.data.materials.append(material)
         bpy.ops.object.shade_smooth()
         # STRUCTURE.append(obj_polyhedra)
-        coll_polyhedra_kinds.objects.link(obj_polyhedra)
-        coll_polyhedra_kinds.objects.link(obj_edge)
+        coll.objects.link(obj_polyhedra)
+        coll.objects.link(obj_edge)
         print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
 def draw_isosurface(coll_isosurface, volume, cell = None, level = None,

@@ -90,7 +90,6 @@ def register():
     bpy.types.Object.is_batom = bpy.props.BoolProperty(name = 'is_batom')
     bpy.types.Object.species = bpy.props.StringProperty(name = 'species')
     bpy.types.Object.element = bpy.props.StringProperty(name = 'element')
-    bpy.types.Object.scale = bpy.props.FloatProperty(name = 'scale', default = 1.0)
     bpy.types.Object.batom = bpy.props.PointerProperty(name = 'batom', type = gui_blase.BatomSettings)
 
 
