@@ -85,9 +85,13 @@ def register():
     scene.bopanel = bpy.props.PointerProperty(type=gui_atoms.AtomsProperties)
     scene.clpanel = bpy.props.PointerProperty(type=gui_cell.CellProperties)
     bpy.types.Collection.blase = bpy.props.PointerProperty(name = 'blase', type = gui_blase.BlaseSettings)
-    bpy.types.Collection.batom = bpy.props.PointerProperty(name = 'batom', type = gui_blase.BatomSettings)
     bpy.types.Collection.batoms = bpy.props.CollectionProperty(name = 'batoms', type = gui_blase.BlaseAtom)
     bpy.types.Collection.bond = bpy.props.CollectionProperty(name = 'bond', type = gui_blase.BlaseBond)
+    bpy.types.Object.is_batom = bpy.props.BoolProperty(name = 'is_batom')
+    bpy.types.Object.species = bpy.props.StringProperty(name = 'species')
+    bpy.types.Object.element = bpy.props.StringProperty(name = 'element')
+    bpy.types.Object.scale = bpy.props.FloatProperty(name = 'scale', default = 1.0)
+    bpy.types.Object.batom = bpy.props.PointerProperty(name = 'batom', type = gui_blase.BatomSettings)
 
 
 

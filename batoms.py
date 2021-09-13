@@ -100,7 +100,7 @@ class Batoms():
                 material_style = 'blase',
                 bsdf_inputs = None,
                 movie = False,
-                draw = True, 
+                draw = False, 
                  ):
         #
         self.batoms = {}
@@ -191,9 +191,15 @@ class Batoms():
     def build_batoms(self, species_dict):
         """
         """
-        for species, positions in species_dict.items():
-            ba = Batom(species, positions, name = self.name)
-            self.batoms[species] = ba
+        for species, data in species_dict.items():
+            if isinstance(data, list):
+                ba = Batom(self.name, species, data)
+                self.batoms[species] = data
+                self.coll.children['%s_atom'%self.name].objects.link(data.batom)
+            elif isinstance(data, Batom):
+                self.batoms[species] = data
+                self.coll.children['%s_atom'%self.name].objects.link(data.batom)
+
     def from_ase(self, atoms):
         """
         """
@@ -202,8 +208,9 @@ class Batoms():
         self.species = list(set(atoms.info['species']))
         for species in self.species:
             indices = [index for index, x in enumerate(atoms.info['species']) if x == species]
-            ba = Batom(species, atoms.positions[indices], name = self.name)
+            ba = Batom(self.name, species, atoms.positions[indices])
             self.batoms[species] = ba
+            self.coll.children['%s_atom'%self.name].objects.link(ba.batom)
         self.coll.blase.pbc = self.npbool2bool(atoms.pbc)
         self.coll.blase.cell = atoms.cell[:].flatten()
         
@@ -215,10 +222,10 @@ class Batoms():
         symbols = []
         positions = []
         for species, batom in self.batoms.items():
-            symbol = [batom.element]*len(batom.positions)
+            symbol = [batom.element]*len(batom)
             symbols.extend(symbol)
             positions.extend(batom.positions)
-        atoms = Atoms(symbols, positions, cell = np.array(self.coll.blase.cell).reshape(3, 3), pbc = self.coll.blase.pbc)
+        atoms = Atoms(symbols, positions, cell = self.cell, pbc = self.pbc)
         return atoms
     def from_pymatgen(self):
         """
@@ -334,6 +341,7 @@ class Batoms():
         """
         print('--------------Draw bonds--------------')
         # if not self.bondlist:
+        self.atoms = self.batoms2atoms()
         self.bondlist = get_bondpairs(self.atoms, self.bondsetting)
         if self.hydrogen_bond:
             self.hydrogen_bondlist = get_bondpairs(self.atoms, cutoff = {('O', 'H'): self.hydrogen_bond})
@@ -396,27 +404,27 @@ class Batoms():
 
         """
         if not model_type:
-            model_type = self.coll.blase.model_type
+            model_type = self.model_type
         else:
-            self.coll.blase.model_type = model_type
+            self.model_type = model_type
         self.draw_cell()
         if model_type == '0':
-            self.scale = 1.0
-            self.draw_atoms()
+            for batom in self.batoms.values():
+                batom.scale = 1.0
             self.clean_blase_objects('bond')
         elif model_type == '1':
             # view(images)
-            self.scale = 0.4
-            self.draw_atoms()
+            for batom in self.batoms.values():
+                batom.scale = 0.4
             self.draw_bonds()
         elif model_type == '2':
-            self.scale = 0.4
-            self.draw_atoms()
+            for batom in self.batoms.values():
+                batom.scale = 0.4
             self.draw_bonds()
             self.draw_polyhedras()
         elif model_type == '3':
-            self.scale = 0.01
-            self.draw_atoms()
+            for batom in self.batoms.values():
+                batom.scale = 0.01
             # self.clean_atoms
             self.draw_bonds()
         if self.isosurface:
@@ -444,26 +452,18 @@ class Batoms():
         >>> pt111.replace('Pt', 'Au', range(20))
 
         """
-        self.update_collection()
-        # delete old verts
-        self.batoms[species1].delete_verts(index)
         # if kind exists, merger, otherwise build a new kind and add.
         name = 'atom_%s_%s'%(self.name, species2)
-        positions = self.batoms[species1].positions[index]
-        np.delete(self.batoms[species1].positions, index)
-        if name in self.coll.children['%s_atom'%self.name].objects:
-            obj = self.coll.children['%s_atom'%self.name].objects[name]
-            bm = bmesh.new()
-            bm.from_mesh(obj.data)
-            bm.verts.ensure_lookup_table()
-            verts = []
-            for pos in positions:
-                bm.verts.new(pos)
-            bm.to_mesh(obj.data)
+        positions = [self.batoms[species1][i] for i in index]
+        if species2 in self.batoms:
+            self.batoms[species2].add_vertices(positions)
+            
         else:
-            batom = Batom(species2, positions, self.name)
-            batom.draw_atom()
-            self.batoms[species2] = self.batom
+            ba = Batom(self.name, species2, positions)
+            self.batoms[species2] = ba
+            self.coll.children['%s_atom'%self.name].objects.link(ba.batom)
+        self.batoms[species1].delete(index)
+            
     
     def delete(self, species, index = []):
         """
@@ -480,7 +480,6 @@ class Batoms():
         >>> h2o.delete([1])
 
         """
-        self.update_collection()
         self.batoms[species].delete(index)
     def translate(self, displacement):
         """Translate atomic positions.
@@ -492,13 +491,11 @@ class Batoms():
         >>> h2o.translate([0, 0, 5])
 
         """
-        self.update_collection()
         bpy.ops.object.select_all(action='DESELECT')
         for obj in self.coll.all_objects:
             if 'instancer' not in obj.name:
                 obj.select_set(True)
         bpy.ops.transform.translate(value=displacement)
-        self.update_collection()
     def rotate(self, angle, axis = 'Z', orient_type = 'GLOBAL'):
         """Rotate atomic based on a axis and an angle.
 
@@ -514,14 +511,11 @@ class Batoms():
         >>> h2o.rotate(90, 'Z')
 
         """
-        self.update_collection()
-        self.from_ase(self.atoms)
         bpy.ops.object.select_all(action='DESELECT')
         for coll in self.coll.children:
             for obj in coll.objects:
                 obj.select_set(True)
         bpy.ops.transform.rotate(value=angle, orient_axis=axis.upper(), orient_type = orient_type)
-        self.update_collection()
     
     def __getitem__(self, species):
         """Return a subset of the Batom.
@@ -530,7 +524,7 @@ class Batoms():
         """
 
         if isinstance(species, str):
-            if species not in self.species:
+            if species not in self.batoms:
                 raise SystemExit('%s is not in this structure'%species)
             return self.batoms[species]
         elif isinstance(species, list):
@@ -562,14 +556,13 @@ class Batoms():
         >>> au = au + co
 
         """
-        other.update_collection()
-        self.atoms = self.atoms + other.atoms
         for species, batom in other.batoms.items():
             if species in self.species:
                 self.batoms[species].extend(batom)
             else:
-                self.batoms[species] = batom.copy(self.name)
-                self.batoms[species].draw_atom()
+                ba = batom.copy(self.name, species)
+                self.batoms[species] = ba
+                self.coll.children['%s_atom'%self.name].objects.link(ba.batom)
         self.remove_collection(other.name)
 
     def remove_collection(self, name):
@@ -581,15 +574,11 @@ class Batoms():
         bpy.data.collections.remove(collection)
     def __imul__(self, m):
         """
-        In-place repeat of atoms.
         """
-        print(m)
-        self.atoms = self.batoms2atoms()
-        self.atoms *= m
-        if 'species' in self.atoms.info:
-            del self.atoms.info['species']
-        self.from_ase(self.atoms)
-        self.update()
+        for species, batom in self.batoms.items():
+            batom.repeat(m, self.cell)
+        self.cell = np.array([m[c] * self.cell[c] for c in range(3)])
+        self.set_cell(self.cell)
         return self
     def repeat(self, rep):
         """
@@ -619,11 +608,10 @@ class Batoms():
         >>> h2o_new = h2o.copy(name = 'h2o_new')
 
         """
-        self.update_collection()
         if not name:
             name = self.name + 'copy'
-        species_dict = {x:self.batoms[x].positions for x in self.species}
-        batoms = self.__class__(species_dict = species_dict, name = name, model_type = self.coll.blase.model_type, draw = True)
+        species_dict = {x:self.batoms[x].copy(name, x) for x in self.species}
+        batoms = self.__class__(species_dict = species_dict, name = name, model_type = self.coll.blase.model_type)
         batoms.translate([0, 0, 2])
         return batoms
     def write(self, filename):
@@ -647,8 +635,17 @@ class Batoms():
         self.coll = bpy.data.collections[self.name]
         self.coll2atoms()
         return 0
-
-
+    @property
+    def cell(self):
+        return self.get_cell()
+    @cell.setter
+    def cell(self, cell):
+        self.set_cell(cell)
+    def get_cell(self):
+        """
+        Get array of cell.
+        """
+        return np.array(self.coll.blase.cell).reshape(3, 3)
     def set_cell(self, cell, scale_atoms=False):
         """Set unit cell vectors.
 
@@ -657,12 +654,39 @@ class Batoms():
         Examples:
 
         """
+        from ase.cell import Cell
+        from ase.geometry.cell import complete_cell
 
-        # Override pbcs if and only if given a Cell object:
-        self.atoms.set_cell(cell, scale_atoms = scale_atoms)
-        self.coll.blase.cell = self.atoms.cell[:].flatten()
-        self.update()
-    
+        cell = Cell.new(cell)
+        oldcell = Cell(self.get_cell())
+        self.coll.blase.cell = cell[:].flatten()
+        if scale_atoms:
+            M = np.linalg.solve(oldcell.complete(), cell.complete())
+            for ba in self.batoms.values():
+                ba.set_positions(np.dot(ba.get_positions(), M))
+        self.draw_cell()
+    @property
+    def pbc(self):
+        return self.get_pbc()
+    @pbc.setter
+    def pbc(self, pbc):
+        self.set_pbc(pbc)
+    def get_pbc(self):
+        return np.array(self.coll.blase.pbc)
+    def set_pbc(self, pbc):
+        self.coll.blase.pbc = pbc
+    @property
+    def model_type(self):
+        return self.get_model_type()
+    @model_type.setter
+    def model_type(self, model_type):
+        self.set_model_type(model_type)
+    def get_model_type(self):
+        return np.array(self.coll.blase.model_type)
+    def set_model_type(self, model_type):
+        self.coll.blase.model_type = model_type
+        self.draw()
+
     def draw_constraints(self):
         """
         """

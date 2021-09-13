@@ -4,7 +4,7 @@
 The Batoms object
 ===================
 
-The :class:`Batoms` object is a collection of objects. Here is how to define a H2O molecule.
+The :class:`Batoms` object is a collection of Batom objects. Here is how to define a H2O molecule.
 
 >>> from ase.build import molecule
 >>> from blase.batoms import Batoms
@@ -41,6 +41,7 @@ Here, four models can be set:
 or,
 
 >>> h2o.set_model_type('1')
+
 
 
 materials type

@@ -35,8 +35,9 @@ class BlaseSettings(bpy.types.PropertyGroup):
     boundary: FloatVectorProperty(name="boundary", default = [0.0, 0.0, 0.0], size = 3)
 
 class BatomSettings(bpy.types.PropertyGroup):
-    is_batom: BoolProperty(name="is_batom", default=False)
     species: StringProperty(name="species", default = '0')
+    element: StringProperty(name="element", default = '0')
+    scale: FloatProperty(name="scale", default = 1.0)
 
 class BlaseAtom(bpy.types.PropertyGroup):
     symbol: StringProperty(name="symbol")

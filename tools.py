@@ -45,7 +45,7 @@ def default_element_prop(element, color_style = "JMOL"):
     element_prop['transmit'] = 1.0
     return element_prop
 
-def get_atom_kind(element, positions, color_style = "JMOL", scale = [1, 1, 1], props = {}):
+def get_atom_kind(element, positions = [], color_style = "JMOL", scale = [1, 1, 1], props = {}):
     """
     """
     atom_kind = default_element_prop(element, color_style = color_style)

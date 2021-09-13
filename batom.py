@@ -9,6 +9,7 @@ import bpy
 import bmesh
 from mathutils import Vector
 from copy import copy
+from blase.data import material_styles_dict
 from blase.tools import get_atom_kind
 from blase.bdraw import draw_text, draw_atom_kind, draw_bond_kind, draw_polyhedra_kind
 import numpy as np
@@ -73,9 +74,10 @@ class Batom():
     
 
     def __init__(self, 
+                label,
                 species,
                 positions,
-                name,
+                element = None,
                 scale = 1.0, 
                 kind_props = {},
                 color_style = 'JMOL',
@@ -84,56 +86,111 @@ class Batom():
                 draw = False, 
                  ):
         #
+        self.label = label
         self.species = species
-        self.positions = positions
-        self.element = species.split('_')[0]
+        if not element:
+            self.element = species.split('_')[0]
+        else:
+            self.element = element
         self.scene = bpy.context.scene
-        self.name = name
+        self.name = 'atom_%s_%s'%(self.label, self.species)
         self.kind_props = kind_props
-        self.scale = scale
         self.color_style = color_style
         self.material_style = material_style
         self.bsdf_inputs = bsdf_inputs
-        self.set_collection()
+        self.species_data = get_atom_kind(self.element, scale = scale, props = self.kind_props, color_style = self.color_style)
+        self.set_material()
+        self.set_instancer()
+        self.set_object(positions)
         self.bond_data = {}
         self.polyhedra_data = {}
         if draw:
             self.draw_atom()
-
-    def set_collection(self):
-        """
-        build child collection and add it to main collections.
-        """
-        if self.name not in bpy.data.collections:
-            self.coll = bpy.data.collections.new(self.name)
-            self.coll.blase.is_blase = True
-            self.scene.collection.children.link(self.coll)
-            for sub_name in subcollections:
-                subcoll = bpy.data.collections.new('%s_%s'%(self.name, sub_name))
-                self.coll.children.link(subcoll)
-        elif hasattr(bpy.data.collections[self.name], 'blase'):
-            self.coll = bpy.data.collections[self.name]
+    def set_material(self):
+        if self.name not in bpy.data.materials:
+            if not self.bsdf_inputs:
+                bsdf_inputs = material_styles_dict[self.material_style]
+            material = bpy.data.materials.new(self.name)
+            material.diffuse_color = np.append(self.species_data['color'], self.species_data['transmit'])
+            material.metallic = bsdf_inputs['Metallic']
+            material.roughness = bsdf_inputs['Roughness']
+            material.blend_method = 'BLEND'
+            material.use_nodes = True
+            principled_node = material.node_tree.nodes['Principled BSDF']
+            principled_node.inputs['Base Color'].default_value = np.append(self.species_data['color'], self.species_data['transmit'])
+            principled_node.inputs['Alpha'].default_value = self.species_data['transmit']
+            for key, value in bsdf_inputs.items():
+                principled_node.inputs[key].default_value = value
         else:
-            raise Exception("Failed, the name %s already in use and is not blase collection!"%self.name)
-    def draw_atom(self, scale = None, kind_props = {}):
+            material = bpy.data.materials[self.name]
+        self.material = material
+    def set_instancer(self):
+        name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
+        if name not in bpy.data.objects:
+            bpy.ops.mesh.primitive_uv_sphere_add(radius = self.species_data['radius']) #, segments=32, ring_count=16)
+            sphere = bpy.context.view_layer.objects.active
+            if isinstance(self.species_data['scale'], float):
+                self.species_data['scale'] = [self.species_data['scale']]*3
+            sphere.scale = self.species_data['scale']
+            sphere.name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
+            sphere.data.materials.append(self.material)
+            bpy.ops.object.shade_smooth()
+            sphere.hide_set(True)
+        else:
+            sphere = bpy.data.objects[name]
+        self.instancer = sphere
+    def set_object(self, positions):
         """
-        Draw atom.
-        scale: float
-            scale for the sphere
-        kind_props: dict
-            Set user defined properties for species
+        build child object and add it to main objects.
         """
-        self.clean_blase_objects('atom')
-        self.clean_blase_objects('instancer_atom')
-        if scale:
-            self.scale = scale
-        if kind_props:
-            self.kind_props = kind_props
-        self.atom_kind = get_atom_kind(self.element, self.positions, scale = self.scale, props = self.kind_props, color_style = self.color_style)
-        draw_atom_kind(self.species, self.coll.children['%s_atom'%self.name], 
-                    self.atom_kind, name = self.name, bsdf_inputs = self.bsdf_inputs, 
-                    material_style = self.material_style)
-                
+        if self.name not in bpy.data.objects:
+            mesh = bpy.data.meshes.new(self.name)
+            obj_atom = bpy.data.objects.new(self.name, mesh)
+            obj_atom.data.from_pydata(positions, [], [])
+            obj_atom.is_batom = True
+        elif hasattr(bpy.data.objects[self.name], 'batom'):
+            obj_atom = bpy.data.objects[self.name]
+        else:
+            raise Exception("Failed, the name %s already in use and is not blase object!"%self.name)
+        obj_atom.species = self.species
+        obj_atom.element = self.element
+        self.instancer.parent = obj_atom
+        obj_atom.instance_type = 'VERTS'
+        bpy.data.collections['Collection'].objects.link(obj_atom)
+        self.batom = obj_atom
+    @property
+    def scale(self):
+        return self.get_scale()
+    @scale.setter
+    def scale(self, scale):
+        self.set_scale(scale)
+    def get_scale(self):
+        return self.batom.scale
+    def set_scale(self, scale):
+        if isinstance(scale, float) or isinstance(scale, int):
+            scale = [scale]*3
+        self.instancer.scale = scale
+    @property
+    def positions(self):
+        return self.get_positions()
+    @positions.setter
+    def positions(self, positions):
+        self.set_positions(positions)
+    def get_positions(self):
+        """
+        Get array of positions.
+        """
+        return np.array([self.batom.data.vertices[i].co for i in range(len(self))])
+    def set_positions(self, positions):
+        """
+        Set positions
+        """
+        natoms = len(self)
+        if len(positions) != natoms:
+            raise ValueError('positions has wrong shape %s != %s.' %
+                                (len(positions), natoms))
+        for i in range(natoms):
+            self.batom.data.vertices[i].co = positions[i]
     def draw_bond(self, bond_data = {}):
         """
         Draw bond.
@@ -169,7 +226,7 @@ class Batom():
         """
         delete verts
         """
-        obj = self.coll.children['%s_atom'%self.name].objects['atom_%s_%s'%(self.name, self.species)]
+        obj = self.batom
         bm = bmesh.new()
         bm.from_mesh(obj.data)
         bm.verts.ensure_lookup_table()
@@ -193,11 +250,10 @@ class Batom():
 
         """
         self.delete_verts(index)
-    def update(self):
+    def __delitem__(self, index):
         """
         """
-        self.draw_atom()
-    
+        self.delete(index)
     def draw_constraints(self):
         """
         """
@@ -227,25 +283,55 @@ class Batom():
         self.scene.frame_start = 1
         self.scene.frame_end = nimages
     
-    def __getitem__(self, i):
+    def __len__(self):
+        return len(self.batom.data.vertices)
+    
+    def __getitem__(self, index):
         """Return a subset of the Batom.
 
         i -- int, describing which atom to return.
         """
 
+        if isinstance(index, int):
+            natoms = len(self)
+            if index < -natoms or index >= natoms:
+                raise IndexError('Index out of range.')
+            return self.batom.data.vertices[index].co
+    def __setitem__(self, i, value):
+        """Return a subset of the Batom.
+
+        i -- int, describing which atom to return.
+        """
         if isinstance(i, int):
-            natoms = len(self.positions)
+            natoms = len(self)
             if i < -natoms or i >= natoms:
                 raise IndexError('Index out of range.')
-            vertice = {'species': self.species,
-                       'element': self.element,
-                       'position': self.positions[i],
-                       'x': self.positions[i][0],
-                       'y': self.positions[i][1],
-                       'z': self.positions[i][2],
-                       }
-            return vertice
-    def copy(self, name = None):
+            self.batom.data.vertices[i].co = value
+
+    def repeat(self, m, cell):
+        """
+        In-place repeat of atoms.
+        """
+        if isinstance(m, int):
+            m = (m, m, m)
+        for x, vec in zip(m, cell):
+            if x != 1 and not vec.any():
+                raise ValueError('Cannot repeat along undefined lattice '
+                                 'vector')
+        M = np.product(m)
+        n = len(self)
+        
+        self.positions = self.positions
+        positions = np.tile(self.positions, (M,) + (1,) * (len(self.positions.shape) - 1))
+        i0 = 0
+        for m0 in range(m[0]):
+            for m1 in range(m[1]):
+                for m2 in range(m[2]):
+                    i1 = i0 + n
+                    positions[i0:i1] += np.dot((m0, m1, m2), cell)
+                    i0 = i1
+        self.add_vertices(positions[n:])
+    def copy(self, label, species):
         """
         Return a copy.
 
@@ -257,27 +343,38 @@ class Batom():
         >>> h_new = h.copy(name = 'h_new')
 
         """
-        if not name:
-            name = self.name + 'copy'
-        batom = self.__class__(self.species, self.positions, name)
+        name = 'atom_%s_%s'%(label, species)
+        obj = bpy.data.objects.new(name, self.batom.data)
+        name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
+        sphere = bpy.data.objects.new(name, self.instancer.data)
+        mat = self.material.copy()
+        mat.name = name
+        batom = self.__class__(label, species, self.positions)
         return batom
     def extend(self, other):
         """
         Extend batom object by appending batom from *other*.
         
-        >>> from ase.build import molecule, fcc111
-        >>> from blase.batoms import Batoms
-        >>> import numpy as np
-        >>> co = molecule('CO')
-        >>> co = Batoms(atoms = co, draw = True)
-        >>> co.translate([0, 0, 2])
-        >>> h2o = molecule('H2O')
-        >>> h2o = Batoms(atoms = h2o, draw = True)
-        >>> h2o['O'].extend(co['O'])
+        >>> from blase.batoms import Batom
+        >>> h = Batom('h2o', 'H', [[0, 0, 0], [2, 0, 0]])
+        >>> o = Batom('h2o', 'O', [[0, 0, 0]])
+        >>> o.extend(h)
         """
-        self.positions = np.append(self.positions, other.positions, axis=0)
-        self.update()
-        bpy.data.objects.remove(other.coll.all_objects['atom_%s_%s'%(other.name, other.species)])
+        bpy.ops.object.select_all(action='DESELECT')
+        self.batom.select_set(True)
+        other.batom.select_set(True)
+        bpy.context.view_layer.objects.active = self.batom
+        bpy.ops.object.join()
+    def add_vertices(self, positions):
+        """
+        """
+        bm = bmesh.new()
+        bm.from_mesh(self.batom.data)
+        bm.verts.ensure_lookup_table()
+        verts = []
+        for pos in positions:
+            bm.verts.new(pos)
+        bm.to_mesh(self.batom.data)
     def translate(self, displacement):
         """Translate atomic positions.
 
@@ -285,13 +382,29 @@ class Batom():
 
         For example, move H species molecule by a vector [0, 0, 5]
 
-        >>> h2o["H"].translate([0, 0, 5])
-
-        Todo only redraw atoms, not bonds
+        >>> h.translate([0, 0, 5])
         """
-        self.positions += displacement
         bpy.ops.object.select_all(action='DESELECT')
-        for obj in self.coll.all_objects:
-            if 'instancer' not in obj.name:
-                obj.select_set(True)
+        self.batom.select_set(True)
         bpy.ops.transform.translate(value=displacement)
+    def rotate(self, angle, axis = 'Z', orient_type = 'GLOBAL'):
+        """Rotate atomic based on a axis and an angle.
+
+        Parameters:
+
+        angle: float
+            Angle that the atoms is rotated around the axis.
+        axis: str
+            'X', 'Y' or 'Z'.
+
+        For example, rotate h2o molecule 90 degree around 'Z' axis:
+        
+        >>> h.rotate(90, 'Z')
+
+        """
+        bpy.ops.object.select_all(action='DESELECT')
+        self.batom.select_set(True)
+        bpy.ops.transform.rotate(value=angle, orient_axis=axis.upper(), orient_type = orient_type)
+    
+    
+    
