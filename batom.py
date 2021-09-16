@@ -164,12 +164,19 @@ class Batom():
         self.instancer.parent = obj_atom
         obj_atom.instance_type = 'VERTS'
         bpy.data.collections['Collection'].objects.link(obj_atom)
-        self.batom = obj_atom
+    @property
+    def batom(self):
+        return self.get_batom()
+    def get_batom(self):
+        return bpy.data.objects['atom_%s_%s'%(self.label, self.species)]
     @property
     def scale(self):
         return self.get_scale()
     @scale.setter
     def scale(self, scale):
+        """
+        >>> h.scale = 2
+        """
         self.set_scale(scale)
     def get_scale(self):
         return self.instancer.scale
@@ -187,7 +194,7 @@ class Batom():
         """
         Get array of positions.
         """
-        return np.array([self.batom.data.vertices[i].co for i in range(len(self))])
+        return np.array([np.array(self.batom.data.vertices[i].co) + np.array(self.batom.location) for i in range(len(self))])
     def set_positions(self, positions):
         """
         Set positions
@@ -197,7 +204,7 @@ class Batom():
             raise ValueError('positions has wrong shape %s != %s.' %
                                 (len(positions), natoms))
         for i in range(natoms):
-            self.batom.data.vertices[i].co = positions[i]
+            self.batom.data.vertices[i].co = np.array(positions[i]) - np.array(self.batom.location)
         
     def clean_blase_objects(self, object):
         """
@@ -263,7 +270,7 @@ class Batom():
                 obj_atom = bpy.data.objects['atom_{0}_{1}'.format(self.name, kind)]
                 nverts = len(obj_atom.data.vertices)
                 for j in range(nverts):
-                    obj_atom.data.vertices[j].co = datas['positions'][j]
+                    obj_atom.data.vertices[j].co = np.array(datas['positions'][j]) - np.array(self.batom.location)
                     obj_atom.data.vertices[j].keyframe_insert('co', frame=i + 1)
         self.scene.frame_start = 1
         self.scene.frame_end = nimages
@@ -281,9 +288,9 @@ class Batom():
             natoms = len(self)
             if index < -natoms or index >= natoms:
                 raise IndexError('Index out of range.')
-            return self.batom.data.vertices[index].co
+            return np.array(self.batom.data.vertices[index].co) + np.array(self.batom.location)
         if isinstance(index, list):
-            positions = np.array([self.batom.data.vertices[i].co for i in index])
+            positions = np.array([np.array(self.batom.data.vertices[i].co) + np.array(self.batom.location) for i in index])
             return positions
 
     def __setitem__(self, index, value):
@@ -295,10 +302,10 @@ class Batom():
             natoms = len(self)
             if index < -natoms or index >= natoms:
                 raise IndexError('Index out of range.')
-            self.batom.data.vertices[index].co = value
+            self.batom.data.vertices[index].co = np.array(value) - np.array(self.batom.location)
         if isinstance(index, list):
             for i in index:
-                self.batom.data.vertices[i].co = value[i]
+                self.batom.data.vertices[i].co = np.array(value[i]) - np.array(self.batom.location)
 
     def repeat(self, m, cell):
         """
@@ -336,17 +343,11 @@ class Batom():
 
         For example, copy H species:
         
-        >>> h_new = h.copy(name = 'h_new', species = 'H')
+        >>> h_new = h.copy(label = 'h_new', species = 'H')
 
         """
         object_mode()
-        name = 'atom_%s_%s'%(label, species)
-        obj = bpy.data.objects.new(name, self.batom.data)
-        name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
-        sphere = bpy.data.objects.new(name, self.instancer.data)
-        mat = self.material.copy()
-        mat.name = name
-        batom = self.__class__(label, species, self.positions)
+        batom = Batom(label, species, self.positions, scale = self.scale, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
         return batom
     def extend(self, other):
         """
@@ -378,7 +379,7 @@ class Batom():
         return self
     def __iter__(self):
         for i in range(len(self)):
-            yield self.batom.data.vertices[i].co
+            yield self.batom.data.vertices[i].co + np.array(self.batom.location)
     def __repr__(self):
         s = "Batoms('%s', positions = %s" % (self.species, list(self.positions))
         return s

@@ -7,6 +7,7 @@ Tutorials
    :maxdepth: 1
 
    ase
+   batom
    batoms
    blase
    blaseio

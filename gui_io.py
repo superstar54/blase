@@ -23,7 +23,7 @@ from blase.batoms import Batoms
 class IMPORT_OT_blase(Operator, ImportHelper):
     bl_idname = "import_mesh.blase"
     bl_label  = "Import blase (*.blase)"
-    bl_options = {'PRESET', 'UNDO'}
+    bl_options = {"PRESET", "REGISTER", "UNDO"}
 
     filename_ext = ".blase"
     # filter_glob: StringProperty(default="*.blase", options={'HIDDEN'},)

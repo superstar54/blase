@@ -1,8 +1,28 @@
 # add
 from blase.batoms import Batom
-h1 = Batom('h2o', 'H_1', [[0, 0, 0], [2, 0, 0]])
+h1 = Batom('h2o', 'H_1', [[0, 0, 0], [1.52, 0, 0]])
 h2 = Batom('h2o', 'H_2', [[0, 0, 2], [2, 0, 2]])
 h = h1 + h2
+
+
+
+# search boundary
+from ase.build import bulk
+from blase.batoms import Batoms
+pt = bulk('Pt', cubic = True)
+pt.write('pt-bulk.in')
+pt = Batoms(atoms = pt, label = 'pt')
+pt.search_boundary(boundary=[0.05, 0.05, 0.05])
+
+# delete
+from ase.build import molecule, fcc111
+from ase.visualize import view
+from blase.batoms import Batoms
+atoms=molecule('H2O')
+view(atoms)
+h2o = Batoms(label = 'h2o', atoms = atoms)
+h2o_new = h2o.copy('h2o_new')
+del h2o_new['H'][[0]]
 
 
 from ase.build import molecule, fcc111
@@ -37,8 +57,23 @@ from blase.batoms import Batoms
 from ase.io import read
 atoms = read('docs/source/_static/datas/tio2.cif')
 tio2 = Batoms(label = 'tio2', atoms = atoms, model_type = '2', polyhedra_dict = {'Ti': ['O']}, color_style="VESTA")
+tio2.boundary = 0.01
 
 
+# get_distances
+from blase.batoms import Batoms
+from ase.io import read
+atoms = read('docs/source/_static/datas/tio2.cif')
+print(atoms.get_distances(0, [2 ,3]))
+tio2 = Batoms(label = 'tio2', atoms = atoms, model_type = '2', polyhedra_dict = {'Ti': ['O']}, color_style="VESTA")
+tio2.get_distances('Ti', 0, 'O', [0, 1])
+
+# get_angles
+from ase.build import molecule, fcc111
+from blase.batoms import Batoms
+atoms = molecule('H2O')
+h2o = Batoms(atoms = atoms, label = 'h2o')
+h2o.get_angle('H', 0, 'O', 0, 'H', 1)
 
 # materials type
 from ase.build import molecule

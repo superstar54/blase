@@ -1,3 +1,4 @@
+from operator import pos
 import numpy as np
 from ase import Atoms, Atom
 from ase.data import covalent_radii, atomic_numbers, chemical_symbols
@@ -100,42 +101,32 @@ def euler_from_vector(normal, s = 'zxy'):
 def getEquidistantPoints(p1, p2, n):
     return zip(np.linspace(p1[0], p2[0], n+1), np.linspace(p1[1], p2[1], n+1), np.linspace(p1[2], p2[2], n+1))
 
-def search_pbc(atoms, cutoff = [0.01, 0.01, 0.01]):
+def search_pbc(positions, cell, boundary = [0.01, 0.01, 0.01]):
     """
-    cutoffs: float or list
+    boundarys: float or list
     """
-    bdatoms = Atoms()
-    bdatoms.info['species'] = []
-    if 'species' not in atoms.info:
-        atoms.info['species'] = atoms.get_chemical_symbols()
-    index = {}
-    if isinstance(cutoff, float):
-        cutoff = [cutoff]*3
-    cutoff = 0.5 - np.array(cutoff)
+    from ase.cell import Cell
+    cell = Cell(cell)
+    if isinstance(boundary, float):
+        boundary = [boundary]*3
+    boundary = 0.5 - np.array(boundary)
     print('Search pbc: ')
-    natoms = len(atoms)
-    positions = atoms.get_scaled_positions()
-    
-    na = 0
+    positions = cell.scaled_positions(positions)
+    natoms = len(positions)
+    bdpos = []
     for i in range(natoms):
-        index[i] = []
         dv = 0.5 - positions[i]
-        flag = abs(dv) > cutoff
-        # print(dv, cutoff,  flag)
+        flag = abs(dv) > boundary
+        # print(dv, boundary,  flag)
         flag = flag*1 + 1
         for l in range(flag[0]):
             for m in range(flag[1]):
                 for n in range(flag[2]):
                     if l == 0 and m == 0 and n == 0: continue
                     temp_pos = positions[i] + np.sign(dv)*[l, m, n]
-                    temp_pos = temp_pos.dot(atoms.cell)
-                    spe = bdatoms.info['species']
-                    bdatoms = bdatoms + Atom(atoms[i].symbol, temp_pos)
-                    spe.append(atoms.info['species'][i])
-                    bdatoms.info['species'] = spe
-                    index[i].append(na)
-                    na += 1
-    return bdatoms, index
+                    temp_pos = temp_pos.dot(cell)
+                    bdpos.append(temp_pos)
+    return np.array(bdpos)
 
 def get_cell_vertices(cell):
     """
@@ -178,4 +169,11 @@ def get_bbox(bbox, atoms, show_unit_cell = True):
 
 
 if __name__ == "__main__":
-    pass
+    from ase.build import bulk
+    from ase.atoms import Atoms
+    from ase.visualize import view
+    pt = bulk('Pt', cubic = True)
+    pos = search_pbc(pt.positions, pt.cell, boundary = [0.05, 0.05, 0.05])
+    print(pos)
+    bdpt = Atoms('Pt10', positions = pos)
+    view(bdpt)

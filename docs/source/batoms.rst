@@ -22,6 +22,13 @@ possible keywords are: ``boundary``, ``show_unit_cell``, ``isosurface``, ``kind_
 ``color`` and ``draw``.
 
 
+One get and set ``model_type``, ``pbc``, ``show_unit_cell``, ``cell`` and ``boundary`` by:
+
+>>> h2o.model_type = 0
+>>> h2o.pbc = True
+>>> h2o.cell = [[3, 0, 0], [0, 3, 0], [0, 0, 3]]
+>>> h2o.show_unit_cell = False
+
 
 model_type
 ===================
@@ -67,7 +74,7 @@ Other methods
 * :meth:`~Batoms.translate`
 For example, move h2o molecule by a vector [0, 0, 5],
 
->>> h2o = translate([0, 0, 5])
+>>> h2o.translate([0, 0, 5])
 
 * :meth:`~Batoms.rotate`
 
@@ -125,11 +132,32 @@ or,
 >>> au = au + co
 
 
+* :meth:`~Batoms.set_boundary`
+Set boundary
+
+>>> from blase.batoms import Batoms
+>>> from ase.io import read
+>>> atoms = read('docs/source/_static/datas/tio2.cif')
+>>> tio2 = Batoms(label = 'tio2', atoms = atoms, model_type = '2', polyhedra_dict = {'Ti': ['O']}, color_style="VESTA")
+>>> tio2.boundary = 0.5
+
+
 * :meth:`~Batoms.write`
 
 Save atoms to file, please vist write method in ASE, https://wiki.fysik.dtu.dk/ase/ase/io/io.html?highlight=write#ase.io.write
 
 >>> au.write('au111-co.cif')
+
+* :meth:`~Batoms.get_distances`
+
+>>> h2o.get_distances('O', 0, 'H', [0, 1])
+
+* :meth:`~Batoms.get_angle`
+
+>>> h2o.get_angle('H', 0, 'O', 0, 'H', 1)
+
+
+>>> au.show_index(index_type = 0)
 
 * :meth:`~Batoms.show_index`
 

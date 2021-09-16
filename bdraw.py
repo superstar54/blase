@@ -7,30 +7,29 @@ from blase.tools import get_cell_vertices
 import time
 ######################################################
 #========================================================
-def draw_cell(coll_cell, cell_vertices, name = None, celllinewidth = 0.01):
+def draw_cell(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
     """
     Draw unit cell
     """
-    name = coll_cell.name.split('_')[0]
     if cell_vertices is not None:
         # build materials
-        material = bpy.data.materials.new('cell_{0}'.format(name))
-        # material.name = 'cell'
+        material = bpy.data.materials.new('cell_{0}'.format(label))
+        # material.label = 'cell'
         material.diffuse_color = (0.8, 0.25, 0.25, 1.0)
         # draw points
         bpy.ops.mesh.primitive_uv_sphere_add(radius = celllinewidth) #, segments=32, ring_count=16)
         sphere = bpy.context.view_layer.objects.active
-        sphere.name = 'instancer_cell_%s_sphere'%name
+        sphere.name = 'instancer_cell_%s_sphere'%label
         sphere.data.materials.append(material)
         bpy.ops.object.shade_smooth()
         sphere.hide_set(True)
         mesh = bpy.data.meshes.new('point_cell' )
-        obj_cell = bpy.data.objects.new('cell_%s_point'%name, mesh )
+        obj_cell = bpy.data.objects.new('cell_%s_point'%label, mesh )
         # Associate the vertices
         obj_cell.data.from_pydata(cell_vertices, [], [])
         sphere.parent = obj_cell
         obj_cell.instance_type = 'VERTS'
-        bpy.data.collections['%s'%name].children['%s_instancer'%name].objects.link(sphere)
+        bpy.data.collections['%s'%label].children['%s_instancer'%label].objects.link(sphere)
         coll_cell.objects.link(obj_cell)
         #
         # edges
@@ -60,7 +59,7 @@ def draw_cell(coll_cell, cell_vertices, name = None, celllinewidth = 0.01):
         mesh.update()
         for f in mesh.polygons:
             f.use_smooth = True
-        obj_edge = bpy.data.objects.new("cell_%s_edge"%name, mesh)
+        obj_edge = bpy.data.objects.new("cell_%s_edge"%label, mesh)
         obj_edge.data = mesh
         obj_edge.data.materials.append(material)
         bpy.ops.object.shade_smooth()
