@@ -34,6 +34,9 @@ Animation
 .. image:: _static/animation.gif
    :width: 10cm
 
+:download:`animation.py <_static/animation.py>`
+
+
 Monolayer
 ============
 

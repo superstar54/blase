@@ -1,3 +1,30 @@
+# batom load_frames
+from blase import Batom
+import numpy as np
+positions = np.array([[0, 0 ,0], [1.52, 0, 0]])
+h = Batom('h2o', 'H', positions)
+images = []
+for i in range(10):
+    images.append(positions + [i, 0, 0])
+
+h.load_frames(images)
+
+# batoms load_frames
+from ase.io import read, write
+from blase import Batoms
+atoms = molecule('C2H6SO')
+images = []
+for i in range(20):
+    temp = atoms.copy()
+    temp.rotate(18*i, 'z')
+    images.append(temp)
+
+write('c2h6so-animation.xyz', images)
+images = read('c2h6so-animation.xyz', index = ':')
+c2h6so = Batoms(label = 'c2h6so', atoms = images)
+c2h6so.load_frames()
+c2h6so.render(animation = True)
+
 # add
 import batom
 from blase.batoms import Batom
@@ -20,9 +47,8 @@ h = Batom(from_batom='atom_h2o_H')
 from ase.build import bulk
 from blase.batoms import Batoms
 pt = bulk('Pt', cubic = True)
-pt.write('pt-bulk.in')
-pt = Batoms(atoms = pt, label = 'pt')
-pt.search_boundary(boundary=[0.05, 0.05, 0.05])
+pt = Batoms(label = 'pt', atoms = pt)
+pt.boundary =[0.02, 0, 0]
 
 # delete
 from ase.build import molecule

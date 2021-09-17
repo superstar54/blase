@@ -82,6 +82,17 @@ or,
 >>> h = h1 + h2
 
 
+* :meth:`~Batom.load_frames`
+
+>>> from blase import Batom
+>>> import numpy as np
+>>> positions = np.array([[0, 0 ,0], [1.52, 0, 0]])
+>>> h = Batom('h2o', 'H', positions)
+>>> images = []
+>>> for i in range(10):
+         images.append(positions + [0, 0, i])
+>>> h.load_frames(images)
+
 List of all Methods
 ===================
 

@@ -4,15 +4,13 @@ This module defines the Batom object in the blase package.
 
 """
 
-from ase import Atom, Atoms
 import bpy
 import bmesh
 from mathutils import Vector
-from copy import copy
 from blase.btools import object_mode
 from blase.data import material_styles_dict
 from blase.tools import get_atom_kind
-from blase.bdraw import draw_text, draw_bond_kind, draw_polyhedra_kind
+from blase.bdraw import draw_text
 import numpy as np
 import time
 
@@ -42,7 +40,7 @@ class Vertice():
                 x = None,
                 y = None,
                 z = None,
-                 ):
+                ):
         #
         self.species = species
         self.position = position
@@ -93,6 +91,7 @@ class Batom():
                 draw = False, 
                  ):
         #
+        self.scene = bpy.context.scene
         if not from_batom:
             self.label = label
             self.species = species
@@ -100,7 +99,6 @@ class Batom():
                 self.element = species.split('_')[0]
             else:
                 self.element = element
-            self.scene = bpy.context.scene
             self.name = 'atom_%s_%s'%(self.label, self.species)
             self.kind_props = kind_props
             self.color_style = color_style
@@ -220,16 +218,16 @@ class Batom():
         """
         Get array of positions.
         """
-        return np.array([np.array(self.batom.data.vertices[i].co) + np.array(self.batom.location) for i in range(len(self))])
+        return np.array([self.batom.matrix_world @ self.batom.data.vertices[i].co for i in range(len(self))])
     def set_positions(self, positions):
         """
         Set positions
         """
-        natoms = len(self)
-        if len(positions) != natoms:
+        natom = len(self)
+        if len(positions) != natom:
             raise ValueError('positions has wrong shape %s != %s.' %
-                                (len(positions), natoms))
-        for i in range(natoms):
+                                (len(positions), natom))
+        for i in range(natom):
             self.batom.data.vertices[i].co = np.array(positions[i]) - np.array(self.batom.location)
         
     def clean_blase_objects(self, object):
@@ -277,29 +275,36 @@ class Batom():
         """
         #
         constr = self.atoms.constraints
-        self.constrainatoms = []
+        self.constrainatom = []
         for c in constr:
             if isinstance(c, FixAtoms):
                 for n, i in enumerate(c.index):
-                    self.constrainatoms += [i]
+                    self.constrainatom += [i]
     
-    def load_frames(self, nimages = None):
+    def load_frames(self, images = []):
         """
+        images: list
+            list of positions
+        >>> from blase import Batom
+        >>> import numpy as np
+        >>> positions = np.array([[0, 0 ,0], [1.52, 0, 0]])
+        >>> h = Batom('h2o', 'H', positions)
+        >>> images = []
+        >>> for i in range(10):
+                images.append(positions + [0, 0, i])
+        >>> h.load_frames(images)
         """
         # render settings
-        if not nimages:
-            nimages = len(self.images)
-        for i in range(0, nimages):
-            atom_kinds = get_atom_kinds(self.images[i])
-            # bond_kinds = get_bond_kinds(self.images[i], bond_list, self.nbins)
-            for kind, datas in atom_kinds.items():
-                obj_atom = bpy.data.objects['atom_{0}_{1}'.format(self.name, kind)]
-                nverts = len(obj_atom.data.vertices)
-                for j in range(nverts):
-                    obj_atom.data.vertices[j].co = np.array(datas['positions'][j]) - np.array(self.batom.location)
-                    obj_atom.data.vertices[j].keyframe_insert('co', frame=i + 1)
+        nimage = len(images)
+        batom = self.batom
+        nverts = len(batom.data.vertices)
+        for i in range(0, nimage):
+            positions = images[i]
+            for j in range(nverts):
+                batom.data.vertices[j].co = np.array(positions[j]) - np.array(batom.location)
+                batom.data.vertices[j].keyframe_insert('co', frame=i + 1)
         self.scene.frame_start = 1
-        self.scene.frame_end = nimages
+        self.scene.frame_end = nimage
     
     def __len__(self):
         return len(self.batom.data.vertices)
@@ -309,14 +314,14 @@ class Batom():
 
         i -- int, describing which atom to return.
         """
-
+        batom = self.batom
         if isinstance(index, int):
-            natoms = len(self)
-            if index < -natoms or index >= natoms:
+            natom = len(self)
+            if index < -natom or index >= natom:
                 raise IndexError('Index out of range.')
-            return np.array(self.batom.data.vertices[index].co) + np.array(self.batom.location)
+            return batom.matrix_world @ batom.data.vertices[index].co
         if isinstance(index, list):
-            positions = np.array([np.array(self.batom.data.vertices[i].co) + np.array(self.batom.location) for i in index])
+            positions = np.array([batom.matrix_world @ batom.data.vertices[i].co for i in index])
             return positions
 
     def __setitem__(self, index, value):
@@ -324,14 +329,15 @@ class Batom():
 
         i -- int, describing which atom to return.
         """
+        batom  =self.batom
         if isinstance(index, int):
-            natoms = len(self)
-            if index < -natoms or index >= natoms:
+            natom = len(self)
+            if index < -natom or index >= natom:
                 raise IndexError('Index out of range.')
-            self.batom.data.vertices[index].co = np.array(value) - np.array(self.batom.location)
+            batom.data.vertices[index].co = np.array(value) - np.array(batom.location)
         if isinstance(index, list):
             for i in index:
-                self.batom.data.vertices[i].co = np.array(value[i]) - np.array(self.batom.location)
+                batom.data.vertices[i].co = np.array(value[i]) - np.array(batom.location)
 
     def repeat(self, m, cell):
         """
@@ -404,8 +410,9 @@ class Batom():
         self += other
         return self
     def __iter__(self):
+        batom = self.batom
         for i in range(len(self)):
-            yield self.batom.data.vertices[i].co + np.array(self.batom.location)
+            yield batom.matrix_world @ batom.data.vertices[i].co
     def __repr__(self):
         s = "Batoms('%s', positions = %s" % (self.species, list(self.positions))
         return s

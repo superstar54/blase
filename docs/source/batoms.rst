@@ -68,20 +68,6 @@ Or set your own materials by setting the bsdf_inputs dict.
 >>> h2o = Batoms(atoms = atoms, label = 'h2o', model_type = '1', bsdf_inputs = bsdf_inputs)
 
 
-Bond setting
-================================
-
-You can print the default bondsetting by:
-
-.. image:: _static/bondsetting.png
-   :width: 8cm
-
-Then change bondsetting by:
-
->>> tio2.bondsetting[('Ti', 'O')] = [2.5, True, False]
-
-
-
 Other methods
 =============
 

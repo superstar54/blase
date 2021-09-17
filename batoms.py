@@ -7,6 +7,7 @@ This module defines the batoms object in the blase package.
 from ase import Atom, Atoms
 from ase.data import chemical_symbols, covalent_radii
 from blase.batom import Batom
+from blase.bondsetting import Bondsetting
 import bpy
 import bmesh
 from mathutils import Vector
@@ -22,52 +23,7 @@ subcollections = ['atom', 'bond', 'instancer', 'instancer_atom', 'cell', 'polyhe
 
 
 
-
-class Bondseeting():
-    """
-    """
-    def __init__(self, label, bondtalbe = None) -> None:
-        self.label = label
-    def get_data(self):
-        data = {}
-        coll = bpy.data.collections[self.label]
-        for b in coll.bond:
-            data[(b.symbol1, b.symbol2)] = [b.bondlength, b.polyhedra, b.search]
-        return data
-    @property
-    def data(self):
-        return self.get_data()
-    def __repr__(self) -> str:
-        s = '-'*60 + '\n'
-        s = 'Bondpair  Bondlength  Polyhedra   Search_bond \n'
-        data = self.data
-        for key, value in data.items():
-            s += '{0:5s} {1:5s} {2:4.3f}       {3:10s}   {4:10s} \n'.format(key[0], key[1], value[0], str(value[1]), str(value[2]))
-        s += '-'*60 + '\n'
-        return s
-    def __getitem__(self, index):
-        return self.data[index]
-    def __setitem__(self, index, value):
-        """
-        Add bondpair one by one
-        """
-        coll = bpy.data.collections[self.label]
-        flag = False
-        for b in coll.bond:
-            if (b.symbol1, b.symbol2) == index:
-                b.bondlength = value[0]
-                b.polyhedra = value[1]
-                b.search = value[2]
-                flag = True
-        if not flag:
-            bond = coll.bond.add()
-            bond.symbol1 = index[0]
-            bond.symbol2 = index[1]
-            bond.bondlength = value[0]
-            bond.polyhedra = value[1]
-            bond.search = value[2]
-
-    
+  
 
 class Batoms():
     """Batoms Class
@@ -169,7 +125,7 @@ class Batoms():
         self.color_style = color_style
         self.material_style = material_style
         self.bsdf_inputs = bsdf_inputs
-        self.bondsetting = Bondseeting(self.label)
+        self.bondsetting = Bondsetting(self.label)
         if species_dict:
             self.set_collection(model_type, boundary)
             self.build_batoms(species_dict)
@@ -177,6 +133,9 @@ class Batoms():
             for key, value in bondtable.items():
                 self.bondsetting[key] = value
         elif atoms:
+            if isinstance(atoms, list):
+                self.images = atoms
+                atoms = self.images[0]
             if not self.label:
                 self.label = atoms.symbols.formula.format('abc')
             self.set_collection(model_type, boundary)
@@ -184,10 +143,6 @@ class Batoms():
             bondtable = self.get_bondtable(cutoff=1.0, add_bonds=add_bonds, remove_bonds=remove_bonds)
             for key, value in bondtable.items():
                 self.bondsetting[key] = value
-            if not isinstance(atoms, list):
-                self.images = [atoms]
-            else:
-                self.images = atoms
         elif from_collection:
             print('Build from collection')
             self.from_collection(from_collection)
@@ -890,25 +845,31 @@ class Batoms():
             ball.data.materials.append(material)
             ball.show_transparent = True
             coll_highlight.objects.link(ball)
-    def load_frames(self, nimages = None):
+    def load_frames(self, images = None):
         """
+        images: list
+            list of atoms. All atoms show have same species and length.
+        >>> from ase.io import read
+        >>> from blase import Batoms
+        >>> images = read('h2o-animation.xyz', index = ':')
+        >>> h2o = Batoms(label = 'h2o', atoms = images)
+        >>> h2o.load_frames()
+        >>> h2o.render(animation = True)
         """
-        # render settings
-        # if not nimages:
-        #     nimages = len(self.images)
-        # for i in range(0, nimages):
-        #     atom_kinds = get_atom_kinds(self.images[i])
-        #     # bond_kinds = get_bond_kinds(self.images[i], bondlist, self.nbins)
-        #     for kind, datas in atom_kinds.items():
-        #         obj_atom = bpy.data.objects['atom_{0}_{1}'.format(self.label, kind)]
-        #         nverts = len(obj_atom.data.vertices)
-        #         for j in range(nverts):
-        #             obj_atom.data.vertices[j].co = datas['positions'][j]
-        #             obj_atom.data.vertices[j].keyframe_insert('co', frame=i + 1)
-        # self.scene.frame_start = 1
-        # self.scene.frame_end = nimages
+        if not images:
+            images = self.images
+        nimage = len(images)
+        if len(self.atoms) != len(images[0]):
+            raise Exception("Number of atoms %s is not equal to %s."%(len(self.atoms), len(images[0])))
+        atoms = images[0]
+        if 'species' not in atoms.info:
+            atoms.info['species'] = atoms.get_chemical_symbols()
+        positions = np.array([atoms.positions for atoms in images])
+        for species, ba in self.batoms.items():
+            index = [atom.index for atom in atoms if atoms.info['species'][atom.index] == species]
+            ba.load_frames(positions[:, index])
     
-    def render(self, **kwargs):
+    def render(self, bbox = None, output_image = None, animation = False, **kwargs):
         """
         Render the atoms, and save to a png image.
 
@@ -920,11 +881,12 @@ class Batoms():
         from blase.bio import Blase
         print('--------------Render--------------')
         print('Rendering atoms')
-        if 'bbox' not in kwargs:
+        if not bbox:
             bbox = get_bbox(bbox = None, atoms = self.atoms)
             kwargs['bbox'] = bbox
-        if 'output_image' not in kwargs:
+        if not output_image:
             kwargs['output_image'] = '%s.png'%self.label
+        kwargs['animation'] = animation
         # print(kwargs)
         bobj = Blase(**kwargs)
         for function in bobj.functions:

@@ -9,5 +9,9 @@ Tutorials
    ase
    batom
    batoms
+   animation
+   bondsetting
+   boundary
+   cavity
    blase
    blaseio
