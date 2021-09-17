@@ -86,6 +86,7 @@ Other methods
 =============
 
 * :meth:`~Batoms.translate`
+
 For example, move h2o molecule by a vector [0, 0, 5],
 
 >>> h2o.translate([0, 0, 5])
@@ -135,9 +136,9 @@ For example, replace the all H in h2o molecule by S.
 >>> from blase.batoms import Batoms
 >>> import numpy as np
 >>> co = molecule('CO')
->>> co = Batoms(atoms = co, draw = True)
+>>> co = Batoms(label = 'co', atoms = co)
 >>> au = fcc111('Au', (5, 5, 4), vacuum=5.0)
->>> au = Batoms(atoms = au, draw = True)
+>>> au = Batoms(label = 'au', atoms = au)
 >>> co.translate(au.atoms[-1].position + np.array([0, 0, 2]))
 >>> au.extend(co)
 
@@ -147,6 +148,7 @@ or,
 
 
 * :meth:`~Batoms.set_boundary`
+
 Set boundary
 
 >>> from blase.batoms import Batoms
@@ -175,7 +177,7 @@ Save atoms to file, please vist write method in ASE, https://wiki.fysik.dtu.dk/a
 
 * :meth:`~Batoms.show_index`
 
-Show the index of atoms.
+Show the index of atoms. Please change to ``Edit`` mode.
 
 >>> au.show_index(index_type = 0)
 

@@ -17,7 +17,7 @@ Cavity
 .. image:: _static/cavity.png
    :width: 10cm
 
-:download:`wulff.py <_static/cavity.py>`
+:download:`cavity.py <_static/cavity.py>`
 
 
 Isosurface

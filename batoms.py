@@ -39,22 +39,18 @@ class Bondseeting():
         return self.get_data()
     def __repr__(self) -> str:
         s = '-'*60 + '\n'
-        s = 'Species1  Species2  Bondlength  Polyhedra   Search_bond \n'
+        s = 'Bondpair  Bondlength  Polyhedra   Search_bond \n'
         data = self.data
         for key, value in data.items():
-            key[1:-1]
-            s += '{0:10s} {1:10s} {2:4.3f}   {3:10s}   {4:10s} \n'.format(key[0], key[1], value[0], str(value[1]), str(value[2]))
+            s += '{0:5s} {1:5s} {2:4.3f}       {3:10s}   {4:10s} \n'.format(key[0], key[1], value[0], str(value[1]), str(value[2]))
         s += '-'*60 + '\n'
         return s
     def __getitem__(self, index):
         return self.data[index]
     def __setitem__(self, index, value):
         """
-        Add bond information in to blasebond
+        Add bondpair one by one
         """
-        
-        # add to blase.bond
-        # self.self.coll.bond
         coll = bpy.data.collections[self.label]
         flag = False
         for b in coll.bond:
@@ -175,7 +171,6 @@ class Batoms():
         self.bsdf_inputs = bsdf_inputs
         self.bondsetting = Bondseeting(self.label)
         if species_dict:
-            self.species = species_dict.keys()
             self.set_collection(model_type, boundary)
             self.build_batoms(species_dict)
             bondtable = self.get_bondtable(cutoff=1.1, add_bonds=add_bonds, remove_bonds=remove_bonds)
@@ -597,7 +592,7 @@ class Batoms():
             else:
                 ba = batom.copy(self.label, species)
                 self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
-        self.remove_collection(other.name)
+        self.remove_collection(other.label)
 
     def remove_collection(self, name):
         collection = bpy.data.collections.get(name)
@@ -741,7 +736,7 @@ class Batoms():
         if self.atoms.pbc.any() and flag.any():
             for species, batom in self.batoms.items():
                 positions = search_pbc(batom.positions, self.cell, boundary)
-                ba = Batom(self.label, '%s_bd'%species, positions, scale = batom.scale, material_style=batom.material_style, bsdf_inputs=batom.bsdf_inputs, color_style=batom.color_style)
+                ba = Batom(self.label, '%s_bd'%species, positions, scale = batom.scale)
                 self.coll.children['%s_boundary'%self.label].objects.link(ba.batom)
                 self.batoms_boundary['%s_bd'%species] = ba
         self.coll.blase.boundary = boundary

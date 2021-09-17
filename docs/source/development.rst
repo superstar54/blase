@@ -28,12 +28,3 @@ Algorithm:
 - add 2D slices of volumetric data in their 3D image.
 - Bond-search algorithm
 
-.. toctree::
-
-
-    
-
-
-    GUI
-    making_movies
-    

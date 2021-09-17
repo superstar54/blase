@@ -4,9 +4,7 @@
 The Batom object
 ===================
 
-The :class:`Batom` object is a object for one species. 
-Here is how to define a ``H`` species with two atoms
- and ``O`` species with one atoms.
+The :class:`Batom` object is a object for one species. Here is how to define a ``H`` species with two atoms and ``O`` species with one atoms.
 
 >>> from blase.batom import Batom
 >>> h = Batom(label = 'h2o', species = 'H', positions = [[0, -0.76, -0.2], [0, 0.76, -0.2]])
@@ -39,9 +37,10 @@ Other methods
 =============
 
 * :meth:`~Batom.translate`
+  
 For example, move all ``H`` species by a vector [0, 0, 5],
 
->>> h = translate([0, 0, 5])
+>>> h.translate([0, 0, 5])
 
 * :meth:`~Batom.rotate`
 
@@ -59,31 +58,28 @@ For example, copy ``H`` species:
 
 For example, delete the second and the third atom in ``H`` species. Please note that index start from 0.
 
->>> h.delete([1, 2])
+>>> h.delete([0, 1])
 
 Or,
 
->>> del h[[1, 2]]
+>>> del h[[0, 1]]
 
 * :meth:`~Batom.repeat`
 
->>> from ase.build import bulk
 >>> from blase.batom import Batom
->>> au = bulk('Au', cubic = True)
->>> au = Batom(label = 'au', species = 'Au', positions = au)
->>> au.repeat([2, 2, 2])
-
+>>> c = Batom('co', 'C', [[0, 0, 0], [1.2, 0, 0]])
+>>> c.repeat([3, 3, 3], np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]))
 
 * :meth:`~Batom.extend`
 
-from blase.batoms import Batom
-h1 = Batom('h2o', 'H', [[0, 0, 0]])
-h2 = Batom('h2o', 'H', [[0, 0, 2]])
-h1.extend(h2)
+>>> from blase.batoms import Batom
+>>> h1 = Batom('h2o', 'H_1', [[0, 0, 0]])
+>>> h2 = Batom('h2o', 'H_2', [[0, 0, 2]])
+>>> h1.extend(h2)
 
 or,
 
-h = h1 + h2
+>>> h = h1 + h2
 
 
 List of all Methods

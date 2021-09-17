@@ -59,10 +59,15 @@ class Batom():
 
     Parameters:
 
+    label: str
+
     species: list of str
         The atomic structure built using ASE
 
     positions: array
+
+    batom_name: str
+        Name of the batom
 
     color_style: str
         "JMOL", "ASE", "VESTA"
@@ -368,7 +373,7 @@ class Batom():
 
         """
         object_mode()
-        batom = Batom(label, species, self.positions, scale = self.scale, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+        batom = Batom(label, species, self.positions, scale = self.scale)
         return batom
     def extend(self, other):
         """

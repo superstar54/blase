@@ -28,6 +28,8 @@ For the introduction of ASE , please visit https://wiki.fysik.dtu.dk/ase/index.h
 
 ### How to use
 
+Please vist: https://blender-ase.readthedocs.io/en/latest/
+
 - [Installation](docs/source/install.rst)
 - [getting-started](docs/source/getting-started.rst)
 - [tutorial](docs/source/tutorial.rst)

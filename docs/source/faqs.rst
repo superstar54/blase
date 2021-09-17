@@ -1,5 +1,5 @@
 =======
-Tips
+FAQs
 =======
 
 1. ValueError: to_mesh(): Mesh 'xxx' is in editmode

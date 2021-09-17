@@ -10,7 +10,6 @@ Quick links:
 
   * - :mod:`Batom <blase.batom>`
   * - :mod:`Batoms <blase.batoms>`
-    - :mod:`Blase <blase.bio>`
-
-
+  * - :mod:`Bondsetting <blase.batoms>`
+  * - :mod:`Blase <blase.bio>`
 

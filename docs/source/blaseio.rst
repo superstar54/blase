@@ -1,10 +1,10 @@
 .. module:: blase.blaseio
 
-===================
+============================
 The write_blender function
-===================
+============================
 
-The :function:`write_blender` function is to run blase and blender in the background.
+The ``write_blender`` function is to run blase and blender in the background.
 
 >>> from ase.build import molecule
 >>> from blaseio import write_blender
