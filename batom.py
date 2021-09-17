@@ -75,10 +75,11 @@ class Batom():
     
 
     def __init__(self, 
-                label,
-                species,
-                positions,
+                label = None,
+                species = None,
+                positions = None,
                 element = None,
+                from_batom = None,
                 scale = 1.0, 
                 kind_props = {},
                 color_style = 'JMOL',
@@ -87,32 +88,38 @@ class Batom():
                 draw = False, 
                  ):
         #
-        self.label = label
-        self.species = species
-        if not element:
-            self.element = species.split('_')[0]
+        if not from_batom:
+            self.label = label
+            self.species = species
+            if not element:
+                self.element = species.split('_')[0]
+            else:
+                self.element = element
+            self.scene = bpy.context.scene
+            self.name = 'atom_%s_%s'%(self.label, self.species)
+            self.kind_props = kind_props
+            self.color_style = color_style
+            self.material_style = material_style
+            self.bsdf_inputs = bsdf_inputs
+            self.species_data = get_atom_kind(self.element, scale = scale, props = self.kind_props, color_style = self.color_style)
+            self.radius = self.species_data['radius']
+            self.set_material()
+            self.set_instancer()
+            self.set_object(positions)
         else:
-            self.element = element
-        self.scene = bpy.context.scene
-        self.name = 'atom_%s_%s'%(self.label, self.species)
-        self.kind_props = kind_props
-        self.color_style = color_style
-        self.material_style = material_style
-        self.bsdf_inputs = bsdf_inputs
-        self.species_data = get_atom_kind(self.element, scale = scale, props = self.kind_props, color_style = self.color_style)
-        self.radius = self.species_data['radius']
-        self.set_material()
-        self.set_instancer()
-        self.set_object(positions)
+            self.from_batom(from_batom)
+            #todo self.radius = self.species_data['radius']
+
         self.bond_data = {}
         self.polyhedra_data = {}
         if draw:
             self.draw_atom()
     def set_material(self):
-        if self.name not in bpy.data.materials:
+        name = 'material_atom_{0}_{1}'.format(self.label, self.species)
+        if name not in bpy.data.materials:
             if not self.bsdf_inputs:
                 bsdf_inputs = material_styles_dict[self.material_style]
-            material = bpy.data.materials.new(self.name)
+            material = bpy.data.materials.new(name)
             material.diffuse_color = np.append(self.species_data['color'], self.species_data['transmit'])
             material.metallic = bsdf_inputs['Metallic']
             material.roughness = bsdf_inputs['Roughness']
@@ -123,9 +130,6 @@ class Batom():
             principled_node.inputs['Alpha'].default_value = self.species_data['transmit']
             for key, value in bsdf_inputs.items():
                 principled_node.inputs[key].default_value = value
-        else:
-            material = bpy.data.materials[self.name]
-        self.material = material
     def object_mode(self):
         for object in bpy.data.objects:
             if object.mode == 'EDIT':
@@ -143,9 +147,6 @@ class Batom():
             sphere.data.materials.append(self.material)
             bpy.ops.object.shade_smooth()
             sphere.hide_set(True)
-        else:
-            sphere = bpy.data.objects[name]
-        self.instancer = sphere
     def set_object(self, positions):
         """
         build child object and add it to main objects.
@@ -155,20 +156,40 @@ class Batom():
             obj_atom = bpy.data.objects.new(self.name, mesh)
             obj_atom.data.from_pydata(positions, [], [])
             obj_atom.is_batom = True
+            bpy.data.collections['Collection'].objects.link(obj_atom)
         elif hasattr(bpy.data.objects[self.name], 'batom'):
             obj_atom = bpy.data.objects[self.name]
         else:
             raise Exception("Failed, the name %s already in use and is not blase object!"%self.name)
         obj_atom.species = self.species
         obj_atom.element = self.element
+        obj_atom.label = self.label
         self.instancer.parent = obj_atom
         obj_atom.instance_type = 'VERTS'
-        bpy.data.collections['Collection'].objects.link(obj_atom)
+    def from_batom(self, batom_name):
+        if batom_name not in bpy.data.objects:
+            raise Exception("%s is not a object!"%batom_name)
+        elif not bpy.data.objects[batom_name].is_batom:
+            raise Exception("%s is not Batom object!"%batom_name)
+        ba = bpy.data.objects[batom_name]
+        self.species = ba.species
+        self.label = ba.label
+        self.element = ba.element
     @property
     def batom(self):
         return self.get_batom()
     def get_batom(self):
         return bpy.data.objects['atom_%s_%s'%(self.label, self.species)]
+    @property
+    def instancer(self):
+        return self.get_instancer()
+    def get_instancer(self):
+        return bpy.data.objects['instancer_atom_%s_%s'%(self.label, self.species)]
+    @property
+    def material(self):
+        return self.get_material()
+    def get_material(self):
+        return bpy.data.materials['material_atom_%s_%s'%(self.label, self.species)]
     @property
     def scale(self):
         return self.get_scale()

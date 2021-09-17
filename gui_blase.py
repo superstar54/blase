@@ -24,7 +24,8 @@ from ase import Atom, Atoms
 from ase.build import molecule, bulk
 import json
 from blase.bio import Blase
-from blase.butils import read_blase_collection_list, read_blase_collection
+from blase.butils import read_batoms_collection_list, read_batoms_collection
+from blase.batoms import Batoms
 
 
 class BlaseSettings(bpy.types.PropertyGroup):
@@ -36,8 +37,9 @@ class BlaseSettings(bpy.types.PropertyGroup):
     boundary: FloatVectorProperty(name="boundary", default = [0.0, 0.0, 0.0], size = 3)
 
 class BatomSettings(bpy.types.PropertyGroup):
-    species: StringProperty(name="species", default = '0')
-    element: StringProperty(name="element", default = '0')
+    label: StringProperty(name="label", default = '')
+    species: StringProperty(name="species", default = 'X')
+    element: StringProperty(name="element", default = '')
     scale: FloatProperty(name="scale", default = 1.0)
 
 class BlaseAtom(bpy.types.PropertyGroup):
@@ -56,7 +58,7 @@ class Blase_PT_prepare(Panel):
     bl_label       = "Blase Tools"
     bl_space_type  = "VIEW_3D"
     bl_region_type = "UI"
-    # bl_options     = {'DEFAULT_CLOSED'}
+    # bl_options     = {}
     bl_category = "Blase"
     bl_idname = "BLASE_PT_tools"
 
@@ -76,22 +78,10 @@ class Blase_PT_prepare(Panel):
         col.label(text="Model")
         row = box.row()
         row.prop(blpanel, "model_type", expand  = True)
-        box = layout.box()
-        col = box.column()
-        col.prop(blpanel, "boundary")
-
-        box = layout.box()
-        col = box.column(align=True)
-        col.label(text="Atoms")
         row = box.row()
         row.prop(blpanel, "scale")
 
         
-
-        box = layout.box()
-        row = layout.row()
-        row.prop(blpanel, "delete_index")
-
         box = layout.box()
         col = box.column(align=True)
         col.label(text="Split atoms")
@@ -113,7 +103,6 @@ class Blase_PT_prepare(Panel):
         col.prop(blpanel, "atoms_str")
         col.prop(blpanel, "atoms_name")
         # col = box.column()
-        col.prop(blpanel, "model_type_add")
         col.operator("blase.add_molecule")
         col.operator("blase.add_bulk")
         col.operator("blase.add_atoms")
@@ -144,13 +133,10 @@ class BlaseProperties(bpy.types.PropertyGroup):
         print('Callback_model_type')
         model_type = list(blpanel.model_type)[0]
         modify_model_type(blpanel.collection_list, model_type)
-    def Callback_delete_index(self, context):
-        blpanel = bpy.context.scene.blpanel
-        print('Callback_delete_index')
-        modify_delete_index(blpanel.collection_list, blpanel.delete_index)
+    
     def Callback_collection_list(self, context):
         print('Callback_collection_list')
-        items = read_blase_collection_list()
+        items = read_batoms_collection_list()
         items = [(item, item, "") for item in items]
         items = tuple(items)
         return items
@@ -158,10 +144,7 @@ class BlaseProperties(bpy.types.PropertyGroup):
         blpanel = bpy.context.scene.blpanel
         print('Callback_modify_scale')
         modify_scale(blpanel.collection_list, blpanel.scale)
-    def Callback_modify_boundary(self, context):
-        blpanel = bpy.context.scene.blpanel
-        print('Callback_modify_boundary')
-        modify_boundary(blpanel.collection_list, blpanel.boundary)
+    
     
     def Callback_render_atoms(self, context):
         blpanel = bpy.context.scene.blpanel
@@ -198,10 +181,7 @@ class BlaseProperties(bpy.types.PropertyGroup):
                ('2',"Polyhedral","Use polyhedral"),
                ('3',"Stick", "Use stick")),
                default='0')
-    delete_index: StringProperty(
-        name="Delete",
-        description="delete atoms",
-        default='0', update=Callback_delete_index)
+    
     action_type: EnumProperty(
         name="",
         description="Which objects shall be modified?",
@@ -212,10 +192,6 @@ class BlaseProperties(bpy.types.PropertyGroup):
     scale: FloatProperty(
         name="scale", default=1.0,
         description = "scale", update = Callback_modify_scale)
-    boundary: FloatVectorProperty(
-        name="Boundary", default=(0.00, 0.0, 0.0),
-        subtype = "XYZ",
-        description = "boundary  in a, b, c axis", update = Callback_modify_boundary)
     single: BoolProperty(
         name="Single", default=False,
         description = "Do you split into single atoms?")
@@ -257,7 +233,7 @@ class AddMolecule(Operator):
         #print(molecule_str)
         blpanel = context.scene.blpanel
         atoms = molecule(blpanel.atoms_str)
-        import_blase(atoms, name = blpanel.atoms_name, model_type = blpanel.model_type_add)
+        Batoms(label = blpanel.atoms_name, atoms = atoms, model_type = blpanel.model_type_add)
         return {'FINISHED'}
 class AddBulk(Operator):
     bl_idname = "blase.add_bulk"
@@ -512,42 +488,16 @@ def export_atom(filename = 'test-blase.xyz'):
 
 
 # Modifying the scale of a selected atom or stick
-def modify_model_type(collection_name, model_type, batoms = None):
+def modify_model_type(collection_name, model_type):
     # Modify atom scale (all selected)
-    coll = bpy.data.collections[collection_name]
-    if not batoms:
-        batoms = read_blase_collection(coll)
-    for obj in coll.all_objects:
-        bpy.data.objects.remove(obj)
-    print('drawing atoms')
-    batoms.coll.blase.model_type = model_type
-    batoms.draw()
-# Modifying the scale of a selected atom or stick
-def modify_delete_index(collection_name, index, batoms = None):
-    # Modify atom scale (all selected)
-    coll = bpy.data.collections[collection_name]
-    if not batoms:
-        batoms = read_blase_collection(coll)
-    print('Delete atoms')
-    batoms.delete(index)
-# Modifying the scale of a selected atom or stick
+    batoms = Batoms(from_collection = collection_name)
+    batoms.model_type = model_type
 def modify_scale(collection_name, scale, batoms = None):
     # Modify atom scale (all selected)
-    coll = bpy.data.collections[collection_name]
-    for obj in coll.all_objects:
-        if 'sphere' in obj.name:
-            obj.scale = [scale, scale, scale]
-# Modifying the scale of a selected atom or stick
-def modify_boundary(collection_name, cutoff, batoms = None):
-    # Modify atom cutoff (all selected)
-    coll = bpy.data.collections[collection_name]
-    if not batoms:
-        batoms = read_blase_collection(coll)
-    print('drawing atoms')
-    batoms.coll.blase.boundary = cutoff
-    # if batoms.atoms.pbc.any():
-        # batoms.draw_atoms_boundary(cutoff=cutoff)
-    batoms.draw()
+    batoms = Batoms(from_collection = collection_name)
+    for species, ba in batoms.batoms.items():
+        ba.scale = scale
+
 
 def render_atoms(collection_name, output_image = 'bout.png', batoms = None):
     """
@@ -556,7 +506,7 @@ def render_atoms(collection_name, output_image = 'bout.png', batoms = None):
     print('Rendering atoms')
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     batoms.render(output_image = output_image)
 def load_frames(collection_name, movie, batoms = None):
     """
@@ -565,5 +515,5 @@ def load_frames(collection_name, movie, batoms = None):
     print('Rendering atoms')
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     batoms.load_frames()

@@ -4,13 +4,12 @@
 Development
 ===========
 
+In Blender, when the undo/redo operation system (ctrl+z / ctrl+shift+z) is performed, all objects in the scene are fully recreated. Pointers to the old objects will fail. Therefore, please store list of object names instead of object itself, and then use them by ``bpy.data.objects[name]``. This is same for collection and others.
+
+
 
 Known bugs:
 
-
-- undo crash
-  
->>> h2o.model_type = 1
 
 
 
@@ -24,7 +23,8 @@ Development topics:
 
 
 
-Algorithm
+Algorithm:
+
 - add 2D slices of volumetric data in their 3D image.
 - Bond-search algorithm
 

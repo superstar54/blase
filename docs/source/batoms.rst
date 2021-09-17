@@ -19,7 +19,7 @@ The :class:`Batoms` object is a collection of Batom objects. Here is how to defi
 Here, the first keyword ``atoms`` specifies the ase ``Atoms`` object, and we used
 the ``model_type`` keywords to specify model type.  Other
 possible keywords are: ``boundary``, ``show_unit_cell``, ``isosurface``, ``kind_props``,
-``color`` and ``draw``.
+``color``, ``add_bonds``, ``remove_bonds`` and ``draw``.
 
 
 One get and set ``model_type``, ``pbc``, ``show_unit_cell``, ``cell`` and ``boundary`` by:
@@ -66,6 +66,20 @@ Or set your own materials by setting the bsdf_inputs dict.
 
 >>> bsdf_inputs = {'Metallic': 1.0, 'Specular': 1.0, 'Roughness': 0.01, }
 >>> h2o = Batoms(atoms = atoms, label = 'h2o', model_type = '1', bsdf_inputs = bsdf_inputs)
+
+
+Bond setting
+================================
+
+You can print the default bondsetting by:
+
+.. image:: _static/bondsetting.png
+   :width: 8cm
+
+Then change bondsetting by:
+
+>>> tio2.bondsetting[('Ti', 'O')] = [2.5, True, False]
+
 
 
 Other methods

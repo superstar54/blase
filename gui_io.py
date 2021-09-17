@@ -9,8 +9,6 @@ from bpy.props import (
         IntProperty,
         FloatProperty,
         )
-from ase import Atom, Atoms
-from ase.io import read
 from ase.io.cube import read_cube_data
 import pickle
 from blase.bio import Blase
@@ -51,9 +49,9 @@ class IMPORT_OT_blase(Operator, ImportHelper):
         items=(('0',"Ball", "Use ball and stick"),
                ('1',"Meta", "Use ball")),
                default='0',)
-    scale: FloatProperty(
-        name = "scale", default=1.0, min=0.0001,
-        description = "Scale factor for all atom scale")
+    label: StringProperty(
+        name = "label", 
+        description = "Label")
     bond_cutoff: FloatProperty(
         name = "Bond_cutoff", default=1.0, min=0.0001,
         description = "Bond cutoff")
@@ -73,7 +71,15 @@ class IMPORT_OT_blase(Operator, ImportHelper):
 
 
     def draw(self, context):
+        
         layout = self.layout
+        box = layout.box()
+        row = box.row()
+        row.label(text="Adding Structure")
+        box = layout.box()
+        row = box.row()
+        row.prop(self, "label")
+        #
         row = layout.row()
         row.prop(self, "camera")
         row.prop(self, "light")
@@ -93,23 +99,8 @@ class IMPORT_OT_blase(Operator, ImportHelper):
         box = layout.box()
         row = box.row()
         row.active = (self.model_type == "1")
-        box = layout.box()
-        row = box.row()
-        row.label(text="Scaling scale")
-        box = layout.box()
-        row = box.row()
-        row.prop(self, "scale")
-        box = layout.box()
-        row = box.row()
-        # row.label(text="Bond cutoff")
-        row.prop(self, "bond_cutoff")
+        #
         
-        box = layout.box()
-        row = box.row()
-        # row.label(text="Search_pbc")
-        row.prop(self, "search_pbc")
-        # Frames
-
 
     def execute(self, context):
 
@@ -123,10 +114,7 @@ class IMPORT_OT_blase(Operator, ImportHelper):
                self.light,
                self.world,
                self.show_unit_cell,
-               self.ball_type,
-               self.scale,
-               self.bond_cutoff,
-               self.make_real,
+               self.label,
                )
 
         return {'FINISHED'}
@@ -138,37 +126,25 @@ def import_blase(inputfile,
                light = 'True',
                world = 'False',
                show_unit_cell = False,
-               ball_type = 'Ball-and-stick',
-               scale = 1.0,
-               bond_cutoff = 1.0,
-               search_pbc_atoms = False,
-               search_molecule = False,
-               make_real = False,
-               name = None,
+               label = None,
                ):
     #
+    from ase.io import read
     print('='*30)
     print('Import structure')
     print('='*30)
     print(model_type)
     #
     kwargs = {'show_unit_cell': show_unit_cell, 
-          'scale': scale,
-          'bond_cutoff': bond_cutoff,
           'world': world,
           'camera': camera,
           'light': light,
-          'search_pbc_atoms':search_pbc_atoms,
-          'search_molecule': search_molecule,
-          'make_real': make_real,
           }
-    if isinstance(inputfile, str):
-        if inputfile.split('.')[-1] == 'cube':
-            images, data = read_cube_data(inputfile)
-        else:
-            images = read(inputfile)
+    if inputfile.split('.')[-1] == 'cube':
+        images, data = read_cube_data(inputfile)
     else:
-        images = inputfile
-    print(images)
-    bobj = Batoms(atoms = images, name = name, model_type=model_type) #, **kwargs)
+        images = read(inputfile)
+    if not label:
+        label = inputfile
+    bobj = Batoms(label = label, atoms = images, model_type=model_type) #, **kwargs)
     bobj.draw()

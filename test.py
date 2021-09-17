@@ -1,10 +1,20 @@
 # add
+import batom
 from blase.batoms import Batom
 h1 = Batom('h2o', 'H_1', [[0, 0, 0], [1.52, 0, 0]])
 h2 = Batom('h2o', 'H_2', [[0, 0, 2], [2, 0, 2]])
 h = h1 + h2
 
+h3=Batom(from_batom_object = 'atom_co_C')
 
+
+# build from collection
+from ase.build import molecule, fcc111
+from blase.batoms import Batoms
+from blase.batom import Batom
+h2o = Batoms(label = 'h2o', atoms = molecule('H2O'))
+h2o2 = Batoms(from_collection='h2o')
+h = Batom(from_batom='atom_h2o_H')
 
 # search boundary
 from ase.build import bulk
@@ -15,15 +25,29 @@ pt = Batoms(atoms = pt, label = 'pt')
 pt.search_boundary(boundary=[0.05, 0.05, 0.05])
 
 # delete
-from ase.build import molecule, fcc111
-from ase.visualize import view
-from blase.batoms import Batoms
-atoms=molecule('H2O')
-view(atoms)
-h2o = Batoms(label = 'h2o', atoms = atoms)
+from ase.build import molecule
+from blase import Batoms
+h2o = Batoms(label = 'h2o', atoms = molecule('H2O'))
 h2o_new = h2o.copy('h2o_new')
 del h2o_new['H'][[0]]
 
+#
+# bondsetting
+from ase.build import molecule
+from blase import Batoms
+c2h6so = Batoms(label = 'c2h6so', atoms = molecule('C2H6SO'))
+
+
+#cavity
+from ase.io import read
+from blase import Batoms
+atoms = read('docs/source/_static/datas/mof-5.cif')
+mof = Batoms(label = 'mof-5', atoms = atoms)
+mof.bondsetting[('Zn', 'O')] = [2.5, True, False]
+mof.bondsetting[('C', 'H')] = [1.4, False, False]
+mof.draw_cavity(9.0)
+mof.model_type = 2
+mof.render()
 
 from ase.build import molecule, fcc111
 from blase.batoms import Batoms
@@ -56,8 +80,11 @@ h2o = Batoms(atoms = atoms, label = 'h2o')
 from blase.batoms import Batoms
 from ase.io import read
 atoms = read('docs/source/_static/datas/tio2.cif')
-tio2 = Batoms(label = 'tio2', atoms = atoms, model_type = '2', polyhedra_dict = {'Ti': ['O']}, color_style="VESTA")
-tio2.boundary = 0.01
+tio2 = Batoms(label = 'tio2', atoms = atoms, model_type = '2')
+tio2.bondsetting
+
+tio2.bondsetting[('Ti', 'O')] = [2.5, True, False]
+tio2.model_type = 2
 
 
 # get_distances
@@ -87,15 +114,16 @@ from ase.build import molecule, fcc111
 from blase.batoms import Batoms
 import numpy as np
 co = molecule('CO')
-co = Batoms(atoms = co)
+co = Batoms(label = 'co', atoms = co)
 co.translate([0, 0, 2])
 h2o = molecule('H2O')
-h2o = Batoms(atoms = h2o)
+h2o = Batoms(label = 'h2o', atoms = h2o)
 h2o.extend(co)
 
 
 # repeat
 from blase.batom import Batom
+import numpy as np
 c = Batom('co', 'C', [[0, 0, 0], [1.2, 0, 0]])
 c.repeat([3, 3, 3], np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]))
 

@@ -9,7 +9,7 @@ The :function:`write_blender` function is to run blase and blender in the backgr
 >>> from ase.build import molecule
 >>> from blaseio import write_blender
 >>> atoms = molecule('C2H6SO')
->>> batoms = {'atoms': atoms, 'model_type': '1'}
+>>> batoms = {'label': 'c2h6so', 'atoms': atoms, 'model_type': '1'}
 >>> blase = {'output_image': 'figs/c2h6so',}
 >>> write_blender(batoms = batoms, blase = blase)
 

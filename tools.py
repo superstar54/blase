@@ -166,14 +166,33 @@ def get_bbox(bbox, atoms, show_unit_cell = True):
             bbox[i] = [P1, P2]
         bbox = bbox
     return bbox
+def find_cage(cell, positions, radius, step = 1.0):
+    from ase.cell import Cell
+    from scipy.spatial import distance
+
+    cell = Cell(cell)
+    a, b, c, alpha, beta, gamma = cell.cellpar()
+    na, nb, nc = int(a/step),int(b/step), int(c/step)
+    x = np.linspace(0, 1, na)
+    y = np.linspace(0, 1, nb)
+    z = np.linspace(0, 1, nc)
+    positions_v = np.vstack(np.meshgrid(x, y, z)).reshape(3,-1).T
+    positions_v = np.dot(positions_v, cell)
+    dists = distance.cdist(positions_v, positions)
+    # dists<3.0
+    flag = np.min(dists, axis = 1) >radius
+    return positions_v[flag]
+
 
 
 if __name__ == "__main__":
     from ase.build import bulk
     from ase.atoms import Atoms
+    from ase.io import read
     from ase.visualize import view
-    pt = bulk('Pt', cubic = True)
-    pos = search_pbc(pt.positions, pt.cell, boundary = [0.05, 0.05, 0.05])
-    print(pos)
-    bdpt = Atoms('Pt10', positions = pos)
-    view(bdpt)
+    # pt = bulk('Pt', cubic = True)
+    atoms = read('docs/source/_static/datas/mof-5.cif')
+    # view(atoms)
+    positions = find_cage(atoms.cell, atoms.positions, 9.0, step = 1.0)
+    vatoms = Atoms(['Au']*len(positions), positions=positions)
+    view(atoms + vatoms)

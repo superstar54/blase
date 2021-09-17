@@ -29,7 +29,7 @@ def draw_cell(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
         obj_cell.data.from_pydata(cell_vertices, [], [])
         sphere.parent = obj_cell
         obj_cell.instance_type = 'VERTS'
-        bpy.data.collections['%s'%label].children['%s_instancer'%label].objects.link(sphere)
+        coll_cell.objects.link(sphere)
         coll_cell.objects.link(obj_cell)
         #
         # edges

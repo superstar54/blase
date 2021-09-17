@@ -6,8 +6,8 @@ Installation
 
 Requirements
 ============
-* Blender_ 2.90 or newer
-* Python_ 3.7 or newer
+* Blender_ 2.93 or newer
+* Python_ 3.9 or newer
 * ASE_ 
 
 Optional:
@@ -40,9 +40,9 @@ First install ASE on your computer. On Windows, open Anaconda Prompt, on Linux, 
     
     pip3 install --upgrade ase
 
-Then install ASE inside Blender. On Linux, go to your Blender python directory, e.g. ``blender-2.92/2.92/python/bin``, install pip_::
+Then install ASE inside Blender. On Linux, go to your Blender python directory, e.g. ``blender-2.93/2.93/python/bin``, install pip_::
     
-    $ ./python3 -m ensurepip
+    $ ./python3.9 -m ensurepip
     
 Install ASE_ and scikit-image_ inside Blender::
 

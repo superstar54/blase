@@ -2,6 +2,15 @@
 Tips
 =======
 
+
+3-button-mouse
+==========================
+Enable 3-button-mouse in laptop without mouse.  please vist: https://docs.blender.org/manual/en/latest/editors/preferences/input.html
+
+
+
+
+
 Edit the studio light
 =======================
 

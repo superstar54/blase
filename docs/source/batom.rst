@@ -65,12 +65,6 @@ Or,
 
 >>> del h[[1, 2]]
 
-* :meth:`~Batom.replace`
-
-For example, replace the all H in h molecule by S.
-
->>> h.replace('H', 'S', [1])
-
 * :meth:`~Batom.repeat`
 
 >>> from ase.build import bulk

@@ -25,7 +25,7 @@ from ase import Atom, Atoms
 from ase.build import molecule, bulk
 import json
 from blase.bio import Blase
-from blase.butils import read_blase_collection_list, read_blase_collection, read_atoms_list
+from blase.butils import read_batoms_collection_list, read_batoms_collection, read_atoms_list
 
 
 # The panel.
@@ -69,7 +69,7 @@ class Bonds_PT_prepare(Panel):
 
 class BondsProperties(bpy.types.PropertyGroup):
     def Callback_collection_list(self, context):
-        items = read_blase_collection_list()
+        items = read_batoms_collection_list()
         items = [(item, item, "") for item in items]
         items = tuple(items)
         return items

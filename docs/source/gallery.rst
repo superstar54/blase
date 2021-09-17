@@ -11,6 +11,15 @@ Nanoparticle
 :download:`wulff.py <_static/wulff.py>`
 
 
+Cavity
+==========
+
+.. image:: _static/cavity.png
+   :width: 10cm
+
+:download:`wulff.py <_static/cavity.py>`
+
+
 Isosurface
 ============
 

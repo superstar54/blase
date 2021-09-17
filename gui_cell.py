@@ -25,7 +25,7 @@ from ase import Atom, Atoms
 from ase.build import molecule, bulk
 import json
 from blase.bio import Blase
-from blase.butils import read_blase_collection_list, read_blase_collection, read_atoms_list
+from blase.butils import read_batoms_collection_list, read_batoms_collection, read_atoms_list
 
 
 # The panel.
@@ -65,12 +65,16 @@ class Cell_PT_prepare(Panel):
         row.prop(clpanel, "supercell_a")
         row.prop(clpanel, "supercell_b")
         row.prop(clpanel, "supercell_c")
+        #
+        box = layout.box()
+        col = box.column()
+        col.prop(clpanel, "boundary")
 
 
 
 class CellProperties(bpy.types.PropertyGroup):
     def Callback_collection_list(self, context):
-        items = read_blase_collection_list()
+        items = read_batoms_collection_list()
         items = [(item, item, "") for item in items]
         items = tuple(items)
         return items
@@ -89,6 +93,10 @@ class CellProperties(bpy.types.PropertyGroup):
         print('Callback_modify_pbc')
         pbc = clpanel.pbc
         modify_pbc(clpanel.collection_list, pbc)
+    def Callback_modify_boundary(self, context):
+        clpanel = bpy.context.scene.clpanel
+        print('Callback_modify_boundary')
+        modify_boundary(clpanel.collection_list, clpanel.boundary)
 
     collection_list: EnumProperty(
         name="Collection",
@@ -115,6 +123,10 @@ class CellProperties(bpy.types.PropertyGroup):
     supercell_c: IntProperty(
         name = "c", default=1,
         description = "cell c", update = Callback_modify_supercell)
+    boundary: FloatVectorProperty(
+        name="Boundary", default=(0.00, 0.0, 0.0),
+        subtype = "XYZ",
+        description = "boundary  in a, b, c axis", update = Callback_modify_boundary)
     
 
 
@@ -122,7 +134,7 @@ def modify_cell(collection_name, cell, batoms = None):
     # Modify atom scale (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     print('drawing atoms')
     batoms.set_cell(cell)
     batoms.draw()
@@ -131,7 +143,7 @@ def modify_supercell(collection_name, supercell, batoms = None):
     # Modify atom scale (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     print('drawing atoms')
     batoms*=supercell
     batoms.draw()
@@ -139,5 +151,15 @@ def modify_pbc(collection_name, pbc, batoms = None):
     # Modify atom scale (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     batoms.atoms.pbc = pbc
+def modify_boundary(collection_name, cutoff, batoms = None):
+    # Modify atom cutoff (all selected)
+    coll = bpy.data.collections[collection_name]
+    if not batoms:
+        batoms = read_batoms_collection(coll)
+    print('drawing atoms')
+    batoms.coll.blase.boundary = cutoff
+    # if batoms.atoms.pbc.any():
+        # batoms.draw_atoms_boundary(cutoff=cutoff)
+    batoms.draw()

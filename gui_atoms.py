@@ -25,7 +25,7 @@ from ase import Atom, Atoms
 from ase.build import molecule, bulk
 import json
 from blase.bio import Blase
-from blase.butils import read_blase_collection_list, read_blase_collection, read_atoms_list
+from blase.butils import read_batoms_collection_list, read_batoms_collection, read_atoms_list
 
 
 # The panel.
@@ -61,7 +61,7 @@ class Atoms_PT_prepare(Panel):
 
 class AtomsProperties(bpy.types.PropertyGroup):
     def Callback_collection_list(self, context):
-        items = read_blase_collection_list()
+        items = read_batoms_collection_list()
         items = [(item, item, "") for item in items]
         items = tuple(items)
         return items
@@ -131,7 +131,7 @@ class AtomsProperties(bpy.types.PropertyGroup):
 def modify_materials(collection_name, model_type, atoms = None):
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     print('drawing atoms')
     batoms.draw_atoms()
 
@@ -140,7 +140,7 @@ def modify_radius(collection_name, atoms_list, radius, batoms = None):
     # Modify atom radius (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     print('drawing atoms')
     batoms.draw_atoms(props={atoms_list:{'radius': radius,}})
 # Modifying the radius of a selected atom or stick
@@ -148,6 +148,6 @@ def modify_color(collection_name, atoms_list, color, batoms = None):
     # Modify atom radius (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_blase_collection(coll)
+        batoms = read_batoms_collection(coll)
     print('drawing atoms')
     batoms.draw_atoms(props={atoms_list:{'color': color,}})

@@ -3,31 +3,11 @@ from blase.batoms import Batoms
 from ase import Atom, Atoms
 
 
-
-
-def read_coll(name):
-    """
-    Read batoms object from a collection name
-    """
-    coll = bpy.data.collections[name]
-    batoms = read_blase_collection(coll)
-    return batoms
-def read_colls(names = None):
-    """
-    Read a list of batoms object from a list of collection names
-    """
-    if names is None:
-        names = read_blase_collection_list()
-    objs = {}
-    for name in names:
-        batoms = read_coll(name)
-        objs[name] = batoms
-    return objs
-def read_blase_collection_list():
+def read_batoms_collection_list():
     """
     Read all blase collection 
     """
-    items = [col.name for col in bpy.data.collections if col.blase.is_blase]
+    items = [col.name for col in bpy.data.collections if col.is_batoms]
     return items
 def read_atoms_list(coll):
     '''   
@@ -39,19 +19,10 @@ def read_atoms_list(coll):
         elements.append(ele)
     return elements
         
-def read_blase_collection(coll):
+def read_batoms_collection(coll):
     '''   
     '''
-    atoms = Atoms()
-    name = coll.name
-    # atoms properties
-    scale = {}
-    for obj in coll.children['%s_instancer'%name].all_objects:
-        species = '_'.join(obj.name.split('_')[2:])
-        scale[species] = obj.scale
-    # coll property
-    # self.atoms = atoms
-    batoms = Batoms(name = name, coll = coll, scale = scale, draw = False)
+    batoms = Batoms(from_collection = coll)
     return batoms
 def read_atoms_select():
     '''   

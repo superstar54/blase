@@ -5,6 +5,7 @@ This module defines the batoms object in the blase package.
 """
 
 from ase import Atom, Atoms
+from ase.data import chemical_symbols, covalent_radii
 from blase.batom import Batom
 import bpy
 import bmesh
@@ -17,8 +18,60 @@ from blase.btools import object_mode
 import numpy as np
 import time
 
-subcollections = ['atom', 'bond', 'instancer', 'instancer_atom', 'cell', 'polyhedra', 'isosurface', 'boundary', 'text']
+subcollections = ['atom', 'bond', 'instancer', 'instancer_atom', 'cell', 'polyhedra', 'isosurface', 'virtual', 'boundary', 'text']
 
+
+
+
+class Bondseeting():
+    """
+    """
+    def __init__(self, label, bondtalbe = None) -> None:
+        self.label = label
+    def get_data(self):
+        data = {}
+        coll = bpy.data.collections[self.label]
+        for b in coll.bond:
+            data[(b.symbol1, b.symbol2)] = [b.bondlength, b.polyhedra, b.search]
+        return data
+    @property
+    def data(self):
+        return self.get_data()
+    def __repr__(self) -> str:
+        s = '-'*60 + '\n'
+        s = 'Species1  Species2  Bondlength  Polyhedra   Search_bond \n'
+        data = self.data
+        for key, value in data.items():
+            key[1:-1]
+            s += '{0:10s} {1:10s} {2:4.3f}   {3:10s}   {4:10s} \n'.format(key[0], key[1], value[0], str(value[1]), str(value[2]))
+        s += '-'*60 + '\n'
+        return s
+    def __getitem__(self, index):
+        return self.data[index]
+    def __setitem__(self, index, value):
+        """
+        Add bond information in to blasebond
+        """
+        
+        # add to blase.bond
+        # self.self.coll.bond
+        coll = bpy.data.collections[self.label]
+        flag = False
+        for b in coll.bond:
+            if (b.symbol1, b.symbol2) == index:
+                b.bondlength = value[0]
+                b.polyhedra = value[1]
+                b.search = value[2]
+                flag = True
+        if not flag:
+            bond = coll.bond.add()
+            bond.symbol1 = index[0]
+            bond.symbol2 = index[1]
+            bond.bondlength = value[0]
+            bond.polyhedra = value[1]
+            bond.search = value[2]
+
+    
 
 class Batoms():
     """Batoms Class
@@ -57,7 +110,7 @@ class Batoms():
     coll: bpy.types.Collection
         The main Blender collection. 
         This collection has a ``blase`` property, which has five parameters:
-            * is_blase
+            * is_batoms
             * pbc
             * unit cell
             * boundary
@@ -87,10 +140,9 @@ class Batoms():
     def __init__(self, 
                 species_dict = {},
                 atoms = None, 
-                coll = None,
+                from_collection = None,
                 label = None,
                 model_type = '0', 
-                scale = 1.0, 
                 boundary = [0.0, 0.0, 0.0],
                 bondlist = None,
                 add_bonds = {}, 
@@ -107,7 +159,6 @@ class Batoms():
                 draw = True, 
                  ):
         #
-        self.batoms = {}
         self.batoms_boundary = {}
         self.batoms_bond = {}
         self.scene = bpy.context.scene
@@ -122,102 +173,70 @@ class Batoms():
         self.color_style = color_style
         self.material_style = material_style
         self.bsdf_inputs = bsdf_inputs
+        self.bondsetting = Bondseeting(self.label)
         if species_dict:
             self.species = species_dict.keys()
             self.set_collection(model_type, boundary)
             self.build_batoms(species_dict)
-            self.get_bondsetting()
+            bondtable = self.get_bondtable(cutoff=1.1, add_bonds=add_bonds, remove_bonds=remove_bonds)
+            for key, value in bondtable.items():
+                self.bondsetting[key] = value
         elif atoms:
             if not self.label:
                 self.label = atoms.symbols.formula.format('abc')
             self.set_collection(model_type, boundary)
             self.from_ase(atoms)
-            self.get_bondsetting()
+            bondtable = self.get_bondtable(cutoff=1.0, add_bonds=add_bonds, remove_bonds=remove_bonds)
+            for key, value in bondtable.items():
+                self.bondsetting[key] = value
             if not isinstance(atoms, list):
                 self.images = [atoms]
             else:
                 self.images = atoms
-        elif coll:
+        elif from_collection:
             print('Build from collection')
-            self.coll = coll
-            self.coll2atoms()
-            self.from_ase(self.atoms)
+            self.from_collection(from_collection)
         else:
             raise Exception("Failed, species_dict, atoms or coll should be provided!"%self.label)
-        self.scale = {x:1 for x in self.species}
-
-        if isinstance(scale, float):
-            self.scale = {x:scale for x in self.species}
-        elif isinstance(scale, dict):
-            self.scale.update(scale)
         if draw:
             self.draw()
         if movie:
             self.load_frames()
-    def get_species(self):
-        """
-        """
-        return self.species
-    def get_bondsetting(self, cutoff = 1.0):
-        """
-        Add bond information in to blasebond
-        """
-        from blase.default_data import default_bonds
-        from ase.data import chemical_symbols
-        from ase.data import covalent_radii
-
-        self.bondsetting = {}
-        for species1 in self.species:
-            search = False
-            polyhedra = False
-            radius1 = cutoff * covalent_radii[chemical_symbols.index(species1.split('_')[0])]
-            for species2 in self.species:
-                if species2 not in default_bonds[species1]: continue
-                radius2 = cutoff * covalent_radii[chemical_symbols.index(species2.split('_')[0])]
-                bondlength = radius1 + radius2
-                if species1 in self.polyhedra_dict:
-                    if species2 in self.polyhedra_dict[species1]:
-                        polyhedra = True
-                self.bondsetting[(species1, species2)] = [bondlength, polyhedra, search]
-        self.bondsetting.update(self.add_bonds)
-        for key in self.remove_bonds:
-            self.bondsetting.pop(key)
-        # add to blase.bond
-        for key, data in self.bondsetting.items():
-            bond = self.coll.bond.add()
-            bond.symbol1 = key[0]
-            bond.symbol2 = key[1]
-            bond.bondlength = data[0]
-            bond.polyhedra = data[1]
-            bond.search = data[2]
+    
+    
     def build_batoms(self, species_dict):
         """
         """
         for species, data in species_dict.items():
             if isinstance(data, list):
                 ba = Batom(self.label, species, data, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
-                self.batoms[species] = data
                 self.coll.children['%s_atom'%self.label].objects.link(data.batom)
                 self.coll.children['%s_instancer'%self.label].objects.link(data.instancer)
             elif isinstance(data, Batom):
-                self.batoms[species] = data
                 self.coll.children['%s_atom'%self.label].objects.link(data.batom)
                 self.coll.children['%s_instancer'%self.label].objects.link(data.instancer)
-
     def from_ase(self, atoms):
         """
         """
         if 'species' not in atoms.info:
             atoms.info['species'] = atoms.get_chemical_symbols()
-        self.species = list(set(atoms.info['species']))
-        for species in self.species:
+        species_list = list(set(atoms.info['species']))
+        for species in species_list:
             indices = [index for index, x in enumerate(atoms.info['species']) if x == species]
             ba = Batom(self.label, species, atoms.positions[indices], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
-            self.batoms[species] = ba
             self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
             self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
+        self.coll.is_batoms = True
         self.coll.blase.pbc = self.npbool2bool(atoms.pbc)
         self.coll.blase.cell = atoms.cell[:].flatten()
+    def from_collection(self, collection_name):
+        """
+        """
+        if collection_name not in bpy.data.collections:
+            raise Exception("%s is not a collection!"%collection_name)
+        elif not bpy.data.collections[collection_name].is_batoms:
+            raise Exception("%s is not Batoms collection!"%collection_name)
+        self.label = collection_name
     def from_pymatgen(self):
         """
         """
@@ -264,10 +283,6 @@ class Batoms():
             cell = [cell_vertexs[4], cell_vertexs[2], cell_vertexs[1]]
             atoms.cell = cell
             atoms.pbc = coll.blase.pbc
-        # bond
-        self.bondsetting = {}
-        for bond in coll.bond:
-            self.bondsetting[(bond.symbol1, bond.symbol2)] = [bond.bondlength, bond.polyhedra, bond.search]
     def set_collection(self, model_type = '0', boundary = [0, 0, 0]):
         """
         build main collection and its child collections.
@@ -276,7 +291,7 @@ class Batoms():
             if self.label == coll.name:
                 raise Exception("Failed, the name %s already in use!"%self.label)
         coll = bpy.data.collections.new(self.label)
-        self.coll.blase.is_blase = True
+        self.coll.blase.is_batoms = True
         self.scene.collection.children.link(self.coll)
         for sub_name in subcollections:
             subcoll = bpy.data.collections.new('%s_%s'%(self.label, sub_name))
@@ -289,34 +304,19 @@ class Batoms():
         Draw unit cell
         """
         object_mode()
+        cell_vertices = get_cell_vertices(self.coll.blase.cell)
+        if np.max(abs(cell_vertices)) < 1e-6:
+            return 0
         print('--------------Draw cell--------------')
         self.clean_blase_objects('cell')
-        cell_vertices = get_cell_vertices(self.coll.blase.cell)
         for obj in self.coll.children['%s_cell'%self.label].all_objects:
             bpy.data.objects.remove(obj)
         if self.show_unit_cell:
             draw_cell(self.coll.children['%s_cell'%self.label], cell_vertices, label = self.label)
-    def draw_atoms(self, scale = None, kind_props = {}):
-        """
-        Draw atoms.
-
-        Parameters:
-
-        scale: float
-            scale for the sphere
-        kind_props: dict
-            Set user defined properties for species
-        """
-        print('--------------Draw atoms--------------')
-        object_mode()
-        if scale:
-            self.scale = scale
-        for species, batom in self.batoms.items():
-            batom.draw_atom(scale = self.scale)
-        # self.search_boundary()
-    def draw_bonds(self, cutoff = 1.0):
+    def draw_bonds(self):
         """
         Draw bonds.
+
         Parameters:
 
         cutoff: float
@@ -326,7 +326,7 @@ class Batoms():
         # if not self.bondlist:
         object_mode()
         atoms = self.get_atoms_boundary()
-        self.bondlist = get_bondpairs(atoms, self.bondsetting)
+        self.bondlist = get_bondpairs(atoms, self.bondsetting.data)
         if self.hydrogen_bond:
             self.hydrogen_bondlist = get_bondpairs(self.atoms, cutoff = {('O', 'H'): self.hydrogen_bond})
         self.calc_bond_data(atoms, self.bondlist)
@@ -334,7 +334,7 @@ class Batoms():
             print('Bond %s'%species)
             draw_bond_kind(species, bond_data, label = self.label, 
                         coll = self.coll.children['%s_bond'%self.label])
-    def draw_polyhedras(self, cutoff = 1.0):
+    def draw_polyhedras(self):
         """
         Draw bonds.
         Parameters:
@@ -347,7 +347,7 @@ class Batoms():
         self.calc_polyhedra_data(atoms = self.atoms, bondlist = self.bondlist)
         for species, polyhedra_data in self.polyhedra_kinds.items():
             print('Polyhedra %s'%species)
-            draw_polyhedra_kind(self.species, polyhedra_data, label = self.label,
+            draw_polyhedra_kind(species, polyhedra_data, label = self.label,
                         coll = self.coll.children['%s_polyhedra'%self.label])
     def draw_isosurface(self, isosurface = []):
         """
@@ -368,6 +368,20 @@ class Batoms():
         for level in self.isosurface[1:]:
             draw_isosurface(self.coll.children['%s_isosurface'%self.label], volume, cell = self.atoms.cell, level=level, icolor = icolor)
             icolor += 1
+    def draw_cavity(self, radius):
+        """
+        cavity
+        for porous materials
+        >>> from ase.io import read
+        >>> atoms = read('docs/source/_static/datas/mof-5.cif')
+        """
+        from blase.tools import find_cage
+        object_mode()
+        self.clean_blase_objects('virtual')
+        positions = find_cage(self.cell, self.atoms.positions, radius)
+        ba = Batom(self.label, 'Au_cavity', positions, scale = radius/2.8, material_style='blase', bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+        self.coll.children['%s_virtual'%self.label].objects.link(ba.batom)
+        self.coll.children['%s_virtual'%self.label].objects.link(ba.instancer)
     def clean_blase_objects(self, object):
         """
         remove all bond object in the bond collection
@@ -397,8 +411,11 @@ class Batoms():
         else:
             self.model_type = model_type
         self.draw_cell()
+        bpy.ops.ed.undo_push()
         self.clean_blase_objects('bond')
+        bpy.ops.ed.undo_push()
         self.clean_blase_objects('polyhedra')
+        bpy.ops.ed.undo_push()
         if model_type == '0':
             for batom in self.batoms.values():
                 batom.scale = 1.0
@@ -466,7 +483,6 @@ class Batoms():
             self.batoms[species2].add_vertices(positions)
         else:
             ba = Batom(self.label, species2, positions, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
-            self.batoms[species2] = ba
             self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
             self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
         self.batoms[species1].delete(index)
@@ -580,7 +596,6 @@ class Batoms():
                 self.batoms[species].extend(batom)
             else:
                 ba = batom.copy(self.label, species)
-                self.batoms[species] = ba
                 self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
         self.remove_collection(other.name)
 
@@ -644,9 +659,7 @@ class Batoms():
     def update(self):
         """
         """
-        self.coll = bpy.data.collections[self.label]
-        for species in self.batoms:
-            self.batoms[species].batom = bpy.data.objects['atom_%s_%s'%(self.label, species)]
+        pass
     def update_collection(self):
         """
         """
@@ -658,6 +671,11 @@ class Batoms():
         return self.get_coll()
     def get_coll(self):
         return bpy.data.collections[self.label]
+    @property
+    def coll_atom(self):
+        return self.get_coll_atom()
+    def get_coll_atom(self):
+        return self.coll.children['%s_atom'%self.label]
     @property
     def cell(self):
         return self.get_cell()
@@ -768,6 +786,50 @@ class Batoms():
         atoms = atoms + atoms_boundary
         atoms.info['species'] = species
         return atoms
+    @property
+    def species(self):
+        return self.get_species()
+    def get_species(self):
+        """
+        build species from collection.
+        """
+        species = []
+        for ba in self.coll_atom.objects:
+            species.append(ba.species)
+        return species
+    @property
+    def batoms(self):
+        return self.get_batoms()
+    def get_batoms(self):
+        """
+        build batom dict from collection.
+        """
+        batoms = {}
+        for ba in self.coll_atom.objects:
+            batoms[ba.species] = Batom(from_batom=ba.name)
+        return batoms
+    def get_bondtable(self, cutoff = 1.2, add_bonds = {}, remove_bonds = {}, polyhedra_dict = {}):
+        """
+        """
+        from blase.default_data import default_bonds
+        bondtable = {}
+        for species1 in self.species:
+            search = False
+            polyhedra = False
+            radius1 = cutoff * covalent_radii[chemical_symbols.index(species1.split('_')[0])]
+            for species2 in self.species:
+                if species2 not in default_bonds[species1]: continue
+                radius2 = cutoff * covalent_radii[chemical_symbols.index(species2.split('_')[0])]
+                bondlength = radius1 + radius2
+                if species1 in polyhedra_dict:
+                    if species2 in polyhedra_dict[species1]:
+                        polyhedra = True
+                bondtable[(species1, species2)] = [bondlength, polyhedra, search]
+        bondtable.update(add_bonds)
+        for key in remove_bonds:
+            bondtable.pop(key)
+        return bondtable
+    #============================================
     def get_atoms_bond(self):
         """
         build ASE atoms from batoms dict.
@@ -879,6 +941,7 @@ class Batoms():
         """
         """
         bond_kinds = {}
+        batoms = self.batoms
         for ind1, pairs in bondlist.items():
             kind1 = atoms.info['species'][ind1]
             element = kind1.split('_')[0]
@@ -893,8 +956,10 @@ class Batoms():
                 vec = atoms.positions[ind1] - (atoms.positions[ind2] + R)
                 length = np.linalg.norm(vec)
                 nvec = vec/length
-                pos = [atoms.positions[ind1] - nvec*self.batoms[kind1].radius*self.batoms[kind1].scale[0]*0.5,
-                    atoms.positions[ind2] + R + nvec*self.batoms[kind2].radius*self.batoms[kind2].scale[0]*0.5]
+                radius1 = covalent_radii[chemical_symbols.index(kind1.split('_')[0])]
+                radius2 = covalent_radii[chemical_symbols.index(kind2.split('_')[0])]
+                pos = [atoms.positions[ind1] - nvec*radius1*batoms[kind1].scale[0]*0.5,
+                    atoms.positions[ind2] + R + nvec*radius2*batoms[kind2].scale[0]*0.5]
                 center0 = (pos[0] + pos[1])/2.0
                 vec = pos[0] - pos[1]
                 length = np.linalg.norm(vec)
@@ -930,7 +995,7 @@ class Batoms():
         polyhedra_kinds = {}
         if not polyhedra_dict:
             polyhedra_dict = {}
-            for bond, data in self.bondsetting.items():
+            for bond, data in self.bondsetting.data.items():
                 if data[1]:
                     if bond[0] not in polyhedra_dict: polyhedra_dict[bond[0]] = []
                     polyhedra_dict[bond[0]].append(bond[1])

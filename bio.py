@@ -198,7 +198,7 @@ class Blase():
                 os.makedirs(self.directory)  # cp2k expects dirs to exist
         self.scene.render.image_settings.file_format = 'PNG'
         self.scene.render.engine = self.engine
-        if self.engine.upper() == 'BLENDER_WORKBENCH':
+        if self.engine.upper() == 'BLENDER_WORKBENCH' and 'StudioLight_blase.sl' in bpy.context.preferences.studio_lights:
             bpy.data.scenes['Scene'].display.shading.studio_light = 'StudioLight_blase.sl'
         if self.engine.upper() == 'CYCLES' and self.gpu:
             self.scene.cycles.device = 'GPU'
