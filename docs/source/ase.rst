@@ -1,7 +1,7 @@
 ASE
 -------
 
-If you are not familiar with building atomic structure using ASE, please read the following tutorals:
+If you are not familiar with building atomic structure using ASE, please read the following tutorials:
 
 * Building molecule, crystal, surface: https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=build
 
