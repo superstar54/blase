@@ -4,7 +4,7 @@
 The Batom object
 ===================
 
-The :class:`Batom` object is a object for one species. Here is how to define a ``H`` species with two atoms and ``O`` species with one atoms.
+The :class:`Batom` object is an object for one species. Here is how to define a ``H`` species with two atoms and ``O`` species with one atoms.
 
 >>> from blase.batom import Batom
 >>> h = Batom(label = 'h2o', species = 'H', positions = [[0, -0.76, -0.2], [0, 0.76, -0.2]])
