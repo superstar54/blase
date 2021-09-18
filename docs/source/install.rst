@@ -65,7 +65,7 @@ On Windows, start Blender, open a Python console and run the following code::
  
 .. note::
 
-   You could avoild install inside Blender by setting bl to use system python package::
+   You could avoid install inside Blender by setting bl to use system python package::
 
     export BLENDER_COMMAND='blender --python-use-system-env'
 
@@ -85,7 +85,7 @@ You can get the source from https://github.com/superstar54/blase.
         $ git clone --depth 1 https://github.com/superstar54/blase.git
     And then compress the blase folder to a `zip-file`.
 
-Then install blase as a addon in Blender. Please vist here to learn how to install a addon with zip files. 
+Then install blase as an addon in Blender. Please vist here to learn how to install an addon with zip files. 
 https://docs.blender.org/manual/en/latest/editors/preferences/addons.html. 
 
 
