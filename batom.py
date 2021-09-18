@@ -84,7 +84,7 @@ class Batom():
                 element = None,
                 from_batom = None,
                 scale = 1.0, 
-                kind_props = {},
+                props = {},
                 color_style = 'JMOL',
                 material_style = 'blase',
                 bsdf_inputs = None,
@@ -100,11 +100,11 @@ class Batom():
             else:
                 self.element = element
             self.name = 'atom_%s_%s'%(self.label, self.species)
-            self.kind_props = kind_props
+            self.props = props
             self.color_style = color_style
             self.material_style = material_style
             self.bsdf_inputs = bsdf_inputs
-            self.species_data = get_atom_kind(self.element, scale = scale, props = self.kind_props, color_style = self.color_style)
+            self.species_data = get_atom_kind(self.element, scale = scale, props = self.props, color_style = self.color_style)
             self.radius = self.species_data['radius']
             self.set_material()
             self.set_instancer()

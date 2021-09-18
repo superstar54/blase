@@ -9,6 +9,7 @@ Tutorials
    ase
    batom
    batoms
+   species
    animation
    bondsetting
    boundary

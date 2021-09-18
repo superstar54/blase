@@ -205,3 +205,10 @@ print(pt111['Pt'][index])
 pt111['Pt'][index][:, 0] += 2
 
 
+from pymatgen.core.structure import Molecule
+c_monox = Molecule(["C","O"], [[0.0, 0.0, 0.0], [0.0, 0.0, 1.2]])
+print(c_monox)
+
+from pymatgen.core import Lattice, Structure
+fe = Structure(Lattice.cubic(2.8), ["Fe", "Fe"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+fe = Batoms(label = 'fe', structure=fe)

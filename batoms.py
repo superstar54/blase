@@ -21,10 +21,6 @@ import time
 
 subcollections = ['atom', 'bond', 'instancer', 'instancer_atom', 'cell', 'polyhedra', 'isosurface', 'virtual', 'boundary', 'text']
 
-
-
-  
-
 class Batoms():
     """Batoms Class
 
@@ -92,6 +88,7 @@ class Batoms():
     def __init__(self, 
                 species_dict = {},
                 atoms = None, 
+                structure = None, 
                 from_collection = None,
                 label = None,
                 model_type = '0', 
@@ -143,11 +140,23 @@ class Batoms():
             bondtable = self.get_bondtable(cutoff=1.0, add_bonds=add_bonds, remove_bonds=remove_bonds)
             for key, value in bondtable.items():
                 self.bondsetting[key] = value
+        elif structure:
+            if isinstance(structure, list):
+                self.images = structure
+                structure = self.images[0]
+            # if not self.label:
+                # self.label = atoms.symbols.formula.format('abc')
+            self.set_collection(model_type, boundary)
+            self.from_pymatgen(structure)
+            bondtable = self.get_bondtable(cutoff=1.0, add_bonds=add_bonds, remove_bonds=remove_bonds)
+            for key, value in bondtable.items():
+                self.bondsetting[key] = value
         elif from_collection:
             print('Build from collection')
             self.from_collection(from_collection)
         else:
             raise Exception("Failed, species_dict, atoms or coll should be provided!"%self.label)
+        self.coll.blase.show_unit_cell = show_unit_cell
         if draw:
             self.draw()
         if movie:
@@ -158,8 +167,9 @@ class Batoms():
         """
         """
         for species, data in species_dict.items():
+            if species not in self.kind_props: self.kind_props[species] = {}
             if isinstance(data, list):
-                ba = Batom(self.label, species, data, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+                ba = Batom(self.label, species, data, props = self.kind_props[species], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
                 self.coll.children['%s_atom'%self.label].objects.link(data.batom)
                 self.coll.children['%s_instancer'%self.label].objects.link(data.instancer)
             elif isinstance(data, Batom):
@@ -167,18 +177,40 @@ class Batoms():
                 self.coll.children['%s_instancer'%self.label].objects.link(data.instancer)
     def from_ase(self, atoms):
         """
+        Import structure from ASE atoms.
         """
         if 'species' not in atoms.info:
             atoms.info['species'] = atoms.get_chemical_symbols()
         species_list = list(set(atoms.info['species']))
         for species in species_list:
             indices = [index for index, x in enumerate(atoms.info['species']) if x == species]
-            ba = Batom(self.label, species, atoms.positions[indices], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+            if species not in self.kind_props: self.kind_props[species] = {}
+            ba = Batom(self.label, species, atoms.positions[indices], props = self.kind_props[species], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
             self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
             self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
         self.coll.is_batoms = True
         self.coll.blase.pbc = self.npbool2bool(atoms.pbc)
         self.coll.blase.cell = atoms.cell[:].flatten()
+    def from_pymatgen(self, structure):
+        """
+        Import structure from Pymatgen structure.
+        """
+        symbols = [str(site.specie.symbol) for site in structure]
+        if hasattr(structure, "lattice"):
+            cell = structure.lattice.matrix
+            pbc = True
+        else:
+            cell = None
+            pbc = None
+        species_list = list(set(symbols))
+        for species in species_list:
+            positions = [structure[index].coods for index, x in enumerate(symbols) if x == species]
+            ba = Batom(self.label, species, positions, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+            self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
+            self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
+        self.coll.is_batoms = True
+        self.coll.blase.pbc = self.npbool2bool(pbc)
+        self.coll.blase.cell = cell[:].flatten()
     def from_collection(self, collection_name):
         """
         """
@@ -768,7 +800,7 @@ class Batoms():
             polyhedra = False
             radius1 = cutoff * covalent_radii[chemical_symbols.index(species1.split('_')[0])]
             for species2 in self.species:
-                if species2 not in default_bonds[species1]: continue
+                if species2 not in default_bonds[species1.split('_')[0]]: continue
                 radius2 = cutoff * covalent_radii[chemical_symbols.index(species2.split('_')[0])]
                 bondlength = radius1 + radius2
                 if species1 in polyhedra_dict:
@@ -820,17 +852,7 @@ class Batoms():
         # Draw atoms
         #
         object_mode()
-        coll_highlight = bpy.data.collections.new('highlight')
-        self.coll.children.link(coll_highlight)
-        # build materials
-        material = bpy.data.materials.new('highlight')
-        material.name = 'highlight'
-        material.diffuse_color = color + (transmit,)
-        # material.alpha_threshold = 0.2
-        material.blend_method = 'BLEND'
-        material.use_nodes = True
-        principled_node = material.node_tree.nodes['Principled BSDF']
-        principled_node.inputs['Alpha'].default_value = transmit
+        m 
         # i = 0
         for index in indexs:
             loc = self.positions[index]
