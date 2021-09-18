@@ -13,7 +13,7 @@ Enable 3-button-mouse in laptop without mouse.  please vist: https://docs.blende
 Edit the studio light
 =======================
 
-The Workbench engine use the studio light instead of the lights in the scene. To make you image more brighter. You can choose ``paint.sl`` as the Studio light. https://docs.blender.org/manual/en/latest/editors/preferences/lights.html#prefs-lights-studio. Or you can add a new one by youself. Please save it to as ```StudioLight_blase.sl```. Then Blase will use this one when Workbench engined is used.
+The Workbench engine use the studio light instead of the lights in the scene. To make your image more brighter. You can choose ``paint.sl`` as the Studio light. https://docs.blender.org/manual/en/latest/editors/preferences/lights.html#prefs-lights-studio. Or you can add a new one by yourself. Please save it to as ```StudioLight_blase.sl```. Then Blase will use this one when Workbench engined is used.
 
 
 Change rotation center of viewport to selected object
