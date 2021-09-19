@@ -11,7 +11,7 @@ from bpy.props import (
         )
 from ase.io.cube import read_cube_data
 import pickle
-from blase.bio import Blase
+from blase.render import Blase
 from blase.batoms import Batoms
 
 # -----------------------------------------------------------------------------

@@ -6,9 +6,10 @@ Tutorials
 .. toctree::
    :maxdepth: 1
 
-   ase
    batom
    batoms
+   ase
+   pymatgen
    species
    animation
    bondsetting

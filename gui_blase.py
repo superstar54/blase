@@ -23,7 +23,7 @@ from blase.gui_io import import_blase
 from ase import Atom, Atoms
 from ase.build import molecule, bulk
 import json
-from blase.bio import Blase
+from blase.render import Blase
 from blase.butils import read_batoms_collection_list, read_batoms_collection
 from blase.batoms import Batoms
 
@@ -502,7 +502,6 @@ def modify_scale(collection_name, scale, batoms = None):
 def render_atoms(collection_name, output_image = 'bout.png', batoms = None):
     """
     """
-    from blase.bio import Blase
     print('Rendering atoms')
     coll = bpy.data.collections[collection_name]
     if not batoms:
@@ -511,7 +510,6 @@ def render_atoms(collection_name, output_image = 'bout.png', batoms = None):
 def load_frames(collection_name, movie, batoms = None):
     """
     """
-    from blase.bio import Blase
     print('Rendering atoms')
     coll = bpy.data.collections[collection_name]
     if not batoms:

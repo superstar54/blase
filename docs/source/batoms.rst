@@ -4,7 +4,29 @@
 The Batoms object
 ===================
 
-The :class:`Batoms` object is a collection of Batom objects. Here is how to define a H2O molecule.
+The :class:`Batoms` object is a collection of Batom objects. Here is how to define a H2O molecule:
+
+>>> from blase import Batoms
+>>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+
+.. image:: _static/batoms-h2o.png
+   :width: 3cm
+
+Here, the argument specifies the type of the atoms and their positions. Other
+possible keywords are: ``pbc``, ``cell``, ``atoms``, ``model_type``, ``boundary``, ``show_unit_cell``, ``isosurface``, ``kind_props``,
+``color``, ``add_bonds``, ``remove_bonds`` and ``draw``.
+
+Here is how you could define an platinum crystal structure with a lattice constant of 3.96 Å:
+
+>>> from blase import Batoms
+>>> a = 3.96
+>>> positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
+>>> pt = Batoms({'Pt': positions}, pbc = True, cell = (a, a, a))
+
+.. image:: _static/batoms-pt-crystal.png
+   :width: 3cm
+
+We can also use an ``Atoms`` object from ``ASE``. 
 
 >>> from ase.build import molecule
 >>> from blase.batoms import Batoms
@@ -17,10 +39,13 @@ The :class:`Batoms` object is a collection of Batom objects. Here is how to defi
    :width: 3cm
 
 Here, the first keyword ``atoms`` specifies the ase ``Atoms`` object, and we used
-the ``model_type`` keywords to specify model type.  Other
-possible keywords are: ``boundary``, ``show_unit_cell``, ``isosurface``, ``kind_props``,
-``color``, ``add_bonds``, ``remove_bonds`` and ``draw``.
+the ``model_type`` keyword to specify model type.
 
+
+We can also read an structure from a file:
+
+>>> from blase.bio import read
+>>> tio2 = read('docs/source/_static/datas/tio2.cif')
 
 One get and set ``model_type``, ``pbc``, ``show_unit_cell``, ``cell`` and ``boundary`` by:
 

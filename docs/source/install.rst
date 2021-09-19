@@ -13,10 +13,12 @@ Requirements
 Optional:
 
 * scikit-image_ for isosurface
+* pymatgen_ for Pymatgen package
 
 .. _Blender: https://www.blender.org/
 .. _Python: https://www.python.org/
 .. _ASE: https://wiki.fysik.dtu.dk/ase/index.html
+.. _Pymatgen: https://pymatgen.org/
 .. _scikit-image: https://scikit-image.org/
 
 
@@ -31,6 +33,8 @@ Install Python
 On Windows, suggest to install Python with ``Anaconda``, https://docs.anaconda.com/anaconda/install/windows/
 
 
+
+
 Install ASE
 ======================
 
@@ -40,7 +44,7 @@ First install ASE on your computer. On Windows, open Anaconda Prompt, on Linux, 
     
     pip3 install --upgrade ase
 
-Then install ASE inside Blender. On Linux, go to your Blender python directory, e.g. ``blender-2.93/2.93/python/bin``, install pip_::
+Then install ASE inside Blender. On Linux, go to your Blender python directory, e.g. ``blender-2.93-linux-x64/2.93/python/bin``, install pip_::
     
     $ ./python3.9 -m ensurepip
     
@@ -119,11 +123,30 @@ On Linux, set these permanently in your :file:`~/.bashrc` file::
 Test your installation
 ======================
 
-Before running the tests, make sure you have set your :envvar:`PATH`
-environment variable correctly as described in the relevant section above.
-Run the tests like this::
+Start Blender, in the python console, run:
 
-    $ blase  
+>>> from blase import Batoms
+>>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
 
-If you see a water molecule in a Blender window, then your installation is successful.
 
+.. image:: _static/batoms-h2o.png
+   :width: 3cm
+   
+If you saw a water molecule, congratulations!
+
+
+Install Pymatgen
+================================
+
+Rename you blender python folder (``blender-2.93-linux-x64/2.93/python``) to ``_python``. Create a virtual environment for your blender using conda::
+
+    conda create --prefix $Path_to_blener/blender-2.93.4-linux-x64/2.93/python python=3.9.2
+
+
+On Linux, go to the new python directory, e.g. ``blender-2.93-linux-x64/2.93/python/bin``, and install ASE_,  scikit-image_ and Pymatgen_ inside Blender::
+
+    $ ./pip3 install --upgrade ase
+    
+    $ ./pip3 install scikit-image
+
+    $ ./pip3 install pymatgen

@@ -5,6 +5,7 @@ from ase.data import covalent_radii, atomic_numbers, chemical_symbols
 from ase.visualize import view
 import time
 
+
 def get_bondpairs(atoms, bondsetting):
     """
     The default bonds are stored in 'default_bonds'
@@ -16,6 +17,7 @@ def get_bondpairs(atoms, bondsetting):
     cutoff = {}
     for key, data in bondsetting.items():
         cutoff[key] = data[0]
+    if len(cutoff) == 0: return {}
     nli, nlj, nlS = neighbor_list('ijS', atoms, cutoff=cutoff, self_interaction=False)
     bondpairs = {i: [] for i in set(nli)}
     if 'species' not in atoms.info:

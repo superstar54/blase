@@ -20,4 +20,4 @@ The :meth:`~Batoms.draw_cavity` function is to draw cavity in porous materials. 
 .. image:: _static/cavity.png
    :width: 8cm
 
-.. module:: blase.batoms
+

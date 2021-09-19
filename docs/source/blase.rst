@@ -33,6 +33,7 @@ Here, three models can be set:
 - BLENDER_EEVEE
 - CYCLES
 
+How to choose a engine?
 
 Other methods
 =============

@@ -24,7 +24,7 @@ from copy import copy
 from ase import Atom, Atoms
 from ase.build import molecule, bulk
 import json
-from blase.bio import Blase
+from blase.render import Blase
 from blase.butils import read_batoms_collection_list, read_batoms_collection, read_atoms_list
 
 

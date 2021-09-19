@@ -65,28 +65,28 @@ class Batoms():
             * model_type
     model_type: str
         enum in '0', '1', '2', '3'
-    pbc: Bool or list of Bool
-        Periodic boundary conditions
-    cell: array
-        Unit cell size
+    pbc: Bool or three Bool
+        Periodic boundary conditions. Examples: True,
+        False, (True, False, False).  Default value: False.
+    cell: 3x3 matrix or length 3 or 6 vector
+        Unit cell.
     boundary:  list 
         search atoms at the boundary
     add_bonds: dict
         add bonds not in the default
+    info: dict of key-value pairs
     
     Examples:
-    >>> from blase.batoms import Batoms
-    >>> co = Batoms(['C', 'O'], [[[0, 0, 0]], [1.2, 0, 0]])
-    >>> from ase.build import molecule
-    >>> from blase.batoms import Batoms
-    >>> h2o = molecule('H2O')
-    >>> h2o = Batoms(h2o)
-    >>> h2o.draw()
+    >>> from blase import Batoms
+    >>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+
     """
     
 
     def __init__(self, 
                 species_dict = {},
+                pbc = False,
+                cell = np.zeros((3, 3)),
                 atoms = None, 
                 structure = None, 
                 from_collection = None,
@@ -122,10 +122,12 @@ class Batoms():
         self.color_style = color_style
         self.material_style = material_style
         self.bsdf_inputs = bsdf_inputs
-        self.bondsetting = Bondsetting(self.label)
         if species_dict:
+            if not self.label:
+                self.label = ''.join(['%s%s'%(species, len(positions)) for species, positions in species_dict.items()])
+            self.bondsetting = Bondsetting(self.label)
             self.set_collection(model_type, boundary)
-            self.build_batoms(species_dict)
+            self.build_batoms(species_dict, pbc, cell)
             bondtable = self.get_bondtable(cutoff=1.1, add_bonds=add_bonds, remove_bonds=remove_bonds)
             for key, value in bondtable.items():
                 self.bondsetting[key] = value
@@ -135,6 +137,7 @@ class Batoms():
                 atoms = self.images[0]
             if not self.label:
                 self.label = atoms.symbols.formula.format('abc')
+            self.bondsetting = Bondsetting(self.label)
             self.set_collection(model_type, boundary)
             self.from_ase(atoms)
             bondtable = self.get_bondtable(cutoff=1.0, add_bonds=add_bonds, remove_bonds=remove_bonds)
@@ -146,6 +149,7 @@ class Batoms():
                 structure = self.images[0]
             # if not self.label:
                 # self.label = atoms.symbols.formula.format('abc')
+            self.bondsetting = Bondsetting(self.label)
             self.set_collection(model_type, boundary)
             self.from_pymatgen(structure)
             bondtable = self.get_bondtable(cutoff=1.0, add_bonds=add_bonds, remove_bonds=remove_bonds)
@@ -163,18 +167,23 @@ class Batoms():
             self.load_frames()
     
     
-    def build_batoms(self, species_dict):
+    def build_batoms(self, species_dict, pbc = None, cell = None):
         """
         """
+        from ase.cell import Cell
+        cell = Cell.new(cell)
         for species, data in species_dict.items():
             if species not in self.kind_props: self.kind_props[species] = {}
             if isinstance(data, list):
                 ba = Batom(self.label, species, data, props = self.kind_props[species], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
-                self.coll.children['%s_atom'%self.label].objects.link(data.batom)
-                self.coll.children['%s_instancer'%self.label].objects.link(data.instancer)
+                self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
+                self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
             elif isinstance(data, Batom):
                 self.coll.children['%s_atom'%self.label].objects.link(data.batom)
                 self.coll.children['%s_instancer'%self.label].objects.link(data.instancer)
+        self.coll.is_batoms = True
+        self.coll.blase.cell = cell[:].flatten()
+        self.set_pbc(pbc)
     def from_ase(self, atoms):
         """
         Import structure from ASE atoms.
@@ -201,15 +210,15 @@ class Batoms():
             pbc = True
         else:
             cell = None
-            pbc = None
+            pbc = False
         species_list = list(set(symbols))
         for species in species_list:
-            positions = [structure[index].coods for index, x in enumerate(symbols) if x == species]
+            positions = [structure[index].coords for index, x in enumerate(symbols) if x == species]
             ba = Batom(self.label, species, positions, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
             self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
             self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
         self.coll.is_batoms = True
-        self.coll.blase.pbc = self.npbool2bool(pbc)
+        self.set_pbc(pbc)
         self.coll.blase.cell = cell[:].flatten()
     def from_collection(self, collection_name):
         """
@@ -219,9 +228,6 @@ class Batoms():
         elif not bpy.data.collections[collection_name].is_batoms:
             raise Exception("%s is not Batoms collection!"%collection_name)
         self.label = collection_name
-    def from_pymatgen(self):
-        """
-        """
     def npbool2bool(self, pbc):
         """
         """
@@ -869,14 +875,17 @@ class Batoms():
             coll_highlight.objects.link(ball)
     def load_frames(self, images = None):
         """
+
         images: list
             list of atoms. All atoms show have same species and length.
+            
         >>> from ase.io import read
         >>> from blase import Batoms
         >>> images = read('h2o-animation.xyz', index = ':')
         >>> h2o = Batoms(label = 'h2o', atoms = images)
         >>> h2o.load_frames()
         >>> h2o.render(animation = True)
+
         """
         if not images:
             images = self.images
@@ -900,7 +909,7 @@ class Batoms():
         >>> h2o.render(resolution_x = 1000, output_image = 'h2o.png')
         
         """
-        from blase.bio import Blase
+        from blase.render import Blase
         print('--------------Render--------------')
         print('Rendering atoms')
         if not bbox:

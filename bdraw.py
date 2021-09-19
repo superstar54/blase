@@ -5,11 +5,29 @@ from scipy.spatial.transform import Rotation as R
 from blase.data import material_styles_dict
 from blase.tools import get_cell_vertices
 import time
-######################################################
 #========================================================
+def draw_cell_edge(coll, verts, label = None):
+    """
+    Draw unit cell by edge, however, can not be rendered.
+    """
+    if verts is not None:
+        # build materials
+        edges = [[0, 1], [0, 2], [0, 4], 
+                 [1, 3], [1, 5], [2, 3], 
+                 [2, 6], [3, 7], [4, 5], 
+                 [4, 6], [5, 7], [6, 7],
+        ]
+        mesh = bpy.data.meshes.new("edge_cell")
+        mesh.from_pydata(verts, edges, [])
+        mesh.update()
+        for f in mesh.polygons:
+            f.use_smooth = True
+        cell = bpy.data.objects.new("cell_%s_edge"%label, mesh)
+        cell.data = mesh
+        coll.objects.link(cell)
 def draw_cell(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
     """
-    Draw unit cell
+    Draw unit cell using cylinder.
     """
     if cell_vertices is not None:
         # build materials

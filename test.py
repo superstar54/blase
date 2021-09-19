@@ -1,3 +1,13 @@
+#
+from blase import Batoms
+h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+co = Batoms({'C':[[0, 0, 0]], 'O':[[1.2, 0, 0]]})
+
+from blase import Batoms
+a = 3.96
+positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
+pt = Batoms({'Pt': positions}, pbc = True, cell = (a, a, a))
+
 # batom load_frames
 from blase import Batom
 import numpy as np
@@ -104,11 +114,9 @@ h2o = Batoms(atoms = atoms, label = 'h2o')
 
 # polyhedra
 from blase.batoms import Batoms
-from ase.io import read
-atoms = read('docs/source/_static/datas/tio2.cif')
-tio2 = Batoms(label = 'tio2', atoms = atoms, model_type = '2')
+from blase.bio import read
+tio2 = read('docs/source/_static/datas/tio2.cif')
 tio2.bondsetting
-
 tio2.bondsetting[('Ti', 'O')] = [2.5, True, False]
 tio2.model_type = 2
 
@@ -209,6 +217,7 @@ from pymatgen.core.structure import Molecule
 c_monox = Molecule(["C","O"], [[0.0, 0.0, 0.0], [0.0, 0.0, 1.2]])
 print(c_monox)
 
+from blase import Batoms
 from pymatgen.core import Lattice, Structure
 fe = Structure(Lattice.cubic(2.8), ["Fe", "Fe"], [[0, 0, 0], [0.5, 0.5, 0.5]])
 fe = Batoms(label = 'fe', structure=fe)

@@ -6,16 +6,23 @@
 =================================
 Welcome to blase's documentation!
 =================================
-Blase is a Python package for drawing and rendering ASE (Atomic Simulation Environment) atoms and molecules objects using blender.
+Blase is a Python package for drawing and rendering atoms and molecules objects using blender.
 
->>> from ase.build import molecule
->>> from blaseio import write_blender
->>> atoms = molecule('C2H6SO')
->>> batoms = {'atoms': atoms, 'model_type': '1'}
->>> blase = {'output_image': 'figs/c2h6so',}
->>> write_blender(batoms, blase)
+>>> from blase import Batoms
+>>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+
+
 
 |logo|
+
+Support features:
+
+* Model: space-filling, ball-stick, polyhedral, cavity
+* File type: cif, xyz, cube, pdb, json, VASP-out and so on.
+* Isosurface
+* Animation
+* GUI
+
 
 .. toctree::
    :maxdepth: 3
@@ -39,5 +46,5 @@ Blase is a Python package for drawing and rendering ASE (Atomic Simulation Envir
 .. _feedback: 
 .. _affiliated packages: 
 
-.. |logo| image:: _static/c2h6so.png
-   :width: 10cm
+.. |logo|  image:: _static/batoms-h2o.png
+   :width: 3cm
