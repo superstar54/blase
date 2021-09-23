@@ -11,5 +11,6 @@ Quick links:
   * - :mod:`Batom <blase.batom>`
   * - :mod:`Batoms <blase.batoms>`
   * - :mod:`Bondsetting <blase.bondsetting>`
+  * - :mod:`Bcell <blase.cell>`
   * - :mod:`Blase <blase.bio>`
 

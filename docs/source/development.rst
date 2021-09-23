@@ -18,13 +18,13 @@ Development topics:
 
 
 - Add vectors (arrows) to atoms to represent magnetic moments and so on
-- measure: interatomic distance, angle and dihedral angles
-- information about coordination polyhedra: volumes
-
+- Information about coordination polyhedra: volumes
+- Add particle system
 
 
 Algorithm:
 
-- add 2D slices of volumetric data in their 3D image.
-- Bond-search algorithm
+- Add 2D slices of volumetric data in their 3D image.
+- Faster bond-search algorithm
+- Search additional atoms recursively
 

@@ -1,4 +1,4 @@
-.. module:: blase.bio
+.. module:: blase.render
 
 ===================
 The Blase object
@@ -8,7 +8,7 @@ The :class:`Blase` object is to render atomic structure.
 
 >>> from ase.build import molecule
 >>> from blase.batoms import Batoms
->>> from blase.bio import Blase
+>>> from blase.render import Blase
 >>> atoms = molecule('H2O')
 >>> h2o = Batoms(atoms = atoms, model_type = '1')
 >>> h2o.draw()

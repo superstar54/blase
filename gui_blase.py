@@ -34,13 +34,13 @@ class BlaseSettings(bpy.types.PropertyGroup):
     pbc: BoolVectorProperty(name="pbc", default = [False, False, False], size = 3)
     cell: FloatVectorProperty(name="cell", default = [0, 0, 0, 0, 0, 0, 0, 0, 0], size = 9)
     show_unit_cell: BoolProperty(name="show_unit_cell", default = True)
-    boundary: FloatVectorProperty(name="boundary", default = [0.0, 0.0, 0.0], size = 3)
+    boundary: FloatVectorProperty(name="boundary", default = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0], size = 6)
 
-class BatomSettings(bpy.types.PropertyGroup):
-    label: StringProperty(name="label", default = '')
-    species: StringProperty(name="species", default = 'X')
-    element: StringProperty(name="element", default = '')
-    scale: FloatProperty(name="scale", default = 1.0)
+# class BatomSettings(bpy.types.PropertyGroup):
+#     label: StringProperty(name="label", default = '')
+#     species: StringProperty(name="species", default = 'X')
+#     element: StringProperty(name="element", default = '')
+#     scale: FloatProperty(name="scale", default = 1.0)
 
 class BlaseAtom(bpy.types.PropertyGroup):
     symbol: StringProperty(name="symbol")
@@ -49,7 +49,8 @@ class BlaseAtom(bpy.types.PropertyGroup):
 class BlaseBond(bpy.types.PropertyGroup):
     symbol1: StringProperty(name="symbol1")
     symbol2: StringProperty(name="symbol2")
-    bondlength: FloatProperty(name="bondlength", description = "bondlength", default = 2.0)
+    min: FloatProperty(name="min", description = "min", default = 0.0)
+    max: FloatProperty(name="max", description = "max", default = 2.0)
     polyhedra: BoolProperty(name="polyhedra", default=False)
     search: BoolProperty(name="search", default=False)
     

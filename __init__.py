@@ -63,7 +63,7 @@ classes = [
         gui_blase.Blase_PT_prepare,
         gui_blase.BlaseProperties,
         gui_blase.BlaseSettings,
-        gui_blase.BatomSettings,
+        # gui_blase.BatomSettings,
         gui_blase.BlaseAtom,
         gui_blase.BlaseBond,
         gui_blase.ExportAtom,
@@ -93,10 +93,11 @@ def register():
     bpy.types.Collection.batoms = bpy.props.CollectionProperty(name = 'batoms', type = gui_blase.BlaseAtom)
     bpy.types.Collection.bond = bpy.props.CollectionProperty(name = 'bond', type = gui_blase.BlaseBond)
     bpy.types.Object.is_batom = bpy.props.BoolProperty(name = 'is_batom')
+    bpy.types.Object.is_bcell = bpy.props.BoolProperty(name = 'is_bcell')
     bpy.types.Object.label = bpy.props.StringProperty(name = 'label')
     bpy.types.Object.species = bpy.props.StringProperty(name = 'species')
     bpy.types.Object.element = bpy.props.StringProperty(name = 'element')
-    bpy.types.Object.batom = bpy.props.PointerProperty(name = 'batom', type = gui_blase.BatomSettings)
+    # bpy.types.Object.batom = bpy.props.PointerProperty(name = 'batom', type = gui_blase.BatomSettings)
 
 
     bpy.utils.register_class(gui_uilist.ListItem)

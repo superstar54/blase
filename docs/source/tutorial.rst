@@ -8,6 +8,7 @@ Tutorials
 
    batom
    batoms
+   cell
    ase
    pymatgen
    species
@@ -15,5 +16,8 @@ Tutorials
    bondsetting
    boundary
    cavity
+   adsorption
    blase
    blaseio
+   restart
+   hydrogenbond

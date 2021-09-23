@@ -6,26 +6,22 @@ from blase.data import material_styles_dict
 from blase.tools import get_cell_vertices
 import time
 #========================================================
-def draw_cell_edge(coll, verts, label = None):
+def draw_cell_curve(coll, verts, label = None):
     """
     Draw unit cell by edge, however, can not be rendered.
     """
     if verts is not None:
-        # build materials
-        edges = [[0, 1], [0, 2], [0, 4], 
-                 [1, 3], [1, 5], [2, 3], 
-                 [2, 6], [3, 7], [4, 5], 
-                 [4, 6], [5, 7], [6, 7],
-        ]
-        mesh = bpy.data.meshes.new("edge_cell")
-        mesh.from_pydata(verts, edges, [])
-        mesh.update()
-        for f in mesh.polygons:
-            f.use_smooth = True
-        cell = bpy.data.objects.new("cell_%s_edge"%label, mesh)
-        cell.data = mesh
+        edges = [0, 4, 6, 2, 0, 1, 5, 7, 3, 1]
+        print(verts)
+        crv = bpy.data.curves.new("edge_cell", 'CURVE')
+        crv.dimensions = '3D'
+        spline = crv.splines.new(type='NURBS')
+        spline.points.add(len(edges)-1)
+        for p, i in zip(spline.points, edges):
+            p.co = np.append(verts[i], [1.0]) # (add nurbs weight)
+        cell = bpy.data.objects.new("cell_%s_edge"%label, crv)
         coll.objects.link(cell)
-def draw_cell(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
+def draw_cell_cylinder(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
     """
     Draw unit cell using cylinder.
     """
@@ -51,11 +47,10 @@ def draw_cell(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
         coll_cell.objects.link(obj_cell)
         #
         # edges
-        edges = [[0, 1], [0, 2], [0, 4], 
-                 [1, 3], [1, 5], [2, 3], 
-                 [2, 6], [3, 7], [4, 5], 
-                 [4, 6], [5, 7], [6, 7],
-        ]
+        edges = [[3, 0], [3, 1], [4, 0], [4, 1],
+                    [2, 5], [2, 6], [7, 5], [7, 6], 
+                    [3, 2], [0, 6], [1, 5], [4, 7]
+            ]
         cell_edges = {'lengths': [], 
                       'centers': [],
                       'normals': []}
@@ -72,12 +67,12 @@ def draw_cell(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
         source = bond_source(vertices=4)
         verts, faces = cylinder_mesh_from_instance(cell_edges['centers'], cell_edges['normals'], cell_edges['lengths'], celllinewidth, source)
         # print(verts)
-        mesh = bpy.data.meshes.new("edge_cell")
+        mesh = bpy.data.meshes.new("cell_cylinder")
         mesh.from_pydata(verts, [], faces)  
         mesh.update()
         for f in mesh.polygons:
             f.use_smooth = True
-        obj_edge = bpy.data.objects.new("cell_%s_edge"%label, mesh)
+        obj_edge = bpy.data.objects.new("cell_%s_cylinder"%label, mesh)
         obj_edge.data = mesh
         obj_edge.data.materials.append(material)
         bpy.ops.object.shade_smooth()

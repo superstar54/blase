@@ -27,9 +27,11 @@ class Vertice():
     positions: array
 
     Examples:
+
     >>> from blase.batom import Batom
     >>> c = Batom('C', [[0, 0, 0], [1.2, 0, 0]])
     >>> c.draw_atom()
+
     """
     
 
@@ -56,17 +58,15 @@ class Batom():
     Then, a Batom object is linked to this main collection in Blender. 
 
     Parameters:
-
     label: str
-
-    species: list of str
-        The atomic structure built using ASE
-
-    positions: array
-
-    batom_name: str
         Name of the batom
-
+    species: str
+        species of the atoms.
+    positions: array
+    locations: array
+        The object’s origin location in global coordinates.
+    element: str
+        element of the atoms
     color_style: str
         "JMOL", "ASE", "VESTA"
 
@@ -81,6 +81,7 @@ class Batom():
                 label = None,
                 species = None,
                 positions = None,
+                location = np.array([0, 0, 0]),
                 element = None,
                 from_batom = None,
                 scale = 1.0, 
@@ -108,7 +109,7 @@ class Batom():
             self.radius = self.species_data['radius']
             self.set_material()
             self.set_instancer()
-            self.set_object(positions)
+            self.set_object(positions, location)
         else:
             self.from_batom(from_batom)
             #todo self.radius = self.species_data['radius']
@@ -150,7 +151,7 @@ class Batom():
             sphere.data.materials.append(self.material)
             bpy.ops.object.shade_smooth()
             sphere.hide_set(True)
-    def set_object(self, positions):
+    def set_object(self, positions, location):
         """
         build child object and add it to main objects.
         """
@@ -159,8 +160,9 @@ class Batom():
             obj_atom = bpy.data.objects.new(self.name, mesh)
             obj_atom.data.from_pydata(positions, [], [])
             obj_atom.is_batom = True
+            obj_atom.location = location
             bpy.data.collections['Collection'].objects.link(obj_atom)
-        elif hasattr(bpy.data.objects[self.name], 'batom'):
+        elif hasattr(bpy.data.objects[self.name], 'is_batom'):
             obj_atom = bpy.data.objects[self.name]
         else:
             raise Exception("Failed, the name %s already in use and is not blase object!"%self.name)
@@ -169,6 +171,7 @@ class Batom():
         obj_atom.label = self.label
         self.instancer.parent = obj_atom
         obj_atom.instance_type = 'VERTS'
+        bpy.context.view_layer.update()
     def from_batom(self, batom_name):
         if batom_name not in bpy.data.objects:
             raise Exception("%s is not a object!"%batom_name)
@@ -209,8 +212,23 @@ class Batom():
             scale = [scale]*3
         self.instancer.scale = scale
     @property
+    def location(self):
+        return self.get_location()
+    def get_location(self):
+        return np.array(self.batom.location)
+    @property
+    def local_positions(self):
+        return self.get_local_positions()
+    def get_local_positions(self):
+        return np.array([self.batom.data.vertices[i].co for i in range(len(self))])
+    @property
     def positions(self):
         return self.get_positions()
+    def get_positions(self):
+        """
+        Get array of positions.
+        """
+        return np.array([self.batom.matrix_world @ self.batom.data.vertices[i].co for i in range(len(self))])
     @positions.setter
     def positions(self, positions):
         self.set_positions(positions)
@@ -230,13 +248,19 @@ class Batom():
         for i in range(natom):
             self.batom.data.vertices[i].co = np.array(positions[i]) - np.array(self.batom.location)
         
-    def clean_blase_objects(self, object):
+    def clean_blase_objects(self, coll, objs = None):
         """
         remove all bond object in the bond collection
         """
-        for obj in bpy.data.collections['%s_%s'%(self.label, object)].all_objects:
-            if obj.name == '%s_%s_%s'%(object, self.label, self.species):
+        if not objs:
+            for obj in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
                 bpy.data.objects.remove(obj)
+        else:
+            for obj in objs:
+                name = '%s_%s_%s'%(coll, self.label, obj)
+                if name in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
+                    bpy.data.objects.remove(self.coll.children['%s_%s'%(self.label, coll)].all_objects[name])
+                
     def delete_verts(self, index = []):
         """
         delete verts
@@ -293,6 +317,7 @@ class Batom():
         >>> for i in range(10):
                 images.append(positions + [0, 0, i])
         >>> h.load_frames(images)
+        
         """
         # render settings
         nimage = len(images)
@@ -313,31 +338,53 @@ class Batom():
         """Return a subset of the Batom.
 
         i -- int, describing which atom to return.
+
+        #todo: this is slow for large system
+        
         """
-        batom = self.batom
-        if isinstance(index, int):
-            natom = len(self)
-            if index < -natom or index >= natom:
-                raise IndexError('Index out of range.')
-            return batom.matrix_world @ batom.data.vertices[index].co
-        if isinstance(index, list):
-            positions = np.array([batom.matrix_world @ batom.data.vertices[i].co for i in index])
-            return positions
+        return self.positions[index]
+        # batom = self.batom
+        # if isinstance(index, int):
+        #     natom = len(self)
+        #     if index < -natom or index >= natom:
+        #         raise IndexError('Index out of range.')
+        #     return batom.matrix_world @ batom.data.vertices[index].co
+        # if isinstance(index, list):
+        #     positions = np.array([self[i] for i in index])
+        #     return positions
+        # if isinstance(index, slice):
+        #     start, stop, step = index.indices(len(self))
+        #     index = list(range(start, stop, step))
+        #     return self[index]
+        # if isinstance(index, tuple):
+        #     i, j = index
+        #     positions = self[i]
+        #     return positions[:, j]
 
     def __setitem__(self, index, value):
         """Return a subset of the Batom.
 
         i -- int, describing which atom to return.
+
+        #todo: this is slow for large system
+
         """
-        batom  =self.batom
-        if isinstance(index, int):
-            natom = len(self)
-            if index < -natom or index >= natom:
-                raise IndexError('Index out of range.')
-            batom.data.vertices[index].co = np.array(value) - np.array(batom.location)
-        if isinstance(index, list):
-            for i in index:
-                batom.data.vertices[i].co = np.array(value[i]) - np.array(batom.location)
+        positions = self.positions
+        positions[index] = value
+        self.set_positions(positions)
+
+        # batom  =self.batom
+        # if isinstance(index, int):
+        #     natom = len(self)
+        #     if index < -natom or index >= natom:
+        #         raise IndexError('Index out of range.')
+        #     batom.data.vertices[index].co = np.array(value) - np.array(batom.location)
+        # if isinstance(index, list):
+        #     for i in index:
+        #         self[i] = value[i]
+        # if isinstance(index, tuple):
+        #     i, j = index
+        #     batom.data.vertices[i].co[j] = np.array(value) - np.array(batom.location[j])
 
     def repeat(self, m, cell):
         """
@@ -356,8 +403,7 @@ class Batom():
         M = np.product(m)
         n = len(self)
         
-        self.positions = self.positions
-        positions = np.tile(self.positions, (M,) + (1,) * (len(self.positions.shape) - 1))
+        positions = np.tile(self.local_positions, (M,) + (1,) * (len(self.local_positions.shape) - 1))
         i0 = 0
         for m0 in range(m[0]):
             for m1 in range(m[1]):
@@ -379,7 +425,7 @@ class Batom():
 
         """
         object_mode()
-        batom = Batom(label, species, self.positions, scale = self.scale)
+        batom = Batom(label, species, self.local_positions, location = self.batom.location, scale = self.scale)
         return batom
     def extend(self, other):
         """
@@ -459,6 +505,9 @@ class Batom():
         bpy.ops.object.select_all(action='DESELECT')
         self.batom.select_set(True)
         bpy.ops.transform.rotate(value=angle, orient_axis=axis.upper(), orient_type = orient_type)
-    
-    
-    
+    def get_cell(self):
+        if not self.label in bpy.data.collections:
+            return None
+        bcell = bpy.data.collections['%s_cell'%self.label]
+        cell = np.array([bcell.matrix_world @ bcell.data.vertices[i].co for i in range(3)])
+        return cell

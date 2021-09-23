@@ -25,9 +25,20 @@ Then we change boundary to [0.02, 0.02, 0.02]:
 
 In this case, atoms in the range of [-0.02, 1.02] of the unit cell will be searched. Because `pt` is periodic, so we get more Pt atoms in the boundary (corner and face).
 
-.. image:: _static/pt-cubic-boundary.png
+.. image:: _static/boundary-pt-cubic.png
    :width: 8cm
 
 
+Search additional atoms if species1 is included in the boundary:
+
+>>> from blase.batoms import Batoms
+>>> from blase.bio import read
+>>> tio2 = read('docs/source/_static/datas/tio2.cif')
+>>> tio2.boundary = 0.01
+>>> tio2.model_type = 2
+
+
+.. image:: _static/boundary-bond-tio2.png
+   :width: 8cm
 
 .. module:: blase.batoms
