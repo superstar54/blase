@@ -1,7 +1,5 @@
 import bpy
 import numpy as np
-from mathutils import Matrix
-from scipy.spatial.transform import Rotation as R
 from blase.data import material_styles_dict
 from blase.tools import get_cell_vertices
 import time
@@ -374,8 +372,9 @@ def sphere_mesh_from_instance(centers, radius, source):
             face = [x+ i*nvert for x in face]
             faces.append(face)
     return verts, faces
+
 def cylinder_mesh_from_instance(centers, normals, lengths, scale, source):
-    # verts = np.empty((0, 3), float)
+    from scipy.spatial.transform import Rotation as R
     
     tstart = time.time()
     verts = []
@@ -408,6 +407,5 @@ def cylinder_mesh_from_instance(centers, normals, lengths, scale, source):
             face = [x+ i*nvert for x in face]
             faces.append(face)
     print('cylinder_mesh_from_instance: {0:10.2f} s'.format( time.time() - tstart))
-
     return verts, faces
 

@@ -38,7 +38,7 @@ Search additional atoms if species1 is included in the boundary:
 >>> tio2.model_type = 2
 
 
-.. image:: _static/boundary-bond-tio2.png
+.. image:: _static/search-bond-tio2-2.png
    :width: 8cm
 
 .. module:: blase.batoms

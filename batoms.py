@@ -6,15 +6,16 @@ This module defines the batoms object in the blase package.
 
 from ase import Atom, Atoms, atom
 from ase.data import chemical_symbols, covalent_radii
+import batom
 from blase.batom import Batom
 from blase.bondsetting import Bondsetting
 from blase.cell import Bcell
 import bpy
-import bmesh
-from mathutils import Vector
 from copy import copy
-from blase.tools import get_bondpairs, get_cell_vertices, get_bond_kind, \
-                        get_polyhedra_kind, search_boundary, get_bbox
+from blase.bond import get_bondlists, search_skin
+from blase.tools import get_bond_kind, \
+                        get_polyhedra_kind, get_bbox
+from blase.boundary import search_boundary
 from blase.bdraw import draw_cell_cylinder, draw_bond_kind, draw_polyhedra_kind, draw_text, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
 from blase.btools import object_mode
 import numpy as np
@@ -316,10 +317,9 @@ class Batoms():
         # if not self.bondlist:
         object_mode()
         atoms, n1, n2, n3 = self.get_atoms_with_boundary()
-        self.bondlist, atoms_skin = get_bondpairs(atoms, self.bondsetting.data, list(range(n1 + n2, n1 + n2 + n3)))
-        self.update_skin(atoms_skin)
+        self.bondlist = get_bondlists(atoms, self.bondsetting.data)
         if self.hydrogen_bond:
-            self.hydrogen_bondlist = get_bondpairs(self.atoms, cutoff = {('O', 'H'): self.hydrogen_bond})
+            self.hydrogen_bondlist = get_bondlists(self.atoms, cutoff = {('O', 'H'): self.hydrogen_bond})
         self.calc_bond_data(atoms, self.bondlist)
         for species, bond_data in self.bond_kinds.items():
             print('Bond %s'%species)
@@ -336,7 +336,7 @@ class Batoms():
         object_mode()
         print('--------------Draw polyhedras--------------')
         atoms, n1, n1, n3 = self.get_atoms_with_boundary()
-        self.calc_polyhedra_data(atoms = atoms, bondlist = self.bondlist)
+        self.calc_polyhedra_data(atoms = atoms, bondlists = self.bondlist)
         for species, polyhedra_data in self.polyhedra_kinds.items():
             print('Polyhedra %s'%species)
             draw_polyhedra_kind(species, polyhedra_data, label = self.label,
@@ -740,6 +740,7 @@ class Batoms():
         >>> tio2 = Batoms(label = 'tio2', atoms = atoms, model_type = '2', polyhedra_dict = {'Ti': ['O']}, color_style="VESTA")
         >>> tio2.boundary = 0.5
         """
+        from ase.cell import Cell
         tstart = time()
         self.clean_blase_objects('boundary')
         if boundary is not None:
@@ -755,9 +756,9 @@ class Batoms():
         atoms_skin.info['species'] = []
         if self.atoms.pbc.any():
             for species, batom in self.batoms.items():
-                positions, positions2 = search_boundary(batom.local_positions, self.cell, boundary)
-                positions = positions + batom.location
-                ba = Batom(self.label, '%s_boundary'%(species), positions, scale = batom.scale)
+                positions1, offsets1, positions2, offsets2 = search_boundary(batom.local_positions, self.cell, boundary)
+                positions1 = positions1 + batom.location
+                ba = Batom(self.label, '%s_boundary'%(species), positions1, scale = batom.scale)
                 self.coll.children['%s_boundary'%self.label].objects.link(ba.batom)
                 atoms_skin = atoms_skin + Atoms('%s'%batom.element*len(positions2), positions2)
                 atoms_skin.info['species'].extend([species]*len(positions2))
@@ -768,11 +769,13 @@ class Batoms():
             skin = list(range(len(atoms), len(atoms) + len(atoms_skin)))
             atoms = atoms + atoms_skin
             atoms.info['species'].extend(atoms_skin.info['species'])
-            self.bondlist, atoms_skin = get_bondpairs(atoms, self.bondsetting.data, skin)
+            self.bondlist = get_bondlists(atoms, self.bondsetting.data)
+            atoms_skin = search_skin(atoms, self.bondsetting.data, self.bondlist, skin)
             self.update_skin(atoms_skin)
             print('search skin: {0:10.2f} s'.format(time() - tstart))
     def update_skin(self, atoms):
         print(atoms)
+        if len(atoms) == 0: return
         tstart = time()
         self.clean_blase_objects('skin')
         specieslist = set(atoms.info['species'])
@@ -988,8 +991,9 @@ class Batoms():
         from blase.render import Blase
         print('--------------Render--------------')
         print('Rendering atoms')
+        atoms, n1, n2, n3 = self.get_atoms_with_boundary()
         if not bbox:
-            bbox = get_bbox(bbox = None, atoms = self.atoms)
+            bbox = get_bbox(bbox = None, atoms = atoms)
             kwargs['bbox'] = bbox
         if not output_image:
             kwargs['output_image'] = '%s.png'%self.label
@@ -1003,55 +1007,65 @@ class Batoms():
             getattr(bobj, name)(**paras)
         # bobj.load_frames()
         bobj.render()
-    def calc_bond_data(self, atoms, bondlist):
+    def calc_bond_data(self, atoms, bondlists):
         """
         """
-        bond_kinds = {}
+        from tools import get_bond_kind
+        from ase.data import chemical_symbols, covalent_radii
         batoms = self.batoms
-        for ind1, pairs in bondlist.items():
-            kind1 = atoms.info['species'][ind1]
-            element = kind1.split('_')[0]
-            bond_kind = get_bond_kind(element)
-            if kind1 not in bond_kinds:
-                bond_kinds[kind1] = bond_kind
-            # print(ind1, kind, pairs)
-            for bond in pairs:
-                ind2 = bond[0]
-                offset = np.array(bond[1:])
-                kind2 = atoms.info['species'][ind2]
-                R = np.dot(offset, atoms.cell)
-                vec = atoms.positions[ind1] - (atoms.positions[ind2] + R)
-                length = np.linalg.norm(vec)
-                nvec = vec/length
-                radius1 = covalent_radii[chemical_symbols.index(kind1.split('_')[0])]
-                radius2 = covalent_radii[chemical_symbols.index(kind2.split('_')[0])]
-                pos = [atoms.positions[ind1] - nvec*radius1*batoms[kind1].scale[0]*0.5,
-                    atoms.positions[ind2] + R + nvec*radius2*batoms[kind2].scale[0]*0.5]
-                center0 = (pos[0] + pos[1])/2.0
-                vec = pos[0] - pos[1]
-                length = np.linalg.norm(vec)
-                nvec = vec/length
-                nvec = nvec + 1e-8
-                # verts, faces
-                v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
-                v11 = v1 - np.dot(v1, nvec)*nvec
-                v11 = v11/np.linalg.norm(v11)/2.828427
-                v22 = np.cross(nvec, v11)*length*length
-                #
-                center = (center0 + pos[0])/2.0
-                bond_kinds[kind1]['centers'].append(center)
-                bond_kinds[kind1]['lengths'].append(length/4.0)
-                bond_kinds[kind1]['normals'].append(nvec)
-                nvert = len(bond_kinds[kind1]['verts'])
-                bond_kinds[kind1]['verts'].append(center + v11)
-                bond_kinds[kind1]['verts'].append(center - v11)
-                bond_kinds[kind1]['verts'].append(center + v22)
-                bond_kinds[kind1]['verts'].append(center - v22)
-                bond_kinds[kind1]['faces'].append([nvert + 0, nvert + 2, nvert + 1, nvert + 3])
+        chemical_symbols = np.array(chemical_symbols)
+        if 'species' not in atoms.info:
+            atoms.info['species'] = atoms.get_chemical_symbols()
+        speciesarray = np.array(atoms.info['species'])
+        elementarray = np.array(atoms.get_chemical_symbols())
+        radiusarray = np.array([covalent_radii[chemical_symbols == em][0] for em in elementarray])
+        scalearray = np.array([batoms[sp].scale for sp in speciesarray])
+        specieslist = list(set(atoms.info['species']))
+        bond_kinds = {}
+        for spi in specieslist:
+            bondlists1 = bondlists[speciesarray[bondlists[:, 0]] == spi]
+            emi = spi.split('_')[0]
+            emj = elementarray[bondlists1[:, 1]]
+            bond_kind = get_bond_kind(emi)
+            if spi not in bond_kinds:
+                bond_kinds[spi] = bond_kind
+            offset = bondlists1[:, 2:5]
+            R = np.dot(offset, atoms.cell)
+            vec = atoms.positions[bondlists1[:, 0]] - (atoms.positions[bondlists1[:, 1]] + R)
+            length = np.linalg.norm(vec, axis = 1)
+            nvec = vec/length[:, None]
+            radius1 = covalent_radii[chemical_symbols ==emi][0]
+            radius2 = radiusarray[bondlists1[:, 1]]
+            scale2 = scalearray[bondlists1[:, 1]]
+            pos = [atoms.positions[bondlists1[:, 0]] - nvec*radius1*batoms[spi].scale*0.5,
+                    atoms.positions[bondlists1[:, 1]] + R + (nvec.T*radius2).T*scale2*0.5]
+            center0 = (pos[0] + pos[1])/2.0
+            vec = pos[0] - pos[1]
+            length = np.linalg.norm(vec, axis = 1)
+            nvec = vec/length[:, None]
+            nvec = nvec + 1e-8
+            # verts, faces
+            v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
+            tempv = np.einsum("ij, ij->i", v1, nvec)
+            v11 = v1 - (nvec.T*tempv).T
+            templengh = np.linalg.norm(v11, axis = 1)
+            v11 = v11/templengh[:, None]/2.828427
+            tempv = np.cross(nvec, v11)
+            v22 = (tempv.T*(length*length)).T
+            #
+            center = (center0 + pos[0])/2.0
+            bond_kinds[spi]['centers'] = center
+            bond_kinds[spi]['lengths'] = length/4.0
+            bond_kinds[spi]['normals'] = nvec
+            nvert = np.arange(len(center))
+            bond_kinds[spi]['verts'] = center + v11
+            bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center - v11, axis = 0)
+            bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center + v22, axis = 0)
+            bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center - v22, axis = 0)
         for kind, bond_data in bond_kinds.items():
             self.batoms[kind].bond_data = bond_data
         self.bond_kinds = bond_kinds
-    def calc_polyhedra_data(self, atoms = None, bondlist = {}, transmit = 0.8, polyhedra_dict = {}):
+    def calc_polyhedra_data(self, atoms = None, bondlists = {}, transmit = 0.8, polyhedra_dict = {}):
         """
         Two modes:
         (1) Search atoms bonded to kind
@@ -1077,9 +1091,11 @@ class Batoms():
             inds = [atom.index for atom in atoms if atom.symbol == kind]
             for ind in inds:
                 vertice = []
-                for bond in bondlist[ind]:
-                    a2 = bond[0]
-                    offset = np.array(bond[1:])
+                bondlists1 = bondlists[bondlists[:, 0] == ind]
+                if len(bondlists1) == 0: continue
+                for bond in bondlists1:
+                    a2 = bond[1]
+                    offset = np.array(bond[2:])
                     if atoms[a2].symbol in ligand:
                         temp_pos = atoms[a2].position + np.dot(offset, atoms.cell)
                         vertice.append(temp_pos)

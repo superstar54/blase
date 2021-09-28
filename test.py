@@ -1,7 +1,10 @@
 #
 from blase import Batoms
-h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
 co = Batoms({'C':[[0, 0, 0]], 'O':[[1.2, 0, 0]]})
+co.model_type = 1
+
+h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+
 
 from blase.cell import Bcell
 cell = Bcell(label = 'pt', array = [2, 2, 2])
@@ -26,10 +29,12 @@ pt.boundary = 0.01
 from blase.batoms import Batoms
 from blase.bio import read
 tio2 = read('docs/source/_static/datas/tio2.cif')
-tio2.boundary = 0.0
+tio2.bondsetting[('Ti', 'O')] = [0.5, 2.5, True, True]
+tio2.boundary = 0.02
+tio2.update_boundary()
 tio2.model_type = 1
 
-
+tio2.model_type = 2
 
 
 tio2.bondsetting
@@ -51,8 +56,14 @@ h.load_frames(images)
 
 # batoms load_frames
 from ase.io import read, write
+from ase.build import molecule
 from blase import Batoms
 atoms = molecule('C2H6SO')
+c2h6so = Batoms(label = 'c2h6so', atoms = atoms)
+c2h6so.model_type = 1
+
+
+
 images = []
 for i in range(20):
     temp = atoms.copy()
@@ -117,11 +128,12 @@ batoms.model_type = 2
 batoms.render()
 
 #cavity
+from blase import Batoms
 from blase.bio import read
 mof = read('docs/source/_static/datas/mof-5.cif')
 mof.bondsetting[('Zn', 'O')] = [0, 2.5, True, False]
 mof.bondsetting[('C', 'H')] = [0, 1.4, False, False]
-mof.boundary = 0.01
+mof.boundary = 0.2
 mof.draw_cavity(9.0)
 mof.model_type = 2
 mof.render()

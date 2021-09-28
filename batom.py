@@ -247,6 +247,14 @@ class Batom():
                                 (len(positions), natom))
         for i in range(natom):
             self.batom.data.vertices[i].co = np.array(positions[i]) - np.array(self.batom.location)
+    def get_scaled_positions(self, cell):
+        """
+        Get array of scaled_positions.
+        """
+        from ase.cell import Cell
+        cell = Cell.new(cell)
+        scaled_positions = cell.scaled_positions(self.local_positions)
+        return scaled_positions
         
     def clean_blase_objects(self, coll, objs = None):
         """

@@ -16,10 +16,10 @@ Known bugs:
 Development topics:
 
 
-
 - Add vectors (arrows) to atoms to represent magnetic moments and so on
 - Information about coordination polyhedra: volumes
 - Add particle system
+- boundary cut the original atoms in batoms, how to handle?
 
 
 Algorithm:
