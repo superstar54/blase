@@ -87,9 +87,10 @@ You can get the source from https://github.com/superstar54/blase.
     Alternatively, you can get the source for the latest stable release like this::
 
         $ git clone --depth 1 https://github.com/superstar54/blase.git
-    And then compress the blase folder to a `zip-file`.
 
-Then install blase as an addon in Blender. Please vist here to learn how to install an addon with zip files. 
+- Way 1: you can extract the file, rename the file to ``blase``, and move it to ``blender-2.93.4-linux-x64/2.93/scripts/addons/``. 
+
+- Way 2: you can compress the blase folder to a `zip-file`. Name the file to ``blase.zip``. Then install blase as an addon in Blender. Please vist here to learn how to install an addon with zip files. 
 https://docs.blender.org/manual/en/latest/editors/preferences/addons.html. 
 
 
