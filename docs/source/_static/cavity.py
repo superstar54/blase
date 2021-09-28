@@ -1,5 +1,5 @@
 from ase.io import read
-from blase import Batoms
+from blase.batoms import Batoms
 atoms = read('docs/source/_static/datas/mof-5.cif')
 mof = Batoms(label = 'mof-5', atoms = atoms)
 mof.bondsetting[('Zn', 'O')] = [2.5, True, False]

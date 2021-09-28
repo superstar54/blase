@@ -1,6 +1,6 @@
 import os
 from ase import io
-from blase import Batoms
+from blase.batoms import Batoms
 
 def read(filename, **kwargs):
     atoms = io.read(filename=filename, **kwargs)

@@ -9,7 +9,7 @@ When we restart from a ``.blend`` file. We can rebuild the :class:`Batoms` objec
 
 Molecule:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> co = Batoms(from_collection = 'co')
 
 .. image:: _static/ase-co.png
@@ -17,7 +17,7 @@ Molecule:
 
 Crystal:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> fe = Batoms(from_collection = 'fe')
 
 .. image:: _static/ase-fe.png

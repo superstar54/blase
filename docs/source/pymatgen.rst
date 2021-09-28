@@ -10,7 +10,7 @@ Keyword ``structure`` in :class:`Batoms` object is uesd to load a Pymatgen_ stru
 
 Molecule:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> from pymatgen.core.structure import Molecule
 >>> co = Molecule(["C","O"], [[0.0, 0.0, 0.0], [0.0, 0.0, 1.2]])
 >>> co = Batoms(label = 'co', structure=co)
@@ -20,7 +20,7 @@ Molecule:
 
 Crystal:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> from pymatgen.core import Lattice, Structure
 >>> fe = Structure(Lattice.cubic(2.8), ["Fe", "Fe"], [[0, 0, 0], [0.5, 0.5, 0.5]])
 >>> fe = Batoms(label = 'fe', structure=fe)

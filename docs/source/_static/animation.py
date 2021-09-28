@@ -1,5 +1,5 @@
 from ase.build import molecule
-from blase import Batoms
+from blase.batoms import Batoms
 atoms = molecule('C2H6SO')
 images = []
 for i in range(20):

@@ -62,8 +62,8 @@ def draw_cell_cylinder(coll_cell, cell_vertices, label = None, celllinewidth = 0
             cell_edges['centers'].append(center)
             cell_edges['normals'].append(nvec)
         #
-        source = bond_source(vertices=4)
-        verts, faces = cylinder_mesh_from_instance(cell_edges['centers'], cell_edges['normals'], cell_edges['lengths'], celllinewidth, source)
+        source = bond_source(vertices=6)
+        verts, faces = cylinder_mesh_from_instance_vec(cell_edges['centers'], cell_edges['normals'], cell_edges['lengths'], celllinewidth, source)
         # print(verts)
         mesh = bpy.data.meshes.new("cell_cylinder")
         mesh.from_pydata(verts, [], faces)  
@@ -120,7 +120,7 @@ def draw_bond_kind(kind,
         principled_node.inputs[key].default_value = value
     datas['materials'] = material
     #
-    verts, faces = cylinder_mesh_from_instance(datas['centers'], datas['normals'], datas['lengths'], bondlinewidth, source)
+    verts, faces = cylinder_mesh_from_instance_vec(datas['centers'], datas['normals'], datas['lengths'], bondlinewidth, source)
     mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
     mesh.from_pydata(verts, [], faces)  
     mesh.update()
@@ -188,7 +188,7 @@ def draw_polyhedra_kind(kind,
                         material_style = 'blase'):
         """
         """
-        source = bond_source(vertices=4)
+        source = bond_source(vertices=6)
         if not bsdf_inputs:
             bsdf_inputs = material_styles_dict[material_style]
         tstart = time.time()
@@ -225,7 +225,7 @@ def draw_polyhedra_kind(kind,
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
         datas['edge_cylinder']['materials'] = material
-        verts, faces = cylinder_mesh_from_instance(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.01, source)
+        verts, faces = cylinder_mesh_from_instance_vec(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.01, source)
         # print(verts)
         mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
         mesh.from_pydata(verts, [], faces)  
@@ -315,7 +315,7 @@ def clean_default():
 
 
 # draw bonds
-def bond_source(vertices = 16):
+def bond_source(vertices = 12):
     bpy.ops.mesh.primitive_cylinder_add(vertices = vertices)
     cyli = bpy.context.view_layer.objects.active
     me = cyli.data
@@ -331,7 +331,10 @@ def bond_source(vertices = 16):
         faces.append(face)
     cyli.select_set(True)
     bpy.ops.object.delete()
-    return [verts, faces]
+    n = len(faces[0])
+    faces1 = [faces[i] for i in range(len(faces)) if len(faces[i]) == n]
+    faces2 = [faces[i] for i in range(len(faces)) if len(faces[i]) != n]
+    return verts, faces1, faces2
 # draw atoms
 def atom_source():
     bpy.ops.mesh.primitive_uv_sphere_add() #, segments=32, ring_count=16)
@@ -373,39 +376,53 @@ def sphere_mesh_from_instance(centers, radius, source):
             faces.append(face)
     return verts, faces
 
-def cylinder_mesh_from_instance(centers, normals, lengths, scale, source):
+def cylinder_mesh_from_instance_vec(centers, normals, lengths, scale, source):
     from scipy.spatial.transform import Rotation as R
-    
     tstart = time.time()
-    verts = []
-    faces = []
-    vert0, face0 = source
-    nvert = len(vert0)
+    vert0, face1, face2 = source
     nb = len(centers)
-    for i in range(nb):
-        center = centers[i]
-        normal = normals[i]
-        length = lengths[i]
-        # normal = normal/np.linalg.norm(normal)
-        vec = np.cross([0.0000014159, 0.000001951, 1], normal)
-        # print(center, normal, vec)
-        vec = vec/np.linalg.norm(vec)
-        # print(vec)
-        # ang = np.arcsin(np.linalg.norm(vec))
-        ang = np.arccos(normal[2]*0.999999)
-        vec = -1*ang*vec
-        r = R.from_rotvec(vec)
-        matrix = r.as_matrix()
-        # print(vec, ang)
-        vert1 = vert0.copy()
-        vert1 = vert1*np.array([scale, scale, length])
-        vert1 = vert1.dot(matrix)
-        vert1 += center
-        for vert in vert1:
-            verts.append(vert)
-        for face in face0:
-            face = [x+ i*nvert for x in face]
-            faces.append(face)
+    nvert = len(vert0)
+    centers = np.array(centers)
+    normals = np.array(normals)
+    vert0 = np.array(vert0)
+    face1 = np.array(face1)
+    face2 = np.array(face2)
+    scale = np.array([[scale, scale]]*len(centers))
+    scale = np.append(scale, np.array(lengths).reshape(-1, 1), axis = 1)
+    # print(np.cross([0.0000014159, 0.000001951, 1], normals[0]))
+    vec = np.cross([0.0000014159, 0.000001951, 1], normals)
+    vec = vec/np.linalg.norm(vec, axis = 1)[:, None]
+    # print(np.arccos(normals[0, 2]*0.999999))
+    ang = np.arccos(normals[:, 2]*0.999999)
+    # print(-1*ang[0]*vec[0])
+    vec = -1*(vec.T*ang).T
+    # print(R.from_rotvec(vec[0]).as_matrix())
+    r = R.from_rotvec(vec)
+    matrix = r.as_matrix()
+    # print('vert1 0: ', vert0*scale[0])
+    verts = np.tile(vert0, (nb, 1, 1))
+    verts = verts*scale[:, None]
+    # print('matrix: ', verts[0].dot(matrix[0]))
+    verts = np.matmul(verts, matrix)
+    # print('matrix: ', verts)
+    # print(verts.shape)
+    # centers = np.tile(centers, (nb, 1))
+    # print('center: ', verts[0] + centers[0])
+    verts += centers[:, None]
+    # print('center: ', verts)
+    # faces.append(face)
+    verts = verts.reshape(-1, 3)
+    #----------------------------
+    nf1 = len(face1[0])
+    nf2 = len(face2[0])
+    faces1 = np.tile(face1, (nb, 1, 1))
+    faces2 = np.tile(face2, (nb, 1, 1))
+    offset = np.arange(nb)*nvert
+    offset = offset.reshape(-1, 1, 1)
+    faces1 = faces1 + offset
+    faces1 = faces1.reshape(-1, nf1)
+    faces2 = faces2 + offset
+    faces2 = faces2.reshape(-1, nf2)
+    faces = list(faces1) + list(face2)
     print('cylinder_mesh_from_instance: {0:10.2f} s'.format( time.time() - tstart))
     return verts, faces
-

@@ -34,8 +34,6 @@ bl_info = {
     "category": "Import-Export",
 }
 
-from blase.batoms import Batoms
-from blase.batom import Batom
 
 import bpy
 from bpy.types import (Panel,

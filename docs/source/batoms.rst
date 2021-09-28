@@ -6,7 +6,7 @@ The Batoms object
 
 The :class:`Batoms` object is a collection of Batom objects. Here is how to define a H2O molecule:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
 
 .. image:: _static/batoms-h2o.png
@@ -18,7 +18,7 @@ possible keywords are: ``pbc``, ``cell``, ``atoms``, ``model_type``, ``boundary`
 
 Here is how you could define an platinum crystal structure with a lattice constant of 3.96 Å:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> a = 3.96
 >>> positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
 >>> pt = Batoms({'Pt': positions}, pbc = True, cell = (a, a, a))

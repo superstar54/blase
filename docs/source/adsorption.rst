@@ -7,7 +7,7 @@ In this tutorial we will adsorb a CO molecule on Pt (111) surfaces.
 
 >>> import numpy as np
 >>> from ase.build import fcc111, molecule
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> atoms = fcc111('Pt', size = (1, 1, 4), vacuum=0)
 >>> pt111 = Batoms(label = 'pt111', atoms = atoms)
 >>> pt111.repeat([4, 4, 1])

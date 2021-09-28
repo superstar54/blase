@@ -22,7 +22,7 @@ The function ``species`` in :class:`Batom` object is used to specify the symobl 
 Here we set different color for different platinum atoms:
 
 >>> from ase.build import fcc111
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> atoms = fcc111('Pt', (7, 7, 3), vacuum=3.0)
 >>> kind_props = {
 >>> 'Pt_0': {'color': [0.8, 0.8, 0.9]},

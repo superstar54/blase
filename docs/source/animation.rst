@@ -19,7 +19,7 @@ Here, we rotate a molecule and save it to a list:
 
 Then load it to `Batoms`:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> c2h6so = Batoms(label = 'c2h6so', atoms = images)
 >>> c2h6so.load_frames()
 

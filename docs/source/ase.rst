@@ -18,7 +18,7 @@ Keyword ``atoms`` in :class:`Batoms` object is uesd to load a ASE_ structure.
 
 Molecule:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> from ase.build import molecule
 >>> co = molecule('CO')
 >>> co = Batoms(label = 'co', atoms=co)
@@ -28,7 +28,7 @@ Molecule:
 
 Crystal:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> from ase.build import bulk
 >>> fe = bulk('Fe')
 >>> fe = Batoms(label = 'fe', atoms=fe)

@@ -1,5 +1,9 @@
 #
-from blase import Batoms
+from blase.batoms import Batoms
+h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+h2o.model_type = 1
+
+
 co = Batoms({'C':[[0, 0, 0]], 'O':[[1.2, 0, 0]]})
 co.model_type = 1
 
@@ -30,6 +34,10 @@ from blase.batoms import Batoms
 from blase.bio import read
 tio2 = read('docs/source/_static/datas/tio2.cif')
 tio2.bondsetting[('Ti', 'O')] = [0.5, 2.5, True, True]
+tio2.model_type = 2
+tio2.repeat([4, 4, 4])
+
+
 tio2.boundary = 0.02
 tio2.update_boundary()
 tio2.model_type = 1
@@ -128,7 +136,7 @@ batoms.model_type = 2
 batoms.render()
 
 #cavity
-from blase import Batoms
+from blase.batoms import Batoms
 from blase.bio import read
 mof = read('docs/source/_static/datas/mof-5.cif')
 mof.bondsetting[('Zn', 'O')] = [0, 2.5, True, False]

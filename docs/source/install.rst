@@ -88,13 +88,10 @@ You can get the source from https://github.com/superstar54/blase.
 
         $ git clone --depth 1 https://github.com/superstar54/blase.git
 
-- Way 1: you can extract the file, rename the file to ``blase``, and move it to ``blender-2.93.4-linux-x64/2.93/scripts/addons/``. 
+- Extract the file, rename the file to ``blase``, and move it to ``blender-2.93.4-linux-x64/2.93/scripts/addons/``. 
 
-- Way 2: you can compress the blase folder to a `zip-file`. Name the file to ``blase.zip``. Then install blase as an addon in Blender. Please vist here to learn how to install an addon with zip files. 
-https://docs.blender.org/manual/en/latest/editors/preferences/addons.html. 
-
-
-Don't forget to enable the addon. You can enable in the Preferences setting. Or, open a Blender Python console, and run::
+- Enable the addon in the Preferences setting. Please vist here to learn how to enable an addon. 
+https://docs.blender.org/manual/en/latest/editors/preferences/addons.html. Or, you can open a Blender Python console, and run the following code to enable the blase addon::
 
     import addon_utils
     addon_utils.enable('blase', default_set=True)
@@ -126,7 +123,7 @@ Test your installation
 
 Start Blender, in the python console, run:
 
->>> from blase import Batoms
+>>> from blase.batoms import Batoms
 >>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
 
 

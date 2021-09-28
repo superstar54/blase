@@ -6,7 +6,7 @@ The Batom object
 
 The :class:`Batom` object is an object for one species. Here is how to define a ``H`` species with two atoms and ``O`` species with one atoms.
 
->>> from blase import Batom
+>>> from blase.batom import Batom
 >>> h = Batom(label = 'h2o', species = 'H', positions = [[0, -0.76, -0.2], [0, 0.76, -0.2]])
 >>> o = Batom(label = 'h2o', species = 'O', positions = [[0, 0, 0.40]])
 
@@ -21,7 +21,7 @@ specify their positions of the H atoms. Other possible keywords are: ``element``
 
 ``location`` is the object’s origin location in global coordinates.
 
->>> from blase import Batom
+>>> from blase.batom import Batom
 >>> h = Batom(label = 'h2o', species = 'H', positions = [[0, -0.76, -0.2], [0, 0.76, -0.2]], location = [2, 2, 2])
 
 
@@ -72,13 +72,13 @@ Or,
 
 * :meth:`~Batom.repeat`
 
->>> from blase import Batom
+>>> from blase.batom import Batom
 >>> c = Batom('co', 'C', [[0, 0, 0], [1.2, 0, 0]])
 >>> c.repeat([3, 3, 3], np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]))
 
 * :meth:`~Batom.extend`
 
->>> from blase import Batom
+>>> from blase.batom import Batom
 >>> h1 = Batom('h2o', 'H_1', [[0, 0, 0]])
 >>> h2 = Batom('h2o', 'H_2', [[0, 0, 2]])
 >>> h1.extend(h2)
@@ -90,7 +90,7 @@ or,
 
 * :meth:`~Batom.load_frames`
 
->>> from blase import Batom
+>>> from blase.batom import Batom
 >>> import numpy as np
 >>> positions = np.array([[0, 0 ,0], [1.52, 0, 0]])
 >>> h = Batom('h2o', 'H', positions)
