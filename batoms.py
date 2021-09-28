@@ -6,7 +6,6 @@ This module defines the batoms object in the blase package.
 
 from ase import Atom, Atoms, atom
 from ase.data import chemical_symbols, covalent_radii
-import batom
 from blase.batom import Batom
 from blase.bondsetting import Bondsetting
 from blase.cell import Bcell

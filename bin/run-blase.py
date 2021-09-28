@@ -1,6 +1,6 @@
 from ase.io import read
 from ase.io.cube import read_cube_data
-from blase.bio import Blase
+from blase.render import Blase
 from blase.batoms import Batoms
 from blase.tools import get_bbox
 import pickle

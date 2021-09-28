@@ -11,7 +11,7 @@ def default_element_prop(element, color_style = "JMOL"):
     """
     from ase.data import chemical_symbols
     from ase.data.colors import jmol_colors, cpk_colors
-    from default_data import vesta_color
+    from blase.default_data import vesta_color
     element_prop = {}
     number = chemical_symbols.index(element)
     if color_style.upper() == 'JMOL':
