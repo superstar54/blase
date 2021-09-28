@@ -41,7 +41,16 @@ Then, on Linux, run following command to convert all png files to a gif file::
 
 You can also read the images from a trajectory file, such as an xyz file:
 
+>>> from blase.bio import read
 >>> images = read('c2h6so-animation.xyz', index = ':')
 
 
+For ``Espresso`` output file:
+
+>>> from blase.bio import read
+>>> images = read('espresso.pwo', index = ':')
+
+
+
 Animation only support model_type `Space-filling`.
+
