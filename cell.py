@@ -1,6 +1,5 @@
 """
 """
-from numpy.core.records import array
 import bpy
 import numpy as np
 from ase.cell import Cell
@@ -128,60 +127,4 @@ class Bcell():
         return cell
     def repeat(self, m):
         self[:] = np.array([m[c] * self.array[c] for c in range(3)])
-    def draw_cell_cylinder(self, celllinewidth = 0.01):
-        """
-        Draw unit cell using cylinder.
-        """
-        if self.local_verts is not None:
-            # build materials
-            material = bpy.data.materials.new('cell_{0}'.format(label))
-            # material.label = 'cell'
-            material.diffuse_color = (0.8, 0.25, 0.25, 1.0)
-            # draw points
-            bpy.ops.mesh.primitive_uv_sphere_add(radius = celllinewidth) #, segments=32, ring_count=16)
-            sphere = bpy.context.view_layer.objects.active
-            sphere.name = 'instancer_cell_%s_sphere'%label
-            sphere.data.materials.append(material)
-            bpy.ops.object.shade_smooth()
-            sphere.hide_set(True)
-            mesh = bpy.data.meshes.new('point_cell' )
-            obj_cell = bpy.data.objects.new('cell_%s_point'%label, mesh )
-            # Associate the vertices
-            obj_cell.data.from_pydata(self.local_verts, [], [])
-            sphere.parent = obj_cell
-            obj_cell.instance_type = 'VERTS'
-            coll_cell.objects.link(sphere)
-            coll_cell.objects.link(obj_cell)
-            #
-            # edges
-            edges = [[3, 0], [3, 1], [4, 0], [4, 1],
-                    [2, 5], [2, 6], [7, 5], [7, 6], 
-                    [3, 2], [0, 6], [1, 5], [4, 7]
-            ]
-            cell_edges = {'lengths': [], 
-                        'centers': [],
-                        'normals': []}
-            for e in edges:
-                center = (cell_vertices[e[0]] + cell_vertices[e[1]])/2.0
-                vec = cell_vertices[e[0]] - cell_vertices[e[1]]
-                length = np.linalg.norm(vec)
-                nvec = vec/length
-                # print(center, nvec, length)
-                cell_edges['lengths'].append(length/2.0)
-                cell_edges['centers'].append(center)
-                cell_edges['normals'].append(nvec)
-            #
-            source = bond_source(vertices=4)
-            verts, faces = cylinder_mesh_from_instance(cell_edges['centers'], cell_edges['normals'], cell_edges['lengths'], celllinewidth, source)
-            # print(verts)
-            mesh = bpy.data.meshes.new("edge_cell")
-            mesh.from_pydata(verts, [], faces)  
-            mesh.update()
-            for f in mesh.polygons:
-                f.use_smooth = True
-            obj_edge = bpy.data.objects.new("cell_%s_edge"%label, mesh)
-            obj_edge.data = mesh
-            obj_edge.data.materials.append(material)
-            bpy.ops.object.shade_smooth()
-            coll_cell.objects.link(obj_edge)
     

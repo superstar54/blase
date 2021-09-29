@@ -10,11 +10,9 @@ In Blender, when the undo/redo operation system (ctrl+z / ctrl+shift+z) is perfo
 
 Known bugs:
 
-
-
+- Search atoms outside boundary
 
 Development topics:
-
 
 - Add vectors (arrows) to atoms to represent magnetic moments and so on
 - Information about coordination polyhedra: volumes

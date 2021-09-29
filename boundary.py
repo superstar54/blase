@@ -60,7 +60,7 @@ def search_boundary(positions, cell, boundary = [[0, 1], [0, 1], [0, 1]], skin =
     npositions2 = npositions[ind2]
     offsets2 = offsets[ind2]
     npositions2 = np.dot(npositions2, cell)
-    print('search boundary: {0:10.2f} s'.format(time() - tstart))
+    # print('search boundary: {0:10.2f} s'.format(time() - tstart))
     return npositions1, offsets1, npositions2, offsets2
 
 def search_skin(atoms, bondsetting, boundary):

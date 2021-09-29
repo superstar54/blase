@@ -10,7 +10,6 @@ def draw_cell_curve(coll, verts, label = None):
     """
     if verts is not None:
         edges = [0, 4, 6, 2, 0, 1, 5, 7, 3, 1]
-        print(verts)
         crv = bpy.data.curves.new("edge_cell", 'CURVE')
         crv.dimensions = '3D'
         spline = crv.splines.new(type='NURBS')
@@ -131,53 +130,9 @@ def draw_bond_kind(kind,
     obj_bond.data.materials.append(material)
     bpy.ops.object.shade_smooth()
     coll.objects.link(obj_bond)
-    print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+    # print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
     
 
-def draw_bonds_2(coll_bond_kinds, bond_kinds, bondlinewidth = 0.10, vertices = None, bsdf_inputs = None, material_style = 'plastic'):
-    '''
-    Draw atom bonds. Using instancing method
-    
-    '''
-    if not bsdf_inputs:
-        bsdf_inputs = material_styles_dict[material_style]
-    vertices = 16
-    for kind, datas in bond_kinds.items():
-        tstart = time.time()
-        material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
-        material.diffuse_color = np.append(datas['color'], datas['transmit'])
-        material.use_nodes = True
-        principled_node = material.node_tree.nodes['Principled BSDF']
-        principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
-        principled_node.inputs['Alpha'].default_value = datas['transmit']
-        for key, value in bsdf_inputs.items():
-            principled_node.inputs[key].default_value = value
-        datas['materials'] = material
-        #
-        bpy.ops.mesh.primitive_cylinder_add(vertices = vertices, radius=0.1, depth = 1.0)
-        cylinder = bpy.context.view_layer.objects.active
-        cylinder.name = 'cylinder_atom_kind_{0}'.format(kind)
-        cylinder.data.materials.append(material)
-        bpy.ops.object.shade_smooth()
-        cylinder.hide_set(True)
-        mesh = bpy.data.meshes.new('mesh_kind_{0}'.format(kind) )
-        obj_bond = bpy.data.objects.new('bond_kind_{0}'.format(kind), mesh )
-        # Associate the vertices
-        obj_bond.data.from_pydata(datas['verts'], [], datas['faces'])
-        # Make the object parent of the cube
-        cylinder.parent = obj_bond
-        # Make the object dupliverts
-        obj_bond.instance_type = 'FACES'
-        obj_bond.use_instance_faces_scale = True
-        obj_bond.show_instancer_for_render = False
-        obj_bond.show_instancer_for_viewport = False
-        # bpy.context.view_layer.objects.active = obj_bond
-        # obj_bond.select_set(True)
-        # bpy.data.objects['bond_kind_{0}'.format(kind)].select_set(True)
-        # STRUCTURE.append(obj_bond)
-        bpy.data.collections['instancer'].objects.link(cylinder)
-        coll_bond_kinds.objects.link(obj_bond)        
-        print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
 def draw_polyhedra_kind(kind, 
                         datas, 
@@ -239,7 +194,7 @@ def draw_polyhedra_kind(kind,
         # STRUCTURE.append(obj_polyhedra)
         coll.objects.link(obj_polyhedra)
         coll.objects.link(obj_edge)
-        print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+        # print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
 def draw_isosurface(coll_isosurface, volume, cell = None, level = None,
                     closed_edges = False, gradient_direction = 'descent',
@@ -330,7 +285,7 @@ def bond_source(vertices = 12):
             face.append(me.loops[loop_index].vertex_index)
         faces.append(face)
     cyli.select_set(True)
-    bpy.ops.object.delete()
+    bpy.data.objects.remove(cyli, do_unlink = True)
     n = len(faces[0])
     faces1 = [faces[i] for i in range(len(faces)) if len(faces[i]) == n]
     faces2 = [faces[i] for i in range(len(faces)) if len(faces[i]) != n]
@@ -424,5 +379,5 @@ def cylinder_mesh_from_instance_vec(centers, normals, lengths, scale, source):
     faces2 = faces2 + offset
     faces2 = faces2.reshape(-1, nf2)
     faces = list(faces1) + list(face2)
-    print('cylinder_mesh_from_instance: {0:10.2f} s'.format( time.time() - tstart))
+    # print('cylinder_mesh_from_instance: {0:10.2f} s'.format( time.time() - tstart))
     return verts, faces

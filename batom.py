@@ -6,13 +6,10 @@ This module defines the Batom object in the blase package.
 
 import bpy
 import bmesh
-from mathutils import Vector
 from blase.btools import object_mode
 from blase.data import material_styles_dict
 from blase.tools import get_atom_kind
-from blase.bdraw import draw_text
 import numpy as np
-import time
 
 subcollections = ['atom', 'bond', 'instancer', 'instancer_atom', 'polyhedra', 'isosurface', 'text']
 
@@ -262,12 +259,13 @@ class Batom():
         """
         if not objs:
             for obj in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
-                bpy.data.objects.remove(obj)
+                bpy.data.objects.remove(obj, do_unlink = True)
         else:
             for obj in objs:
                 name = '%s_%s_%s'%(coll, self.label, obj)
                 if name in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
-                    bpy.data.objects.remove(self.coll.children['%s_%s'%(self.label, coll)].all_objects[name])
+                    self.coll.children['%s_%s'%(self.label, coll)].all_objects[name]
+                    bpy.data.objects.remove(obj, do_unlink = True)
                 
     def delete_verts(self, index = []):
         """

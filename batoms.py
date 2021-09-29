@@ -4,18 +4,15 @@ This module defines the batoms object in the blase package.
 
 """
 
-from ase import Atom, Atoms, atom
+import bpy
+from ase import Atom, Atoms
 from ase.data import chemical_symbols, covalent_radii
 from blase.batom import Batom
 from blase.bondsetting import Bondsetting
 from blase.cell import Bcell
-import bpy
-from copy import copy
-from blase.bond import get_bondlists, search_skin
-from blase.tools import get_bond_kind, \
-                        get_polyhedra_kind, get_bbox
+from blase.bond import build_bondlists, search_skin, build_polyhedralists, get_bondtable
 from blase.boundary import search_boundary
-from blase.bdraw import draw_cell_cylinder, draw_bond_kind, draw_polyhedra_kind, draw_text, draw_isosurface, bond_source, cylinder_mesh_from_instance, clean_default
+from blase.bdraw import draw_cell_cylinder, draw_bond_kind, draw_polyhedra_kind, draw_isosurface
 from blase.btools import object_mode
 import numpy as np
 from time import time
@@ -128,7 +125,7 @@ class Batoms():
             self.bondsetting = Bondsetting(self.label)
             self.set_collection(model_type, boundary)
             self.build_batoms(species_dict, pbc, cell)
-            bondtable = self.get_bondtable(cutoff=1.2, add_bonds=add_bonds, remove_bonds=remove_bonds)
+            bondtable = get_bondtable(self.species, cutoff=1.2, add_bonds=add_bonds, remove_bonds=remove_bonds)
             for key, value in bondtable.items():
                 self.bondsetting[key] = value
         elif atoms:
@@ -140,7 +137,7 @@ class Batoms():
             self.bondsetting = Bondsetting(self.label)
             self.set_collection(model_type, boundary)
             self.from_ase(atoms)
-            bondtable = self.get_bondtable(cutoff=1.2, add_bonds=add_bonds, remove_bonds=remove_bonds)
+            bondtable = get_bondtable(self.species, cutoff=1.2, add_bonds=add_bonds, remove_bonds=remove_bonds)
             for key, value in bondtable.items():
                 self.bondsetting[key] = value
         elif structure:
@@ -152,7 +149,7 @@ class Batoms():
             self.bondsetting = Bondsetting(self.label)
             self.set_collection(model_type, boundary)
             self.from_pymatgen(structure)
-            bondtable = self.get_bondtable(cutoff=1.2, add_bonds=add_bonds, remove_bonds=remove_bonds)
+            bondtable = get_bondtable(self.species, cutoff=1.2, add_bonds=add_bonds, remove_bonds=remove_bonds)
             for key, value in bondtable.items():
                 self.bondsetting[key] = value
         elif from_collection:
@@ -241,39 +238,6 @@ class Batoms():
             else:
                 newpbc.append(False)
         return newpbc
-    def coll2atoms(self):
-        """
-        build ASE Atoms from a blase's main collection
-        """
-        atoms = Atoms()
-        atoms.info['species'] = []
-        coll = self.coll
-        # atoms
-        for obj in coll.children['%s_atom'%coll.name].all_objects:
-            ele = obj.name.split('_')[2]
-            species = '_'.join(obj.name.split('_')[2:])
-            if len(obj.children) != 0:
-                for vertex in obj.data.vertices:
-                    location = obj.matrix_world @ vertex.co
-                    atoms.append(Atom(symbol = ele, position = location))
-                    atoms.info['species'].append(species)
-            else:
-                if not obj.parent:
-                    location = obj.location
-                    atoms.append(Atom(ele, location))
-                    atoms.info['species'].append(species)
-        # cell
-        coll_cell = coll.children['%s_cell'%coll.name]
-        cell_vertexs = []
-        if 'cell_%s_point'%self.label in coll_cell.all_objects.keys():
-            obj = coll_cell.all_objects['cell_%s_point'%self.label]
-            for vertex in obj.data.vertices:
-                location = obj.matrix_world @ vertex.co
-                cell_vertexs.append(location)
-        if cell_vertexs:
-            cell = [cell_vertexs[4], cell_vertexs[2], cell_vertexs[1]]
-            atoms.cell = cell
-            atoms.pbc = coll.blase.pbc
     def set_collection(self, model_type = '0', boundary = [0, 0, 0]):
         """
         build main collection and its child collections.
@@ -298,10 +262,8 @@ class Batoms():
         cell_vertices = self.cell.verts
         if np.max(abs(cell_vertices)) < 1e-6:
             return 0
-        print('--------------Draw cell--------------')
         self.clean_blase_objects('cell', ['cylinder', 'point'])
         if self.show_unit_cell:
-            # draw_cell_edge(self.coll.children['%s_cell'%self.label], cell_vertices, label = self.label)
             draw_cell_cylinder(self.coll.children['%s_cell'%self.label], cell_vertices, label = self.label)
     def draw_bonds(self):
         """
@@ -312,16 +274,14 @@ class Batoms():
         cutoff: float
             cutoff used to build bond pairs.
         """
-        print('--------------Draw bonds--------------')
         # if not self.bondlist:
         object_mode()
         atoms, n1, n2, n3 = self.get_atoms_with_boundary()
-        self.bondlist = get_bondlists(atoms, self.bondsetting.data)
+        self.bondlist = build_bondlists(atoms, self.bondsetting.data)
         if self.hydrogen_bond:
-            self.hydrogen_bondlist = get_bondlists(self.atoms, cutoff = {('O', 'H'): self.hydrogen_bond})
+            self.hydrogen_bondlist = build_bondlists(self.atoms, cutoff = {('O', 'H'): self.hydrogen_bond})
         self.calc_bond_data(atoms, self.bondlist)
         for species, bond_data in self.bond_kinds.items():
-            print('Bond %s'%species)
             draw_bond_kind(species, bond_data, label = self.label, 
                         coll = self.coll.children['%s_bond'%self.label])
     def draw_polyhedras(self):
@@ -333,11 +293,9 @@ class Batoms():
             cutoff used to build bond pairs.
         """
         object_mode()
-        print('--------------Draw polyhedras--------------')
         atoms, n1, n1, n3 = self.get_atoms_with_boundary()
-        self.calc_polyhedra_data(atoms = atoms, bondlists = self.bondlist)
-        for species, polyhedra_data in self.polyhedra_kinds.items():
-            print('Polyhedra %s'%species)
+        polyhedra_kinds =build_polyhedralists(atoms, self.bondlist, self.bondsetting.data)
+        for species, polyhedra_data in polyhedra_kinds.items():
             draw_polyhedra_kind(species, polyhedra_data, label = self.label,
                         coll = self.coll.children['%s_polyhedra'%self.label])
     def draw_isosurface(self, isosurface = []):
@@ -379,12 +337,13 @@ class Batoms():
         """
         if not objs:
             for obj in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
-                bpy.data.objects.remove(obj)
+                bpy.data.objects.remove(obj, do_unlink = True)
         else:
             for obj in objs:
                 name = '%s_%s_%s'%(coll, self.label, obj)
                 if name in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
-                    bpy.data.objects.remove(self.coll.children['%s_%s'%(self.label, coll)].all_objects[name])
+                    obj = self.coll.children['%s_%s'%(self.label, coll)].all_objects[name]
+                    bpy.data.objects.remove(obj, do_unlink = True)
                 
     def show_index(self, index_type = 0):
         """
@@ -657,12 +616,6 @@ class Batoms():
         """
         """
         pass
-    def update_collection(self):
-        """
-        """
-        self.coll = bpy.data.collections[self.label]
-        self.coll2atoms()
-        return 0
     @property
     def coll(self):
         return self.get_coll()
@@ -761,29 +714,29 @@ class Batoms():
                 self.coll.children['%s_boundary'%self.label].objects.link(ba.batom)
                 atoms_skin = atoms_skin + Atoms('%s'%batom.element*len(positions2), positions2)
                 atoms_skin.info['species'].extend([species]*len(positions2))
-            print('search boundary: {0:10.2f} s'.format(time() - tstart))
+            # print('search boundary: {0:10.2f} s'.format(time() - tstart))
             tstart = time()
             # find skin
             atoms, n1, n2, n3 = self.get_atoms_with_boundary()
             skin = list(range(len(atoms), len(atoms) + len(atoms_skin)))
             atoms = atoms + atoms_skin
             atoms.info['species'].extend(atoms_skin.info['species'])
-            self.bondlist = get_bondlists(atoms, self.bondsetting.data)
+            self.bondlist = build_bondlists(atoms, self.bondsetting.data)
             atoms_skin = search_skin(atoms, self.bondsetting.data, self.bondlist, skin)
             self.update_skin(atoms_skin)
-            print('search skin: {0:10.2f} s'.format(time() - tstart))
+            # print('search skin: {0:10.2f} s'.format(time() - tstart))
     def update_skin(self, atoms):
-        print(atoms)
+        # print(atoms)
+        self.clean_blase_objects('skin')
         if len(atoms) == 0: return
         tstart = time()
-        self.clean_blase_objects('skin')
         specieslist = set(atoms.info['species'])
         for species in specieslist:
             ind = [i for i, x in enumerate(atoms.info['species']) if x == species]
             positions = atoms.positions[ind]
             ba = Batom(self.label, '%s_skin'%(species), positions, scale = self.batoms[species].scale)
             self.coll.children['%s_skin'%self.label].objects.link(ba.batom)
-        print('update skin: {0:10.2f} s'.format(time() - tstart))
+        # print('update skin: {0:10.2f} s'.format(time() - tstart))
 
     @property
     def model_type(self):
@@ -880,28 +833,6 @@ class Batoms():
         for ba in self.coll_skin.objects:
             batoms_skin[ba.species] = Batom(from_batom=ba.name)
         return batoms_skin
-    def get_bondtable(self, cutoff = 1.2, add_bonds = {}, remove_bonds = {}, polyhedra_dict = {}):
-        """
-        """
-        from blase.default_data import default_bonds
-        bondtable = {}
-        for species1 in self.species:
-            search = False
-            polyhedra = False
-            radius1 = cutoff * covalent_radii[chemical_symbols.index(species1.split('_')[0])]
-            for species2 in self.species:
-                if species2 not in default_bonds[species1.split('_')[0]]: continue
-                radius2 = cutoff * covalent_radii[chemical_symbols.index(species2.split('_')[0])]
-                bondmax = radius1 + radius2
-                if species1 in polyhedra_dict:
-                    if species2 in polyhedra_dict[species1]:
-                        polyhedra = True
-                bondtable[(species1, species2)] = [0.5, bondmax, polyhedra, search]
-        bondtable.update(add_bonds)
-        for key in remove_bonds:
-            bondtable.pop(key)
-        return bondtable
-    #============================================
     def batoms2atoms(self, batoms):
         object_mode()
         atoms = Atoms()
@@ -933,11 +864,7 @@ class Batoms():
                            color=(0.0, 1.0, 0.0), transmit=0.6):
         """
         """
-        # Draw atoms
-        #
         object_mode()
-        m 
-        # i = 0
         for index in indexs:
             loc = self.positions[index]
             ele = self.symbols[index]
@@ -988,8 +915,8 @@ class Batoms():
         
         """
         from blase.render import Blase
-        print('--------------Render--------------')
-        print('Rendering atoms')
+        from blase.tools import get_bbox
+        # print('--------------Render--------------')
         atoms, n1, n2, n3 = self.get_atoms_with_boundary()
         if not bbox:
             bbox = get_bbox(bbox = None, atoms = atoms)
@@ -1009,9 +936,10 @@ class Batoms():
     def calc_bond_data(self, atoms, bondlists):
         """
         """
-        from tools import get_bond_kind
+        from blase.tools import get_bond_kind
         from ase.data import chemical_symbols, covalent_radii
         batoms = self.batoms
+        positions = atoms.positions
         chemical_symbols = np.array(chemical_symbols)
         if 'species' not in atoms.info:
             atoms.info['species'] = atoms.get_chemical_symbols()
@@ -1030,14 +958,14 @@ class Batoms():
                 bond_kinds[spi] = bond_kind
             offset = bondlists1[:, 2:5]
             R = np.dot(offset, atoms.cell)
-            vec = atoms.positions[bondlists1[:, 0]] - (atoms.positions[bondlists1[:, 1]] + R)
+            vec = positions[bondlists1[:, 0]] - (positions[bondlists1[:, 1]] + R)
             length = np.linalg.norm(vec, axis = 1)
             nvec = vec/length[:, None]
             radius1 = covalent_radii[chemical_symbols ==emi][0]
             radius2 = radiusarray[bondlists1[:, 1]]
             scale2 = scalearray[bondlists1[:, 1]]
-            pos = [atoms.positions[bondlists1[:, 0]] - nvec*radius1*batoms[spi].scale*0.5,
-                    atoms.positions[bondlists1[:, 1]] + R + (nvec.T*radius2).T*scale2*0.5]
+            pos = [positions[bondlists1[:, 0]] - nvec*radius1*batoms[spi].scale*0.5,
+                    positions[bondlists1[:, 1]] + R + (nvec.T*radius2).T*scale2*0.5]
             center0 = (pos[0] + pos[1])/2.0
             vec = pos[0] - pos[1]
             length = np.linalg.norm(vec, axis = 1)
@@ -1056,83 +984,12 @@ class Batoms():
             bond_kinds[spi]['centers'] = center
             bond_kinds[spi]['lengths'] = length/4.0
             bond_kinds[spi]['normals'] = nvec
-            nvert = np.arange(len(center))
             bond_kinds[spi]['verts'] = center + v11
             bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center - v11, axis = 0)
             bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center + v22, axis = 0)
             bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center - v22, axis = 0)
-        for kind, bond_data in bond_kinds.items():
-            self.batoms[kind].bond_data = bond_data
         self.bond_kinds = bond_kinds
-    def calc_polyhedra_data(self, atoms = None, bondlists = {}, transmit = 0.8, polyhedra_dict = {}):
-        """
-        Two modes:
-        (1) Search atoms bonded to kind
-        polyhedra_dict: {'kind': ligands}
-        """
-        from scipy.spatial import ConvexHull
-        tstart = time()
-        polyhedra_kinds = {}
-        if not polyhedra_dict:
-            polyhedra_dict = {}
-            for bond, data in self.bondsetting.data.items():
-                if data[2]:
-                    if bond[0] not in polyhedra_dict: polyhedra_dict[bond[0]] = []
-                    polyhedra_dict[bond[0]].append(bond[1])
-        if not atoms:
-            atoms = self.atoms
-        # loop center atoms
-        for kind, ligand in polyhedra_dict.items():
-            # print(kind, ligand)
-            if kind not in polyhedra_kinds.keys():
-                element = kind.split('_')[0]
-                polyhedra_kinds[kind] = get_polyhedra_kind(element)
-            inds = [atom.index for atom in atoms if atom.symbol == kind]
-            for ind in inds:
-                vertice = []
-                bondlists1 = bondlists[bondlists[:, 0] == ind]
-                if len(bondlists1) == 0: continue
-                for bond in bondlists1:
-                    a2 = bond[1]
-                    offset = np.array(bond[2:])
-                    if atoms[a2].symbol in ligand:
-                        temp_pos = atoms[a2].position + np.dot(offset, atoms.cell)
-                        vertice.append(temp_pos)
-                nverts = len(vertice)
-                # print(ind, indices, nverts)
-                if nverts >3:
-                    # print(ind, vertice)
-                    # search convex polyhedra
-                    hull = ConvexHull(vertice)
-                    face = hull.simplices
-                    #
-                    # print(ind)
-                    nverts = len(polyhedra_kinds[kind]['vertices'])
-                    face = face + nverts
-                    edge = []
-                    for f in face:
-                        edge.append([f[0], f[1]])
-                        edge.append([f[0], f[2]])
-                        edge.append([f[1], f[2]])
-                    polyhedra_kinds[kind]['vertices'] = polyhedra_kinds[kind]['vertices'] + list(vertice)
-                    polyhedra_kinds[kind]['edges'] = polyhedra_kinds[kind]['edges'] + list(edge)
-                    polyhedra_kinds[kind]['faces'] = polyhedra_kinds[kind]['faces'] + list(face)
-                    #
-                    # print('edge: ', edge)
-                    for e in edge:
-                        # print(e)
-                        center = (polyhedra_kinds[kind]['vertices'][e[0]] + polyhedra_kinds[kind]['vertices'][e[1]])/2.0
-                        vec = polyhedra_kinds[kind]['vertices'][e[0]] - polyhedra_kinds[kind]['vertices'][e[1]]
-                        length = np.linalg.norm(vec)
-                        nvec = vec/length
-                        # print(center, nvec, length)
-                        polyhedra_kinds[kind]['edge_cylinder']['lengths'].append(length/2.0)
-                        polyhedra_kinds[kind]['edge_cylinder']['centers'].append(center)
-                        polyhedra_kinds[kind]['edge_cylinder']['normals'].append(nvec)
-        print('get_polyhedra_kind: {0:10.2f} s'.format(time() - tstart))
-        for kind, polyhedra_data in polyhedra_kinds.items():
-            self.batoms[kind].polyhedra_data = polyhedra_data
-        self.polyhedra_kinds = polyhedra_kinds
+    
 
     def get_distances(self, species1, i, species2, indices, mic=False):
         """
@@ -1168,15 +1025,11 @@ class Batoms():
         p1 = self.batoms[species1][i1]
         p2 = self.batoms[species2][i2]
         p3 = self.batoms[species3][i3]
-
         v12 = p1 - p2
         v32 = p3 - p2
-
         cell = None
         pbc = None
-
         if mic:
             cell = self.cell
             pbc = self.pbc
-
         return get_angles([v12], [v32], cell=cell, pbc=pbc)

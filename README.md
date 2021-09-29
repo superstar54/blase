@@ -178,22 +178,9 @@ Cut stepped surface from ceria oxide
 
 
 
-#### Search molecule bonds out of unit cell
-```python
-from ase.io import read, write
-from blase.tools import write_blender, get_polyhedra_kinds, get_bondpairs
-atoms = read('anthraquinone.cif')
-kwargs = {'show_unit_cell': 1, 
-          'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH', CYCLES
-          'radii': 0.6,
-          'bond_cutoff': 1.0,
-          'search_pbc': {'molecule_list':[['C', 'C'], ['C', 'O']]},
-          'outfile': 'figs/test-search-molecule',
-          }
-write_blender(atoms, **kwargs)
-```
+#### Search bonds out of unit cell
+
 <img src="docs/source/_static/test-search-bonds.png" width="500"/>
-<img src="docs/source/_static/test-search-molecule.png" width="500"/>
 
 #### Set different kind of atoms for the same element
 ````python
