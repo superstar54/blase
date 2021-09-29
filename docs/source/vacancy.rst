@@ -3,7 +3,7 @@
 Highlight vacancy on surface
 ==========================================
 
-Build a Pt (111) surfaces.
+Build a Pt (111) surface.
 
 >>> from ase.build import fcc111
 >>> from blase.batoms import Batoms

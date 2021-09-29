@@ -3,7 +3,7 @@
 Build structure for surface adsorption
 ==========================================
 
-In this tutorial we will adsorb a CO molecule on Pt (111) surfaces.
+In this tutorial we will adsorb a CO molecule on Pt (111) surface.
 
 >>> import numpy as np
 >>> from ase.build import fcc111, molecule
