@@ -1,7 +1,7 @@
 
-============================
+==========================================
 Build structure for surface adsorption
-============================
+==========================================
 
 In this tutorial we will adsorb a CO molecule on Pt (111) surfaces.
 

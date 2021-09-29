@@ -34,6 +34,7 @@ from blase.batoms import Batoms
 from blase.bio import read
 tio2 = read('docs/source/_static/datas/tio2.cif')
 tio2.bondsetting[('Ti', 'O')] = [0.5, 2.5, True, False]
+tio2.boundary = [[-0.02, 1.02], [-0.02, 1.02], [-0.02, 1.02]]
 tio2.model_type = 2
 tio2.repeat([4, 4, 4])
 

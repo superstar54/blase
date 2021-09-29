@@ -9,6 +9,7 @@ Tutorials
    batom
    batoms
    cell
+   blender
    ase
    pymatgen
    species

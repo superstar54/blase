@@ -537,7 +537,7 @@ class Batoms():
         >>> au = Batoms(atoms = au, draw = True)
         >>> co.translate(au.atoms[-1].position + np.array([0, 0, 2]))
         >>> au.extend(co)
-        >>> au.atoms.save('au111-co.cif')
+        >>> au.write('au111-co.cif')
         
         or,
 
@@ -699,9 +699,14 @@ class Batoms():
             if isinstance(boundary, (int, float)):
                 boundary = np.array([-boundary, 1 + boundary]*3)
             elif len(boundary) == 3:
-                boundary = np.array([[-boundary[0], 1 + boundary[0]],
+                if isinstance(boundary[0], (int, float)):
+                    boundary = np.array([[-boundary[0], 1 + boundary[0]],
                                       [-boundary[1], 1 + boundary[1]],
                                       [-boundary[2], 1 + boundary[2]]])
+                elif len(boundary[0]) == 2:
+                    boundary = np.array(boundary)
+            else:
+                raise Exception('Wrong boundary setting!')
             self.coll.blase.boundary = boundary[:].flatten()
         boundary = self.boundary
         atoms_skin = Atoms()
