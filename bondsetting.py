@@ -1,10 +1,11 @@
 """
 """
 import bpy
+from blase.btools import object_mode
 
 class Bondsetting():
     """
-
+    Set bond infomation.
     
     """
     def __init__(self, label, bondtalbe = None) -> None:
@@ -49,3 +50,9 @@ class Bondsetting():
             bond.max = value[1]
             bond.polyhedra = value[2]
             bond.search = value[3]
+    def copy(self, label):
+        object_mode()
+        bondsetting = Bondsetting(label)
+        for key, value in self.data.items():
+            bondsetting[key] = value
+        return bondsetting

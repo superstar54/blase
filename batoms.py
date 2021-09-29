@@ -384,7 +384,7 @@ class Batoms():
             model_type = self.model_type
         else:
             self.model_type = model_type
-        self.draw_cell()
+        # self.draw_cell()
         bpy.ops.ed.undo_push()
         self.clean_blase_objects('bond')
         bpy.ops.ed.undo_push()
@@ -554,6 +554,8 @@ class Batoms():
                 bpy.context.view_layer.update()
                 ba.positions = ba.positions - t
                 self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
+        for key, value in other.bondsetting.data.items():
+            self.bondsetting[key] = value
         self.remove_collection(other.label)
 
     def remove_collection(self, name):
@@ -603,6 +605,7 @@ class Batoms():
         species_dict = {x:self.batoms[x].copy(label, x) for x in self.species}
         batoms = self.__class__(species_dict = species_dict, label = label, cell = self.cell.verts, pbc = self.pbc, model_type = self.coll.blase.model_type)
         batoms.translate([2, 2, 2])
+        batoms.bondsetting = self.bondsetting.copy(label)
         return batoms
     def write(self, filename, local = True):
         """
@@ -663,7 +666,6 @@ class Batoms():
             M = np.linalg.solve(oldcell.complete(), cell.complete())
             for ba in self.batoms.values():
                 ba.set_positions(np.dot(ba.get_positions(), M))
-        self.draw_cell()
     @property
     def pbc(self):
         return self.get_pbc()
@@ -926,6 +928,7 @@ class Batoms():
         from blase.render import Blase
         from blase.tools import get_bbox
         # print('--------------Render--------------')
+        self.draw_cell()
         atoms, n1, n2, n3 = self.get_atoms_with_boundary()
         if not bbox:
             bbox = get_bbox(bbox = None, atoms = atoms)
@@ -960,6 +963,7 @@ class Batoms():
         bond_kinds = {}
         for spi in specieslist:
             bondlists1 = bondlists[speciesarray[bondlists[:, 0]] == spi]
+            if len(bondlists1) == 0: continue
             emi = spi.split('_')[0]
             emj = elementarray[bondlists1[:, 1]]
             bond_kind = get_bond_kind(emi)

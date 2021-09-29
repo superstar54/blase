@@ -7,7 +7,8 @@ from blase.btools import object_mode
 
 class Bcell():
     """
-    
+    Unit cell of three dimensions.
+
     """
     def __init__(self, label, array = np.zeros([3, 3]), location = np.array([0, 0, 0])) -> None:
         """

@@ -18,6 +18,7 @@ Tutorials
    boundary
    cavity
    adsorption
+   vacancy
    blase
    blaseio
    restart

@@ -83,6 +83,7 @@ class Batom():
                 from_batom = None,
                 scale = 1.0, 
                 props = {},
+                color = {},
                 color_style = 'JMOL',
                 material_style = 'blase',
                 bsdf_inputs = None,
@@ -146,6 +147,7 @@ class Batom():
             sphere.scale = self.species_data['scale']
             sphere.name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
             sphere.data.materials.append(self.material)
+            sphere.data.name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
             bpy.ops.object.shade_smooth()
             sphere.hide_set(True)
     def set_object(self, positions, location):
@@ -253,6 +255,21 @@ class Batom():
         scaled_positions = cell.scaled_positions(self.local_positions)
         return scaled_positions
         
+    @property
+    def color(self):
+        return self.get_color()
+    @color.setter
+    def color(self, color):
+        """
+        >>> h.color = [0.8, 0.1, 0.3, 1.0]
+        """
+        self.set_color(color)
+    def get_color(self):
+        return self.instancer.data.materials[0].diffuse_color
+    def set_color(self, color):
+        if isinstance(color, float) or isinstance(color, int):
+            color = [color]*3
+        self.instancer.data.materials[0].diffuse_color = color
     def clean_blase_objects(self, coll, objs = None):
         """
         remove all bond object in the bond collection
