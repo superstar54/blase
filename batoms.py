@@ -604,14 +604,15 @@ class Batoms():
         batoms = self.__class__(species_dict = species_dict, label = label, cell = self.cell.verts, pbc = self.pbc, model_type = self.coll.blase.model_type)
         batoms.translate([2, 2, 2])
         return batoms
-    def write(self, filename):
+    def write(self, filename, local = True):
         """
         Save atoms to file.
 
         >>> h2o.write('h2o.cif')
         
         """
-        self.atoms.write(filename)
+        atoms = self.batoms2atoms(self.batoms, local = local)
+        atoms.write(filename)
     def update(self):
         """
         """
@@ -838,7 +839,7 @@ class Batoms():
         for ba in self.coll_skin.objects:
             batoms_skin[ba.species] = Batom(from_batom=ba.name)
         return batoms_skin
-    def batoms2atoms(self, batoms):
+    def batoms2atoms(self, batoms, local = False):
         object_mode()
         atoms = Atoms()
         species_list = []
@@ -850,7 +851,10 @@ class Batoms():
             species_list.extend([species]*len(batom))
             symbol = [batom.element]*len(batom)
             symbols.extend(symbol)
-            positions.extend(batom.positions)
+            if local:
+                positions.extend(batom.local_positions)
+            else:
+                positions.extend(batom.positions)
         atoms = Atoms(symbols, positions, cell = self.cell, pbc = self.pbc)
         atoms.info['species'] = species_list
         return atoms
