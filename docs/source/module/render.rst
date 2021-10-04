@@ -46,9 +46,9 @@ Three engines can be used:
    * - Fast
      - Standard
      - Most powerfull, slow
-   * -  .. image:: ../_static/ase-co.png 
-     -  .. image:: ../_static/ase-co.png 
-     -  .. image:: ../_static/ase-co.png 
+   * -  .. image:: ../_static/render_workbench.png 
+     -  .. image:: ../_static/render_eevee.png 
+     -  .. image:: ../_static/render_cycles.png 
 
 
 

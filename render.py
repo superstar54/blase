@@ -85,6 +85,8 @@ class Render():
     def set_engine(self, engine):
         if engine.upper() == 'EEVEE':
             engine = 'BLENDER_EEVEE'
+        elif engine.upper() == 'WORKBENCH':
+            engine = 'BLENDER_WORKBENCH'
         self.scene.render.engine = engine.upper()
     @property
     def camera(self):

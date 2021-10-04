@@ -19,13 +19,13 @@ Crystal
      -  |crystal3|
      -  |crystal4|
 
-.. |crystal1|  image:: ../_static/batoms_model_type_0.png 
+.. |crystal1|  image:: _static/batoms_model_type_0.png 
    :width: 8cm
-.. |crystal2|  image:: ../_static/batoms_model_type_1.png 
+.. |crystal2|  image:: _static/batoms_model_type_1.png 
    :width: 8cm
-.. |crystal3|  image:: ../_static/batoms_model_type_2.png 
+.. |crystal3|  image:: _static/batoms_model_type_2.png 
    :width: 8cm
-.. |crystal4|  image:: ../_static/batoms_model_type_3.png 
+.. |crystal4|  image:: _static/batoms_model_type_3.png 
    :width: 8cm
 
 :download:`cyrstal.py <_static/batoms_model_type.py>`
@@ -44,11 +44,11 @@ Surface
      -  |surface2|
      -  |surface3|
 
-.. |surface1|  image:: ../_static/gallery_top_view.png 
+.. |surface1|  image:: _static/gallery_top_view.png 
    :width: 8cm
-.. |surface2|  image:: ../_static/gallery_side_view.png 
+.. |surface2|  image:: _static/gallery_side_view.png 
    :width: 8cm
-.. |surface3|  image:: ../_static/gallery_persp_view.png 
+.. |surface3|  image:: _static/gallery_persp_view.png 
    :width: 8cm
 
 
@@ -67,9 +67,9 @@ Nanoparticle
    * - Wulff
      - Core-shell
      - Supported Nanoparticle
-   * -  .. image:: ../_static/wulff.png 
-     -  .. image:: ../_static/core_shell.png 
-     -  .. image:: ../_static/supported_nanoparticle.png 
+   * -  .. image:: _static/wulff.png 
+     -  .. image:: _static/core_shell.png 
+     -  .. image:: _static/supported_nanoparticle.png 
    * - :download:`wulff.py <_static/wulff.py>`
      - 
      -
