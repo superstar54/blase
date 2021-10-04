@@ -268,7 +268,7 @@ class Batoms():
         self.coll.blase.model_type = model_type
         self.coll.blase.boundary = boundary
     
-    def draw_cell(self):
+    def draw_cell(self, celllinewidth = 0.03):
         """
         Draw unit cell
         """
@@ -278,7 +278,10 @@ class Batoms():
             return 0
         self.clean_blase_objects('cell', ['cylinder', 'point'])
         if self.show_unit_cell:
-            draw_cell_cylinder(self.coll.children['%s_cell'%self.label], cell_vertices, label = self.label)
+            draw_cell_cylinder(self.coll.children['%s_cell'%self.label], 
+                            cell_vertices, 
+                            label = self.label, 
+                            celllinewidth = celllinewidth)
     def draw_bonds(self, bondlinewidth = 0.1):
         """
         Draw bonds.

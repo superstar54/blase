@@ -18,7 +18,7 @@ def draw_cell_curve(coll, verts, label = None):
             p.co = np.append(verts[i], [1.0]) # (add nurbs weight)
         cell = bpy.data.objects.new("cell_%s_edge"%label, crv)
         coll.objects.link(cell)
-def draw_cell_cylinder(coll_cell, cell_vertices, label = None, celllinewidth = 0.01):
+def draw_cell_cylinder(coll_cell, cell_vertices, label = None, celllinewidth = 0.05):
     """
     Draw unit cell using cylinder.
     """

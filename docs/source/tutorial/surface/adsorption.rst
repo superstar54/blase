@@ -26,7 +26,7 @@ Save image, as show bellow:
 >>> au111.render([1, 0.1, 0.1], engine = 'eevee')
 
 
-.. image:: ../_static/au111-co.png
+.. image:: ../../_static/au111-co.png
    :width: 8cm
 
 

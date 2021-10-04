@@ -216,11 +216,11 @@ class Render():
         """
         """
         from blase.butils import lock_camera_to_view
-        self.set_parameters(kwargs)
         if direction:
             self.set_direction(direction, canvas = canvas)
         if self.lock_camera_to_view:
             lock_camera_to_view(True)
+        self.set_parameters(kwargs)
         self.set_camera()
         self.set_light()
         if self.use_motion_blur:

@@ -21,7 +21,7 @@ Then set a different color for ``Pt_1`` species, and make it a little transparen
 >>> pt111['Pt_1'].color = [0.8, 0.1, 0.3, 0.2]
 
 
-.. image:: ../_static/pt111-vacancy.png
+.. image:: ../../_static/pt111-vacancy.png
    :width: 8cm
 
 
@@ -29,7 +29,7 @@ Then set a different color for ``Pt_1`` species, and make it a little transparen
 
     Use ``Cycles`` render engine, and set Principled BSDF node to get a better image.
 
-    .. image:: ../_static/pt111-vacancy-cycles.png
+    .. image:: ../../_static/pt111-vacancy-cycles.png
         :width: 8cm
 
 

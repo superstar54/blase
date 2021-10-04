@@ -72,5 +72,5 @@ Other methods
 List of all Methods
 ===================
 
-.. autoclass:: Blase
+.. autoclass:: Render
    :members:

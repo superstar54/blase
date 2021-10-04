@@ -1,13 +1,17 @@
-.. _module:
 
+.. _blase:
+
+=============
 Modules
 =============
 
-.. toctree::
-   :maxdepth: 1
-   
-   batom
-   batoms
-   cell
-   bondsetting
-   render
+Quick links:
+
+.. list-table::
+
+  * - :mod:`Batom <blase.batom>`
+  * - :mod:`Batoms <blase.batoms>`
+  * - :mod:`Bondsetting <blase.bondsetting>`
+  * - :mod:`Bcell <blase.cell>`
+  * - :mod:`Render <blase.render>`
+

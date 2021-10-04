@@ -1,4 +1,4 @@
-.. module:: blase
+.. module:: blase.batom
 
 ===================
 The Batom object

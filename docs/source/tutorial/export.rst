@@ -1,3 +1,4 @@
+
 ===================
 Export
 ===================
@@ -10,5 +11,3 @@ Use :meth:`~Batoms.write` to save file. ``local`` keyword to set the relative po
 
 >>> au.write('au111-co.in', local = False)
 
-
-.. module:: blase.batoms

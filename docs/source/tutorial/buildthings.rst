@@ -1,4 +1,3 @@
-.. module:: blase.batom
 
 ===================
 Building structure

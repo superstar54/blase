@@ -1,5 +1,3 @@
-.. module:: blase.batoms
-
 ===================
 Animation
 ===================
@@ -35,7 +33,7 @@ Then, on Linux, run following command to convert all png files to a gif file::
     convert -dispose Background *.png animation.gif
 
 
-.. image:: _static/animation.gif
+.. image:: ../_static/animation.gif
    :width: 8cm
 
 

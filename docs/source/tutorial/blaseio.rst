@@ -1,4 +1,3 @@
-.. module:: blase.blaseio
 
 ============================
 The write_blender function

@@ -1,4 +1,4 @@
-module:: blase.cell
+.. module:: blase.cell
 
 ===================
 The Bcell object

@@ -1,4 +1,3 @@
-.. module:: blase.batom
 
 ===================
 Species
@@ -36,6 +35,6 @@ Here we set different color for different platinum atoms:
 >>>     atoms.info['species'].append(kind)
 >>> pt = Batoms(label = 'pt111', atoms = atoms, kind_props = kind_props)
 
-.. image:: _static/pt111-species.png
+.. image:: ../_static/pt111-species.png
    :width: 8cm
 

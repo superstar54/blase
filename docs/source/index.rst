@@ -29,7 +29,7 @@ Support features:
    
    install
    getting-started
-   tutorial
+   tutorial/index
    module/index
    advanced/index
    gui/index
