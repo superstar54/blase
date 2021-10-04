@@ -1,146 +1,175 @@
-"""Python module for drawing and rendering ase atoms objects using blender.
-Basic idea:
+"""
+Rendering ase atoms objects using blender.
+
 """
 import bpy
 from mathutils import Vector, Matrix
 import os
 import numpy as np
-from math import pi, sqrt, radians, acos, atan2
-from blase.tools import get_bbox
-from blase.data import default_blase_settings, material_styles_dict
-import logging
-import sys
 
-logging.basicConfig(stream=sys.stdout,
-                    format=('%(levelname)-8s '
-                            '[%(funcName)s]: %(message)s'),
-                    level=logging.INFO)
+default_blase_settings = {
+        'transparent': True,  # transparent background
+        'resolution_x': 1000,
+        'resolution_y': None,  # 
+        'lock_camera_to_view': True,
+        'camera_loc': [0, 0, 100],  # x, y is the image plane, z is *out* of the screen
+        'camera_target': [0, 0, 0], #
+        'camera_type': 'ORTHO',  #  ['PERSP', 'ORTHO']
+        'ortho_scale': None, #
+        'camera_lens': 50,  #
+        'fstop': 0.5,
+        'ratio': 1,
+        'light_loc': [0, 0, 100],
+        'light_type': 'SUN', # 'POINT', 'SUN', 'SPOT', 'AREA'
+        'light_energy': 5.0,
+        'world': False,
+        'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
+        'use_motion_blur': False,
+        'motion_blur_position': 'START', 
+        'motion_blur_steps': 10,
+        'motion_blur_shutter': 30.0,
+        'frame': 0,
+        'functions': [],
+        'run_render': True,
+        'output': 'blase.png',
+        'animation': False,
+        'save_to_blend': False,
+        'queue': None,
+        'gpu': True,
+        'num_samples': 32,
+        }
 
-logger = logging.getLogger('blase')
-
-
-class Blase():
+class Render():
     """
-    Blase object to render atomic structure.
+    Object to render atomic structure.
     """
     #
-    def __init__(self, output_image = 'bout', debug = False,
-                              **parameters):
-        for k, v in default_blase_settings.items():
-            setattr(self, k, parameters.pop(k, v))
-        #
-        self.logger = logger
-        if debug:
-            print('debug is: ', debug)
-            self.logger.setLevel(debug)
-        #
+    def __init__(self, label, batoms = None, **kwargs):
+        self.label = label
+        self.batoms = batoms
+        self.camera_name = 'camera_%s'%self.label
+        self.light_name = 'light_%s'%self.label
+        self.scene = bpy.context.scene
+        default_blase_settings.update(kwargs)
+        self.set_parameters(default_blase_settings)
+        self.clean_default()
+        self.set_coll()
+        
+        if self.world:
+            self.set_world()
+    def set_parameters(self, parameters):
+        for k, v in parameters.items():
+            setattr(self, k, v)
+    def clean_default(self):
         if 'Cube' in bpy.data.objects:
             bpy.data.objects.remove(bpy.data.objects["Cube"], do_unlink=True)
-        self.output_image = output_image
-        self.scene = bpy.context.scene
-        if 'blase' in bpy.data.collections:
-            self.coll = bpy.data.collections['blase']
-        else:
-            self.coll = bpy.data.collections.new('blase')
-            self.scene.collection.children.link(self.coll)
-        # ------------------------------------------------------------------------
-        # CAMERA and LIGHT SOURCES
-        if self.camera:
-            self.logger.debug('Add camera')
-            self.set_camera()
-        if self.light:
-            self.logger.debug('Add light')
-            self.set_light()
-        #
-        if self.world:
-            world = self.scene.world
-            world.use_nodes = True
-            node_tree = world.node_tree
-            rgb_node = node_tree.nodes.new(type="ShaderNodeRGB")
-            rgb_node.outputs["Color"].default_value = (1, 1, 1, 1)
-            node_tree.nodes["Background"].inputs["Strength"].default_value = 1.0
-            node_tree.links.new(rgb_node.outputs["Color"], node_tree.nodes["Background"].inputs["Color"])
+    def set_coll(self):
+        name = "%s_render"%self.label
+        if name not in bpy.data.collections:
+            coll = bpy.data.collections.new(name)
+            self.scene.collection.children.link(coll)
+    @property
+    def coll(self):
+        return self.get_coll()
+    def get_coll(self):
+        name = "%s_render"%self.label
+        return bpy.data.collections[name]
+    @property
+    def engine(self):
+        return self.get_engine()
+    @engine.setter
+    def engine(self, engine):
+        self.set_engine(engine)
+    def get_engine(self):
+        return self.scene.render.engine
+    def set_engine(self, engine):
+        if engine.upper() == 'EEVEE':
+            engine = 'BLENDER_EEVEE'
+        self.scene.render.engine = engine.upper()
+    @property
+    def camera(self):
+        return self.get_camera()
+    @camera.setter
+    def camera(self, camera):
+        self.set_camera(camera)
+    def get_camera(self):
+        return bpy.data.objects[self.camera_name]
+    @property
+    def light(self):
+        return self.get_light()
+    @light.setter
+    def light(self, light):
+        self.set_light(light)
+    def get_light(self):
+        return bpy.data.objects[self.light_name]
+    def set_world(self, ):
+        world = self.scene.world
+        world.use_nodes = True
+        node_tree = world.node_tree
+        rgb_node = node_tree.nodes.new(type="ShaderNodeRGB")
+        rgb_node.outputs["Color"].default_value = (1, 1, 1, 1)
+        node_tree.nodes["Background"].inputs["Strength"].default_value = 1.0
+        node_tree.links.new(rgb_node.outputs["Color"], node_tree.nodes["Background"].inputs["Color"])
     def set_camera(self, camera_type = None, camera_lens = None,):
         '''
-        Set camera.
-
         camera_type: str
-
             * PERSP
             * ORTHO
-
         camera_lens: float
+        # todo lock camera to view
+
         '''
-        # check camera exist or not
         if not camera_type:
             camera_type = self.camera_type
         if not camera_lens:
             camera_lens = self.camera_lens
-        if 'Camera_blase' in bpy.data.objects:
-            camera = bpy.data.objects['Camera_blase']
+        if self.camera_name in bpy.data.objects:
+            camera = bpy.data.objects[self.camera_name]
         else:
-            camera_data = bpy.data.cameras.new("Camera_blase")
-            camera = bpy.data.objects.new("Camera_blase", camera_data)
+            if self.camera_name in bpy.data.cameras:
+                camera_data = bpy.data.cameras[self.camera_name]
+            else:
+                camera_data = bpy.data.cameras.new(self.camera_name)
+            camera = bpy.data.objects.new(self.camera_name, camera_data)
             self.coll.objects.link(camera)
         camera.data.lens = camera_lens
         camera.data.dof.aperture_fstop = self.fstop
         camera.data.type = camera_type
-        # image size and target
-        # print('bbox: ', self.bbox)
-        self.width = (self.bbox[0][1] - self.bbox[0][0])
-        self.height = (self.bbox[1][1] - self.bbox[1][0])
-        self.com = np.mean(self.bbox, axis=1)
-        if self.camera_target is None:
-            self.camera_target = self.com
-        if not self.ortho_scale:
-            if self.width > self.height:
-                self.ortho_scale = self.width + 1
-            else:
-                self.ortho_scale = self.height + 1
-        print(self.width, self.height)
-        print('ortho_scale: ', self.ortho_scale)
         target = self.camera_target
-        if camera_type == 'ORTHO' and not self.camera_loc:
-            camera.location = [target[0], target[1], 200]
-        else:
-            camera.location = Vector(self.camera_loc)
         if self.ortho_scale and camera_type == 'ORTHO':
-            print('set_camera: ', self.ortho_scale)
             camera.data.ortho_scale = self.ortho_scale
-        self.look_at(camera, target, roll = radians(0))
+        camera.location = Vector(self.camera_loc)
+        self.look_at(camera, target, roll = 0.0)
         bpy.context.scene.camera = camera
-    def set_light(self, location = None, light_type = 'SUN', name = "Light", energy = 10):
+    def set_light(self):
         '''
-        location: array
-
         light_type: str
-
             * POINT, Omnidirectional point light source.
             * SUN, Constant direction parallel ray light source.
             * SPOT, Directional cone light source.
             * AREA, Directional area light source.
-        
-        energy: float
-
+        light_energy: float
+        # track to camera
         '''
         # check light exist or not
-        if 'Light_blase' in bpy.data.objects:
-            light = bpy.data.objects['Light_blase']
+        if self.light_name in bpy.data.objects:
+            light = bpy.data.objects[self.light_name]
         else:
-            light_data = bpy.data.lights.new("Light_blase", type = light_type)
-            light = bpy.data.objects.new("Light_blase", light_data)
+            if self.light_name in bpy.data.lights:
+                light_data = bpy.data.lights[self.light_name]
+            else:
+                light_data = bpy.data.lights.new(self.light_name, type = self.light_type)
+            light = bpy.data.objects.new(self.light_name, light_data)
             self.coll.objects.link(light)
-        light.data.type = light_type
-        light.data.energy = energy
-        if location:
-            light.location = Vector(location)
-        else:
-            light.location = Vector(self.light_loc)
-        # Some properties for cycles
+        light.data.type = self.light_type
+        light.data.energy = self.light_energy
+        light.location = Vector(self.camera_loc)
         light.data.use_nodes = True
         light.data.node_tree.nodes['Emission'].inputs['Strength'].default_value = 0.1
-        self.look_at(light, self.camera_target, roll = radians(0))
-        print('set light: ', self.ortho_scale)
+        light.constraints.new(type = 'COPY_LOCATION')
+        light.constraints["Copy Location"].target = self.camera
+        light.constraints.new(type = 'COPY_ROTATION')
+        light.constraints["Copy Rotation"].target = self.camera
     def look_at(self, obj, target, roll=0):
         """
         Rotate obj to look at target
@@ -155,78 +184,80 @@ class Blase():
         loc = loc.to_tuple()
         obj.matrix_world = quat @ rollMatrix
         obj.location = loc
-    def draw_plane(self, location = (0, 0, -1.0), color = (0.2, 0.2, 1.0, 1.0), size = 200, bsdf_inputs = None, material_style = 'blase'):
+    def motion_blur(self):
+        bpy.context.scene.eevee.use_motion_blur = self.use_motion_blur
+        bpy.context.scene.eevee.motion_blur_position = self.motion_blur_position
+        bpy.context.scene.eevee.motion_blur_steps = self.motion_blur_steps
+        bpy.context.scene.eevee.motion_blur_shutter = self.motion_blur_shutter
+        bpy.context.scene.cycles.use_motion_blur = self.use_motion_blur
+        bpy.context.scene.cycles.motion_blur_position = self.motion_blur_position
+        bpy.context.scene.cycles.motion_blur_shutter = self.motion_blur_shutter
+
+    def set_direction(self, direction = (0, 0, 1), margin = None, canvas = None):
         """
-        Draw a plane.
+        Render the atoms, and save to a png image.
 
-        location: array
+        Support all parameters for Class Blase
 
-        color: array
-
-        size: float
-
-        bsdf_inputs: dict
-
-        material_style: str
-
+        >>> h2o.render(resolution_x = 1000, output = 'h2o.png')
+        
         """
-        # build materials
-        if not bsdf_inputs:
-            bsdf_inputs = material_styles_dict[material_style]
-        material = bpy.data.materials.new('plane')
-        material.name = 'plane'
-        material.diffuse_color = color
-        # material.blend_method = 'BLEND'
-        material.use_nodes = True
-        principled_node = material.node_tree.nodes['Principled BSDF']
-        principled_node.inputs['Alpha'].default_value = color[3]
-        for key, value in bsdf_inputs.items():
-                principled_node.inputs[key].default_value = value
-        # Instantiate a floor plane
-        bpy.ops.mesh.primitive_plane_add(size=size, location=location, rotation=rotation)
-        current_object = bpy.context.object
-        current_object.data.materials.append(material)
-
-    def render(self, output_image = None):
+        from blase.tools import get_canvas
+        batoms = self.batoms
+        atoms, n1, n2, n3 = batoms.get_atoms_with_boundary()
+        if not margin:
+            sizes = [ba.size.max() for ba in batoms.batoms.values()]
+            margin = max(sizes) + 0.5
+        if not canvas:
+            canvas, canvas1 = get_canvas(atoms = atoms, direction = direction, margin = margin)
+        camera_data = batoms.calc_camera_data(canvas, canvas1, direction = direction)
+        self.set_parameters(camera_data)
+    def run(self, direction = None, canvas = None, **kwargs):
         """
         """
-        # render settings
-        if output_image:
-            self.output_image = output_image
-        self.directory = os.path.split(self.output_image)[0]
+        from blase.butils import lock_camera_to_view
+        self.set_parameters(kwargs)
+        if direction:
+            self.set_direction(direction, canvas = canvas)
+        if self.lock_camera_to_view:
+            lock_camera_to_view(True)
+        self.set_camera()
+        self.set_light()
+        if self.use_motion_blur:
+            self.motion_blur()
+        self.prepare()
+        if self.save_to_blend:
+            print('saving to {0}.blend'.format(self.output))
+            bpy.ops.wm.save_as_mainfile('EXEC_SCREEN', filepath = '{0}.blend'.format(self.output))
+        elif self.run_render:
+            bpy.ops.render.render(write_still = 1, animation = self.animation)
+    def prepare(self, ):
+        self.scene.frame_set(self.frame)
+        self.directory = os.path.split(self.output)[0]
         if self.directory and not os.path.exists(self.directory):
-                os.makedirs(self.directory)  # cp2k expects dirs to exist
+            os.makedirs(self.directory)
         self.scene.render.image_settings.file_format = 'PNG'
-        self.scene.render.engine = self.engine
+        self.scene.render.engine = self.engine.upper()
         if self.engine.upper() == 'BLENDER_WORKBENCH':
             if 'StudioLight_blase.sl' in bpy.context.preferences.studio_lights:
                 bpy.data.scenes['Scene'].display.shading.studio_light = 'StudioLight_blase.sl'
             else:
                 bpy.data.scenes['Scene'].display.shading.studio_light = 'paint.sl'
-        if self.engine.upper() == 'CYCLES' and self.gpu:
-            self.scene.cycles.device = 'GPU'
-            prefs = bpy.context.preferences.addons['cycles'].preferences
-            # print(prefs.get_devices())
-            for device in prefs.devices:
-                # print(device)
-                device.use = True
-            self.scene.render.tile_x = 256
-            self.scene.render.tile_y = 256
+        if self.engine.upper() == 'CYCLES':
             self.scene.cycles.samples = self.num_samples
-
-        self.scene.render.film_transparent = True
-        # self.scene.render.alpha = 'SKY' # in ['TRANSPARENT', 'SKY']
+            self.scene.cycles.use_denoising = True
+            if self.gpu:
+                self.scene.cycles.device = 'GPU'
+                prefs = bpy.context.preferences.addons['cycles'].preferences
+                for device in prefs.devices:
+                    device.use = True
+                self.scene.render.tile_x = 256
+                self.scene.render.tile_y = 256
+        self.scene.render.film_transparent = self.transparent
         self.scene.render.resolution_x = self.resolution_x
-        self.scene.render.resolution_y = int(self.resolution_x*self.height/self.width)
-        print('dimension: ', self.scene.render.resolution_x, self.scene.render.resolution_y)
-        self.scene.render.filepath = '{0}'.format(self.output_image)
-        if self.save_to_blend:
-            print('saving to {0}.blend'.format(self.output_image))
-            bpy.ops.wm.save_as_mainfile('EXEC_SCREEN', filepath = '{0}.blend'.format(self.output_image))
-        elif self.run_render:
-            bpy.ops.render.render(write_still = 1, animation = self.animation)
+        self.scene.render.resolution_y = int(self.resolution_x*self.ratio)
+        self.scene.render.filepath = '{0}'.format(self.output)
     def export(self, filename = 'blender-ase.obj'):
-        # render settings
         if filename.split('.')[-1] == 'obj':
             bpy.ops.export_scene.obj(filename)
         if filename.split('.')[-1] == 'x3d':
@@ -235,7 +266,6 @@ class Blase():
             self.export_xyz(filename)
 
     def render_move_camera(self, filename, loc1, loc2, n):
-        # render settings
         from blase.tools import getEquidistantPoints
         locs = getEquidistantPoints(loc1, loc2, n)
         i = 0
@@ -243,3 +273,10 @@ class Blase():
             bpy.data.objects['Camera'].location = loc
             self.render(self, filename + '_{0:3d}'.format(i))
             i += 1
+    def __repr__(self) -> str:
+        s = '-'*60 + '\n'
+        s += 'Engine: %s \n'%(self.engine)
+        s += 'Camera: %s %s %s \n'%(self.camera_type, self.camera_loc, self.ortho_scale)
+        s += 'Light: %s %s \n'%(self.light_type, self.light_energy)
+        s += '-'*60 + '\n'
+        return s

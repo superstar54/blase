@@ -46,7 +46,7 @@ def build_bondlists(atoms, bondsetting):
     # print('build_bondlists: {0:10.2f} s'.format(time() - tstart))
     return bondlists
 
-def build_polyhedralists(atoms, bondlists, bondsetting, transmit = 0.8):
+def build_polyhedralists(atoms, bondlists, bondsetting, color_style = "JMOL", transmit = 0.8):
         """
         Two modes:
         (1) Search atoms bonded to kind
@@ -76,7 +76,7 @@ def build_polyhedralists(atoms, bondlists, bondsetting, transmit = 0.8):
             # print(kind, ligand)
             if kind not in polyhedra_kinds.keys():
                 element = kind.split('_')[0]
-                polyhedra_kinds[kind] = get_polyhedra_kind(element)
+                polyhedra_kinds[kind] = get_polyhedra_kind(element, color_style=color_style)
             inds = np.where(speciesarray == kind)[0]
             for ind in inds:
                 vertice = npositions[bondlists[:, 0] == ind]

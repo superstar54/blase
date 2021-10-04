@@ -4,23 +4,18 @@ Tutorials
 =========
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   batom
-   batoms
-   cell
-   blender
-   ase
-   pymatgen
+   buildthings
+   render/index
+   thridparty/index
    species
    animation
-   bondsetting
    boundary
    cavity
-   adsorption
-   vacancy
-   blase
+   surface/index
    blaseio
    restart
    hydrogenbond
+   blender
    export

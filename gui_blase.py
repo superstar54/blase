@@ -20,10 +20,6 @@ from bpy.props import (StringProperty,
 from blase.gui_io import import_blase
 
 
-from ase import Atom, Atoms
-from ase.build import molecule, bulk
-import json
-from blase.render import Blase
 from blase.butils import read_batoms_collection_list, read_batoms_collection
 from blase.batoms import Batoms
 

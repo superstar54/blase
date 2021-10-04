@@ -24,35 +24,3 @@ default_batoms = {
         'cube': None,
         'highlight': None, # highlight atoms
 }
-default_blase_settings = {
-        'transparent': True,  # transparent background
-        'resolution_x': 1000,
-        'resolution_y': None,  # 
-        'camera': True,
-        'camera_loc': None,  # x, y is the image plane, z is *out* of the screen
-        'camera_type': 'ORTHO',  #  ['PERSP', 'ORTHO']
-        'ortho_scale': None, #
-        'camera_lens': 10,  #
-        'fstop': 0.5,
-        'camera_target': None, #
-        'world': False,
-        'light': True,
-        'light_loc': [0, 0, 200],
-        'light_type': 'SUN', # 'POINT', 'SUN', 'SPOT', 'AREA'
-        'point_lights': [],  # 
-        'light_strength': 1.0,
-        'background': 'White',  # color
-        'textures': None,  # length of atoms list of texture names
-        'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
-        'transmits': None,  # transmittance of the atoms
-        'bbox': None,
-        'bondlinewidth': 0.10,  # radius of the cylinders representing bonds
-        'functions': [],
-        'run_render': True,
-        'animation': False,
-        'save_to_blend': False,
-        'queue': None,
-        'gpu': True,
-        'num_samples': 128,
-        'build_collection': True,
-        }  

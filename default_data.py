@@ -134,6 +134,7 @@ default_bonds = {
    'O': ['H', 'D', 'O'],
    'H': ['O', 'F', 'Cl', 'N'],
    'D': ['O', 'F', 'Cl', 'N'],
+   'F': [],
    'Hf': ['F', 'O', 'Cl', 'Br', 'S', 'Se', 'Te', 'I', 'N', 'P', 'As', 'H'],
    'Hg': ['O', 'F', 'Cl', 'S', 'Br', 'I', 'Se', 'Te', 'N', 'P', 'As', 'H', 'Hg'],
    'Ho': ['O', 'S', 'F', 'Cl', 'Br', 'I', 'Se', 'Te', 'N', 'P', 'As', 'H'],

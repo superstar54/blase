@@ -30,7 +30,8 @@ Support features:
    install
    getting-started
    tutorial
-   module
+   module/index
+   advanced/index
    gui/index
    gallery
    tips

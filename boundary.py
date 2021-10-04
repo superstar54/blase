@@ -17,8 +17,6 @@ def search_boundary(positions, cell, boundary = [[0, 1], [0, 1], [0, 1]], skin =
     boundary_skin = boundary.copy()
     boundary_skin[:, 0] -= skin
     boundary_skin[:, 1] += skin
-    # print('boundary: ', boundary)
-    # print('boundary_skin: ', boundary_skin)
     f = np.floor(boundary)
     c = np.ceil(boundary)
     ib = np.array([f[:, 0], c[:, 1]]).astype(int)
@@ -27,60 +25,124 @@ def search_boundary(positions, cell, boundary = [[0, 1], [0, 1], [0, 1]], skin =
     n = len(positions)
     npositions = np.tile(positions, (M - 1,) + (1,) * (len(positions.shape) - 1))
     i0 = 0
-    offsets = np.zeros((M*n, 4), dtype=int)
-    ind0 = np.arange(n).reshape(-1, 1)
-    #
-    # print('ib: ', ib)
+    # repeat the positions so that
+    # it completely covers the boundary
     for m0 in range(ib[0, 0], ib[1, 0] + 1):
         for m1 in range(ib[0, 1], ib[1, 1] + 1):
             for m2 in range(ib[0, 2], ib[1, 2] + 1):
                 if m0 == 0 and m1 == 0 and m2 == 0: continue
                 i1 = i0 + n
                 npositions[i0:i1] += (m0, m1, m2)
-                offsets[i0:i1] = np.append(ind0, np.array([[m0, m1, m2]]*n), axis = 1)
                 i0 = i1
-    #
+    # boundary
     ind1 =  np.where((npositions[:, 0] > boundary[0][0]) & (npositions[:, 0] < boundary[0][1]) \
                 & (npositions[:, 1] > boundary[1][0]) & (npositions[:, 1] < boundary[1][1]) \
                 & (npositions[:, 2] > boundary[2][0]) & (npositions[:, 2] < boundary[2][1]))
     #
-    # print(npositions)
+    # boundary with skin
     npositions = np.append(npositions, positions, axis = 0)
-    offsets[i0:i0+n] = np.append(ind0, np.array([[m0, m1, m2]]*n), axis = 1)
     ind2 =  np.where((npositions[:, 0] > boundary_skin[0][0]) & (npositions[:, 0] < boundary_skin[0][1]) \
                 & (npositions[:, 1] > boundary_skin[1][0]) & (npositions[:, 1] < boundary_skin[1][1])  #\
                 & (npositions[:, 2] > boundary_skin[2][0]) & (npositions[:, 2] < boundary_skin[2][1]))
     ind1 = list(set(ind1[0]))
     ind2 = list(set(ind2[0]))
     ind2 = list(set(ind2) - set(ind1))
-    # print(ind1, ind2)
     npositions1 = npositions[ind1]
-    offsets1 = offsets[ind1]
     npositions1 = np.dot(npositions1, cell)
     npositions2 = npositions[ind2]
-    offsets2 = offsets[ind2]
     npositions2 = np.dot(npositions2, cell)
     # print('search boundary: {0:10.2f} s'.format(time() - tstart))
-    return npositions1, offsets1, npositions2, offsets2
+    return npositions1, npositions2
 
-def search_skin(atoms, bondsetting, boundary):
+
+class Boundary:
     """
-    build bond
-    Then search bond
+    Boundary object.
+    Example:
+      cl = Boundary(atoms, d, index)
+      cl.build()
     """
-    from bond import get_bondpairs, get_bondpairs_boundary
-    # get bondpairs from primaril cell
-    bondpairs = get_bondpairs(atoms, bondsetting)
-    # print(bondpairs)
-    # search boundary
-    npositions1, offsets1, npositions2, offsets2 = search_boundary(atoms.positions, atoms.cell, boundary=boundary)
-    # print(offsets1)
-    # build bond paris for all atoms
-    bondpairs_boundary = get_bondpairs_boundary(bondpairs, offsets2)
-    # check search bond
-    
-    return bondpairs_boundary
-    
+
+    def __init__(self, atoms, boundary_list, rotate_atoms = False):
+        self.atoms = atoms
+        self.natoms = len(atoms)
+        self.cell = atoms.cell
+        self.boundary_list = boundary_list
+        # self.d = d
+        # self.index = index
+        self.rotate_atoms = rotate_atoms
+        #
+    def build(self, ):
+        for boundary in self.boundary_list:
+            print(boundary)
+            self.cut(**boundary)
+        return self.atoms
+    def cut(self, atoms = None, d = None, index = None, direction = 1):
+        """
+        """
+        if not atoms:
+            atoms = self.atoms
+        cell = atoms.cell
+        normal = self.get_plane(d, index, cell)
+        print(normal, d)
+        # a*x + b*y + c*z - d = 0
+        mask = []
+        natoms = len(atoms)
+        for i in range(natoms):
+            v = atoms[i].position.dot(normal) - d
+            # print(v)
+            if v*direction > 0:
+                mask.append(i)
+        # view(atoms[mask])
+        del atoms[mask]
+        self.atoms = atoms
+        if self.rotate_atoms:
+            atoms = self.rotate()
+    def rotate(self, atoms = None, index = None):
+        """
+        rotate normal of plane to z axis
+        """
+        import scipy
+        if not atoms:
+            atoms = self.atoms
+        if not index:
+            index = self.index
+        cell = atoms.cell
+        normal, d = self.get_plane(self.d, self.index, cell)
+        vec = np.cross([0.0000014159, 0.000001951, 1], index)
+        vec = vec/np.linalg.norm(vec)
+        ang = np.arccos(normal[2])
+        vec = ang*vec
+        r = scipy.spatial.transform.Rotation.from_rotvec(vec)
+        if scipy.version.version >= '1.4':
+            mat = r.as_matrix()
+        else: 
+            mat = r.as_dcm()
+        # print(mat)
+        atoms.positions = atoms.positions.dot(mat)
+        # atoms.cell = atoms.cell.dot(mat)
+        self.atoms = atoms
+        return atoms
+    def get_plane(self, d, index = None, cell = None):
+        '''
+        plane equation: three point and distance from origin
+        return normal and distance
+        # a*x + b*y + c*z - d = 0
+        '''
+        index = [1.0/(index[i] + 0.000001) for i in range(3)]
+        index = np.array(index)
+        index = index/np.linalg.norm(index)
+        points = cell*index
+        # print(points)
+        # x 
+        v1 = points[1] - points[0]
+        v2 = points[2] - points[0]
+        normal = np.cross(v1, v2)
+        print(v1, v2, normal)
+        normal = normal/np.linalg.norm(normal)
+        a, b, c = normal
+        # d = np.dot(normal, points[2])
+        return normal    
 
 
 

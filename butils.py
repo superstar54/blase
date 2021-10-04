@@ -64,3 +64,28 @@ def read_atoms_select():
         atoms.pbc = [True, True, True]
     # self.atoms = atoms
     return atoms
+
+def clean_objects():
+    for item in bpy.data.objects:
+        bpy.data.objects.remove(item)
+
+def removeAll():
+    #types =  ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'ARMATURE', 'LATTICE', 'EMPTY', 'GPENCIL', 'CAMERA', 'LIGHT', 'SPEAKER', 'LIGHT_PROBE']
+    for mesh in bpy.data.meshes:
+        bpy.data.meshes.remove(mesh)
+    for obj in bpy.data.objects:
+        bpy.data.objects.remove(obj)
+    for cam in bpy.data.cameras:
+        bpy.data.cameras.remove(cam)
+    for light in bpy.data.lights:
+        bpy.data.lights.remove(light)
+    for coll in bpy.data.collections:
+        if coll.name == 'Collection': continue
+        bpy.data.collections.remove(coll)
+
+def lock_camera_to_view(switch):
+    for area in bpy.context.screen.areas:
+        if area.type == 'VIEW_3D':
+            for space in area.spaces:
+                if space.type == 'VIEW_3D':
+                    space.lock_camera = switch

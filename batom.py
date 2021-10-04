@@ -82,10 +82,14 @@ class Batom():
                 element = None,
                 from_batom = None,
                 scale = 1.0, 
+                segments = 32,
+                subdivisions = 2,
                 props = {},
-                color = {},
+                color = None,
+                transmit = None,
                 color_style = 'JMOL',
                 material_style = 'blase',
+                material = None,
                 bsdf_inputs = None,
                 draw = False, 
                  ):
@@ -104,21 +108,28 @@ class Batom():
             self.material_style = material_style
             self.bsdf_inputs = bsdf_inputs
             self.species_data = get_atom_kind(self.element, scale = scale, props = self.props, color_style = self.color_style)
-            self.radius = self.species_data['radius']
-            self.set_material()
-            self.set_instancer()
+            if color:
+                self.species_data['color'] = color
+            if transmit:
+                self.species_data['color'] = transmit
+            self.set_material(material)
+            self.set_instancer(segments = segments, subdivisions = subdivisions)
             self.set_object(positions, location)
         else:
             self.from_batom(from_batom)
+            self.species_data = get_atom_kind(self.element)
             #todo self.radius = self.species_data['radius']
-
+        self.radius = self.species_data['radius']
         self.bond_data = {}
         self.polyhedra_data = {}
         if draw:
             self.draw_atom()
-    def set_material(self):
+    def set_material(self, material = None):
         name = 'material_atom_{0}_{1}'.format(self.label, self.species)
-        if name not in bpy.data.materials:
+        if material:
+            material = material.copy()
+            material.name = name
+        elif name not in bpy.data.materials:
             if not self.bsdf_inputs:
                 bsdf_inputs = material_styles_dict[self.material_style]
             material = bpy.data.materials.new(name)
@@ -126,6 +137,7 @@ class Batom():
             material.metallic = bsdf_inputs['Metallic']
             material.roughness = bsdf_inputs['Roughness']
             material.blend_method = 'BLEND'
+            material.show_transparent_back = False
             material.use_nodes = True
             principled_node = material.node_tree.nodes['Principled BSDF']
             principled_node.inputs['Base Color'].default_value = np.append(self.species_data['color'], self.species_data['transmit'])
@@ -136,20 +148,28 @@ class Batom():
         for object in bpy.data.objects:
             if object.mode == 'EDIT':
                 bpy.ops.object.mode_set(mode = 'OBJECT')
-    def set_instancer(self):
+    def set_instancer(self, segments = 32, subdivisions = 2, shape = 'UV_SPHERE', shade_smooth = True):
         object_mode()
         name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
         if name not in bpy.data.objects:
-            bpy.ops.mesh.primitive_uv_sphere_add(radius = self.species_data['radius']) #, segments=32, ring_count=16)
-            sphere = bpy.context.view_layer.objects.active
+            if shape.upper() == 'UV_SPHERE':
+                bpy.ops.mesh.primitive_uv_sphere_add(segments = segments, radius = self.species_data['radius']) #, segments=32, ring_count=16)
+            if shape.upper() == 'ICO_SPHERE':
+                shade_smooth = False
+                bpy.ops.mesh.primitive_ico_sphere_add(subdivisions = subdivisions, radius = self.species_data['radius']) #, segments=32, ring_count=16)
+            if shape.upper() == 'CUBE':
+                bpy.ops.mesh.primitive_cube_add(size = self.species_data['radius']) #, segments=32, ring_count=16)
+                shade_smooth = False
+            obj = bpy.context.view_layer.objects.active
             if isinstance(self.species_data['scale'], float):
                 self.species_data['scale'] = [self.species_data['scale']]*3
-            sphere.scale = self.species_data['scale']
-            sphere.name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
-            sphere.data.materials.append(self.material)
-            sphere.data.name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
-            bpy.ops.object.shade_smooth()
-            sphere.hide_set(True)
+            obj.scale = self.species_data['scale']
+            obj.name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
+            obj.data.materials.append(self.material)
+            obj.data.name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
+            if shade_smooth:
+                bpy.ops.object.shade_smooth()
+            obj.hide_set(True)
     def set_object(self, positions, location):
         """
         build child object and add it to main objects.
@@ -200,16 +220,24 @@ class Batom():
         return self.get_scale()
     @scale.setter
     def scale(self, scale):
-        """
-        >>> h.scale = 2
-        """
         self.set_scale(scale)
     def get_scale(self):
-        return self.instancer.scale
+        return np.array(self.instancer.scale)
     def set_scale(self, scale):
         if isinstance(scale, float) or isinstance(scale, int):
             scale = [scale]*3
         self.instancer.scale = scale
+    @property
+    def size(self):
+        return self.get_size()
+    @size.setter
+    def size(self, size):
+        self.set_size(size)
+    def get_size(self):
+        return np.array(self.instancer.scale*self.radius)
+    def set_size(self, size):
+        scale = size/self.radius
+        self.scale = [scale]*3
     @property
     def location(self):
         return self.get_location()
@@ -265,25 +293,63 @@ class Batom():
         """
         self.set_color(color)
     def get_color(self):
-        return self.instancer.data.materials[0].diffuse_color
+        return self.materials.diffuse_color
     def set_color(self, color):
         if isinstance(color, float) or isinstance(color, int):
             color = [color]*3
-        self.instancer.data.materials[0].diffuse_color = color
-    def clean_blase_objects(self, coll, objs = None):
+        self.material.diffuse_color = color
+        self.material.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = color
+        self.material.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value = color[3]
+    @property
+    def segments(self):
+        return self.get_segments()
+    @segments.setter
+    def segments(self, segments):
+        self.set_segments(segments)
+    def get_segments(self):
+        nverts = len(self.instancer.data.vertices)
+        return nverts
+    def set_segments(self, segments):
+        if not isinstance(segments, int):
+            raise Exception('Segments should be int!')
+        self.clean_blase_objects('instancer_atom_%s_%s'%(self.label, self.species))
+        self.set_instancer(segments = segments)
+        self.instancer.parent = self.batom
+    @property
+    def subdivisions(self):
+        return self.get_subdivisions()
+    @subdivisions.setter
+    def subdivisions(self, subdivisions):
+        self.set_subdivisions(subdivisions)
+    def get_subdivisions(self):
+        nverts = len(self.instancer.data.vertices)
+        return nverts
+    def set_subdivisions(self, subdivisions):
+        if not isinstance(subdivisions, int):
+            raise Exception('subdivisions should be int!')
+        self.clean_blase_objects('instancer_atom_%s_%s'%(self.label, self.species))
+        self.set_instancer(subdivisions = subdivisions, shape='ICO_SPHERE')
+        self.instancer.parent = self.batom
+    @property
+    def shape(self):
+        return self.get_shape()
+    @shape.setter
+    def shape(self, shape):
+        self.set_shape(shape)
+    def get_shape(self):
         """
-        remove all bond object in the bond collection
-        """
-        if not objs:
-            for obj in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
-                bpy.data.objects.remove(obj, do_unlink = True)
-        else:
-            for obj in objs:
-                name = '%s_%s_%s'%(coll, self.label, obj)
-                if name in self.coll.children['%s_%s'%(self.label, coll)].all_objects:
-                    self.coll.children['%s_%s'%(self.label, coll)].all_objects[name]
-                    bpy.data.objects.remove(obj, do_unlink = True)
-                
+        todo"""
+        # nverts = len(self.instancer.data.vertices)
+        return 'to do'
+    def set_shape(self, shape):
+        if shape.upper() not in ["UV_SPHERE", "ICO_SPHERE", "CUBE"]:
+            raise Exception('Shape %s is not supported!'%shape)
+        self.clean_blase_objects('instancer_atom_%s_%s'%(self.label, self.species))
+        self.set_instancer(shape = shape)
+        self.instancer.parent = self.batom
+    def clean_blase_objects(self, obj):
+        obj = bpy.data.objects[obj]
+        bpy.data.objects.remove(obj, do_unlink = True)
     def delete_verts(self, index = []):
         """
         delete verts
@@ -448,7 +514,7 @@ class Batom():
 
         """
         object_mode()
-        batom = Batom(label, species, self.local_positions, location = self.batom.location, scale = self.scale)
+        batom = Batom(label, species, self.local_positions, location = self.batom.location, scale = self.scale, material=self.material)
         return batom
     def extend(self, other):
         """
@@ -483,7 +549,7 @@ class Batom():
         for i in range(len(self)):
             yield batom.matrix_world @ batom.data.vertices[i].co
     def __repr__(self):
-        s = "Batoms('%s', positions = %s" % (self.species, list(self.positions))
+        s = "Batom('%s', positions = %s" % (self.species, list(self.positions))
         return s
     def add_vertices(self, positions):
         """

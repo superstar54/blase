@@ -1,5 +1,6 @@
+from operator import pos
 import numpy as np
-from ase import Atoms, Atom, atom
+from ase import Atoms, Atom, atom, cell
 from ase.data import covalent_radii, atomic_numbers, chemical_symbols
 from ase.visualize import view
 import time
@@ -48,7 +49,7 @@ def get_bond_kind(element, color_style = "JMOL", props = {}):
     bond_kind.update(props)
     return bond_kind
 
-def get_polyhedra_kind(element, color_style = "JMOL", transmit = 0.8, props = {}):
+def get_polyhedra_kind(element, color_style = "JMOL", transmit = 0.3, props = {}):
     polyhedra_kind = default_element_prop(element, color_style = color_style)
     polyhedra_kind['transmit'] = transmit
     vertices = []
@@ -95,31 +96,55 @@ def get_cell_vertices(cell):
                                                     cell)
     cell_vertices.shape = (8, 3)
     return cell_vertices
-def get_bbox(bbox, atoms, show_unit_cell = True):
+def get_canvas(atoms, direction = [0, 0 ,1], margin = 1, show_unit_cell = True):
     """
     """
-    if bbox is None:
-        bbox = np.zeros([3, 2])
-        positions = atoms.positions
-        if atoms.pbc.any():
-            cell_vertices = get_cell_vertices(atoms.cell)
-        else:
-            cell_vertices = None
-        # print('cell_vertices: ', cell_vertices)
-        R = 1
-        for i in range(3):
-            P1 = (positions[:, i] - R).min(0)
-            P2 = (positions[:, i] + R).max(0)
-            # print('P1, P2: ', P1, P2)
-            if show_unit_cell and cell_vertices is not None:
-                C1 = (cell_vertices[:, i]).min(0)
-                C2 = (cell_vertices[:, i]).max(0)
-                P1 = min(P1, C1)
-                P2 = max(P2, C2)
-                print('C1, C2: ', C1, C2)
-            bbox[i] = [P1, P2]
-        bbox = bbox
-    return bbox
+    from scipy.spatial.transform import Rotation as R
+    canvas = np.zeros([2, 3])
+    positions = atoms.positions
+    cell_vertices = get_cell_vertices(atoms.cell)
+    for i in range(3):
+        canvas[0, i] = positions[:, i].min()
+        canvas[1, i] = positions[:, i].max()
+        if show_unit_cell:
+            canvas[0, i] = min(canvas[0, i], cell_vertices[:, i].min())
+            canvas[1, i] = max(canvas[1, i], cell_vertices[:, i].max())
+    #
+    canvas1 = np.zeros([2, 3])
+    direction = np.array(direction)
+    nz = direction/np.linalg.norm(direction)
+    nx = np.cross([0, 0, 1], nz) + np.array([0.000001, 0, 0])
+    nx = nx/np.linalg.norm(nx)
+    ny = np.cross(nz, nx) + np.array([0, 0.000001, 0])
+    ny = ny/np.linalg.norm(ny)
+    #
+    projxy = positions.copy()
+    projx = np.zeros((len(positions), 1))
+    projy = np.zeros((len(positions), 1))
+    for i in range(len(positions)):
+        projxy[i] = positions[i] - np.dot(positions[i], nz)*nz
+        projx[i] = np.dot(projxy[i], nx)
+        projy[i] = np.dot(projxy[i], ny)
+    #
+    projcellxy = cell_vertices.copy()
+    projcellx = np.zeros((len(cell_vertices), 1))
+    projcelly = np.zeros((len(cell_vertices), 1))
+    for i in range(len(cell_vertices)):
+        projcellxy[i] = cell_vertices[i] - np.dot(cell_vertices[i], nz)*nz
+        projcellx[i] = np.dot(projcellxy[i], nx)
+        projcelly[i] = np.dot(projcellxy[i], ny)
+    canvas1[0, 0] = projx.min()
+    canvas1[1, 0] = projx.max()
+    canvas1[0, 1] = projy.min()
+    canvas1[1, 1] = projy.max()
+    if show_unit_cell:
+        canvas1[0, 0] = min(canvas1[0, 0], projcellx.min())
+        canvas1[1, 0] = max(canvas1[1, 0], projcellx.max())
+        canvas1[0, 1] = min(canvas1[0, 1], projcelly.min())
+        canvas1[1, 1] = max(canvas1[1, 1], projcelly.max())
+    canvas1[0, :] -= margin
+    canvas1[1, :] += margin
+    return canvas, canvas1
 def find_cage(cell, positions, radius, step = 1.0):
     from ase.cell import Cell
     from scipy.spatial import distance
@@ -136,6 +161,17 @@ def find_cage(cell, positions, radius, step = 1.0):
     # dists<3.0
     flag = np.min(dists, axis = 1) >radius
     return positions_v[flag]
+
+def rotation_matrix_from_vectors(vec1, vec2):
+
+    a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
+    v = np.cross(a, b)
+    c = np.dot(a, b)
+    s = np.linalg.norm(v)
+    kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+    return rotation_matrix
+
 
 
 

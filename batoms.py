@@ -5,8 +5,7 @@ This module defines the batoms object in the blase package.
 """
 
 import bpy
-from ase import Atom, Atoms
-from ase.data import chemical_symbols, covalent_radii
+from ase import Atoms
 from blase.batom import Batom
 from blase.bondsetting import Bondsetting
 from blase.cell import Bcell
@@ -16,8 +15,17 @@ from blase.bdraw import draw_cell_cylinder, draw_bond_kind, draw_polyhedra_kind,
 from blase.btools import object_mode
 import numpy as np
 from time import time
+from blase.render import Render   
 
-subcollections = ['atom', 'bond', 'instancer', 'instancer_atom', 'cell', 'polyhedra', 'isosurface', 'virtual', 'boundary', 'skin', 'text']
+import logging
+logging.basicConfig(
+                    format=('%(levelname)-8s '
+                            '[%(funcName)-20s]: %(message)s'),
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+subcollections = ['atom', 'bond', 'instancer', 'instancer_atom', 'cell', 'polyhedra', 'isosurface', 'virtual', 'boundary', 'skin', 'render', 'text']
 
 class Batoms():
     """Batoms Class
@@ -89,6 +97,7 @@ class Batoms():
                 structure = None, 
                 from_collection = None,
                 label = None,
+                segments = 32,
                 model_type = '0', 
                 boundary = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
                 bondlist = None,
@@ -99,7 +108,7 @@ class Batoms():
                 show_unit_cell = True,
                 isosurface = [],
                 kind_props = {},
-                color_style = 'JMOL',
+                color_style = 'VESTA',
                 material_style = 'blase',
                 bsdf_inputs = None,
                 movie = False,
@@ -108,6 +117,7 @@ class Batoms():
         #
         self.batoms_bond = {}
         self.scene = bpy.context.scene
+        self.segments = segments
         self.bondlist = bondlist
         self.add_bonds = add_bonds
         self.remove_bonds = remove_bonds
@@ -158,6 +168,7 @@ class Batoms():
         else:
             raise Exception("Failed, species_dict, atoms or coll should be provided!"%self.label)
         self.coll.blase.show_unit_cell = show_unit_cell
+        self.render = Render(self.label, batoms = self)
         if draw:
             self.draw()
         if movie:
@@ -171,7 +182,7 @@ class Batoms():
         for species, data in species_dict.items():
             if species not in self.kind_props: self.kind_props[species] = {}
             if isinstance(data, list):
-                ba = Batom(self.label, species, data, props = self.kind_props[species], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+                ba = Batom(self.label, species, data, segments = self.segments, props = self.kind_props[species], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
                 self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
                 self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
             elif isinstance(data, Batom):
@@ -191,7 +202,7 @@ class Batoms():
         for species in species_list:
             indices = [index for index, x in enumerate(atoms.info['species']) if x == species]
             if species not in self.kind_props: self.kind_props[species] = {}
-            ba = Batom(self.label, species, atoms.positions[indices], props = self.kind_props[species], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+            ba = Batom(self.label, species, atoms.positions[indices], segments = self.segments, props = self.kind_props[species], material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
             self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
             self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
         self.coll.is_batoms = True
@@ -213,7 +224,7 @@ class Batoms():
         species_list = list(set(symbols))
         for species in species_list:
             positions = [structure[index].coords for index, x in enumerate(symbols) if x == species]
-            ba = Batom(self.label, species, positions, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
+            ba = Batom(self.label, species, positions, segments = self.segments, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
             self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
             self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
         self.coll.is_batoms = True
@@ -228,6 +239,9 @@ class Batoms():
         elif not bpy.data.collections[collection_name].is_batoms:
             raise Exception("%s is not Batoms collection!"%collection_name)
         self.label = collection_name
+        self._cell = Bcell(label = collection_name)
+        self.bondsetting = Bondsetting(self.label)
+
     def npbool2bool(self, pbc):
         """
         """
@@ -265,7 +279,7 @@ class Batoms():
         self.clean_blase_objects('cell', ['cylinder', 'point'])
         if self.show_unit_cell:
             draw_cell_cylinder(self.coll.children['%s_cell'%self.label], cell_vertices, label = self.label)
-    def draw_bonds(self):
+    def draw_bonds(self, bondlinewidth = 0.1):
         """
         Draw bonds.
 
@@ -283,7 +297,7 @@ class Batoms():
         self.calc_bond_data(atoms, self.bondlist)
         for species, bond_data in self.bond_kinds.items():
             draw_bond_kind(species, bond_data, label = self.label, 
-                        coll = self.coll.children['%s_bond'%self.label])
+                        coll = self.coll.children['%s_bond'%self.label], bondlinewidth = bondlinewidth)
     def draw_polyhedras(self):
         """
         Draw bonds.
@@ -294,7 +308,7 @@ class Batoms():
         """
         object_mode()
         atoms, n1, n1, n3 = self.get_atoms_with_boundary()
-        polyhedra_kinds =build_polyhedralists(atoms, self.bondlist, self.bondsetting.data)
+        polyhedra_kinds = build_polyhedralists(atoms, self.bondlist, self.bondsetting.data, color_style = self.color_style)
         for species, polyhedra_data in polyhedra_kinds.items():
             draw_polyhedra_kind(species, polyhedra_data, label = self.label,
                         coll = self.coll.children['%s_polyhedra'%self.label])
@@ -393,15 +407,15 @@ class Batoms():
         if model_type == '0':
             self.scale = 1.0
         elif model_type == '1':
-            self.scale = 0.4
+            self.scale = 0.5
             self.draw_bonds()
         elif model_type == '2':
-            self.scale = 0.4
+            self.scale = 0.5
             self.draw_bonds()
             self.draw_polyhedras()
         elif model_type == '3':
             self.scale = 0.01
-            self.draw_bonds()
+            self.draw_bonds(bondlinewidth = 0.02)
         if self.isosurface:
             self.draw_isosurface()
     def replace(self, species1, species2, index = []):
@@ -410,7 +424,6 @@ class Batoms():
 
         Parameters:
         
-
         index: list
             index of atoms will be replaced.
 
@@ -522,7 +535,7 @@ class Batoms():
         text.append('cell={0}, '.format(self.cell))
         text.append('pbc={0}'.format(self.pbc))
         text = "".join(text)
-        text = "Batom(%s)"%text
+        text = "Batoms(%s)"%text
         return text
     def extend(self, other):
         """
@@ -716,9 +729,9 @@ class Batoms():
         atoms_skin.info['species'] = []
         if self.atoms.pbc.any():
             for species, batom in self.batoms.items():
-                positions1, offsets1, positions2, offsets2 = search_boundary(batom.local_positions, self.cell, boundary)
+                positions1, positions2 = search_boundary(batom.local_positions, self.cell, boundary)
                 positions1 = positions1 + batom.location
-                ba = Batom(self.label, '%s_boundary'%(species), positions1, scale = batom.scale)
+                ba = Batom(self.label, '%s_boundary'%(species), positions1, scale = batom.scale, material=batom.material)
                 self.coll.children['%s_boundary'%self.label].objects.link(ba.batom)
                 atoms_skin = atoms_skin + Atoms('%s'%batom.element*len(positions2), positions2)
                 atoms_skin.info['species'].extend([species]*len(positions2))
@@ -802,10 +815,9 @@ class Batoms():
     def positions(self):
         return self.get_positions()
     def get_positions(self):
-        """
-        build ASE positions from bpositions dict.
-        """
         return self.atoms.positions
+    def get_scaled_positions(self):
+        return self.atoms.get_scaled_positions()
     @property
     def species(self):
         return self.get_species()
@@ -905,7 +917,6 @@ class Batoms():
         """
         if not images:
             images = self.images
-        nimage = len(images)
         if len(self.atoms) != len(images[0]):
             raise Exception("Number of atoms %s is not equal to %s."%(len(self.atoms), len(images[0])))
         atoms = images[0]
@@ -916,35 +927,21 @@ class Batoms():
             index = [atom.index for atom in atoms if atoms.info['species'][atom.index] == species]
             ba.load_frames(positions[:, index])
     
-    def render(self, bbox = None, output_image = None, animation = False, **kwargs):
+    def calc_camera_data(self, canvas, canvas1, direction = (0, 0, 1)):
         """
-        Render the atoms, and save to a png image.
-
-        Support all parameters for Class Blase
-
-        >>> h2o.render(resolution_x = 1000, output_image = 'h2o.png')
-        
         """
-        from blase.render import Blase
-        from blase.tools import get_bbox
-        # print('--------------Render--------------')
-        self.draw_cell()
-        atoms, n1, n2, n3 = self.get_atoms_with_boundary()
-        if not bbox:
-            bbox = get_bbox(bbox = None, atoms = atoms)
-            kwargs['bbox'] = bbox
-        if not output_image:
-            kwargs['output_image'] = '%s.png'%self.label
-        else:
-            kwargs['output_image'] = output_image
-        kwargs['animation'] = animation
-        # print(kwargs)
-        bobj = Blase(**kwargs)
-        for function in bobj.functions:
-            name, paras = function
-            getattr(bobj, name)(**paras)
-        # bobj.load_frames()
-        bobj.render()
+        from scipy.spatial.transform import Rotation as R
+        camera_target = np.mean(canvas, axis=0)
+        camera_data = {}
+        width = canvas1[1, 0] - canvas1[0, 0]
+        height = canvas1[1, 1] - canvas1[0, 1]
+        ortho_scale = max(width, height)
+        #
+        direction = direction/np.linalg.norm(direction)
+        location = camera_target + direction*20
+        camera_data = {'camera_loc': location, 'camera_target': camera_target,
+                        'ortho_scale': ortho_scale, 'ratio': height/width}
+        return camera_data
     def calc_bond_data(self, atoms, bondlists):
         """
         """

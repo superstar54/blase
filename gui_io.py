@@ -10,21 +10,14 @@ from bpy.props import (
         FloatProperty,
         )
 from ase.io.cube import read_cube_data
-import pickle
-from blase.render import Blase
 from blase.batoms import Batoms
 
-# -----------------------------------------------------------------------------
-#                                                                     Operators
-
-# This is the class for the file dialog.
 class IMPORT_OT_blase(Operator, ImportHelper):
     bl_idname = "import_mesh.blase"
     bl_label  = "Import blase (*.blase)"
     bl_options = {"PRESET", "REGISTER", "UNDO"}
 
     filename_ext = ".blase"
-    # filter_glob: StringProperty(default="*.blase", options={'HIDDEN'},)
 
     camera: BoolProperty(
         name="Camera", default=False,

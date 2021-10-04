@@ -26,7 +26,7 @@ def draw_cell_cylinder(coll_cell, cell_vertices, label = None, celllinewidth = 0
         # build materials
         material = bpy.data.materials.new('cell_{0}'.format(label))
         # material.label = 'cell'
-        material.diffuse_color = (0.8, 0.25, 0.25, 1.0)
+        material.diffuse_color = (0.0, 0.0, 0.0, 1.0)
         # draw points
         bpy.ops.mesh.primitive_uv_sphere_add(radius = celllinewidth) #, segments=32, ring_count=16)
         sphere = bpy.context.view_layer.objects.active
@@ -149,7 +149,7 @@ def draw_polyhedra_kind(kind,
         tstart = time.time()
         material = bpy.data.materials.new('polyhedra_kind_{0}'.format(kind))
         material.diffuse_color = np.append(datas['color'], datas['transmit'])
-        # material.blend_method = 'BLEND'
+        material.blend_method = 'BLEND'
         material.use_nodes = True
         principled_node = material.node_tree.nodes['Principled BSDF']
         principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
@@ -179,7 +179,6 @@ def draw_polyhedra_kind(kind,
         principled_node.inputs['Alpha'].default_value = datas['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
-        datas['edge_cylinder']['materials'] = material
         verts, faces = cylinder_mesh_from_instance_vec(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.01, source)
         # print(verts)
         mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
@@ -345,7 +344,7 @@ def cylinder_mesh_from_instance_vec(centers, normals, lengths, scale, source):
     scale = np.array([[scale, scale]]*len(centers))
     scale = np.append(scale, np.array(lengths).reshape(-1, 1), axis = 1)
     # print(np.cross([0.0000014159, 0.000001951, 1], normals[0]))
-    vec = np.cross([0.0000014159, 0.000001951, 1], normals)
+    vec = np.cross([0.0, 0.0, 1], normals) + np.array([0.000000001, 0, 0])
     vec = vec/np.linalg.norm(vec, axis = 1)[:, None]
     # print(np.arccos(normals[0, 2]*0.999999))
     ang = np.arccos(normals[:, 2]*0.999999)
@@ -381,3 +380,35 @@ def cylinder_mesh_from_instance_vec(centers, normals, lengths, scale, source):
     faces = list(faces1) + list(face2)
     # print('cylinder_mesh_from_instance: {0:10.2f} s'.format( time.time() - tstart))
     return verts, faces
+
+    def draw_plane(location = (0, 0, -1.0), color = (0.2, 0.2, 1.0, 1.0), size = 200, bsdf_inputs = None, material_style = 'blase'):
+        """
+        Draw a plane.
+
+        location: array
+
+        color: array
+
+        size: float
+
+        bsdf_inputs: dict
+
+        material_style: str
+
+        """
+        # build materials
+        if not bsdf_inputs:
+            bsdf_inputs = material_styles_dict[material_style]
+        material = bpy.data.materials.new('plane')
+        material.name = 'plane'
+        material.diffuse_color = color
+        # material.blend_method = 'BLEND'
+        material.use_nodes = True
+        principled_node = material.node_tree.nodes['Principled BSDF']
+        principled_node.inputs['Alpha'].default_value = color[3]
+        for key, value in bsdf_inputs.items():
+                principled_node.inputs[key].default_value = value
+        # Instantiate a floor plane
+        bpy.ops.mesh.primitive_plane_add(size=size, location=location, rotation=rotation)
+        current_object = bpy.context.object
+        current_object.data.materials.append(material)
