@@ -20,7 +20,8 @@ from bpy.props import (StringProperty,
 from blase.gui_io import import_blase
 
 
-from blase.butils import read_batoms_collection_list, read_batoms_collection
+from blase.butils import read_batoms_collection_list
+from blase.bio import read_batoms_collection
 from blase.batoms import Batoms
 
 

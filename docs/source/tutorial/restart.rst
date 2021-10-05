@@ -23,4 +23,3 @@ Crystal:
 .. image:: ../_static/ase-fe.png
    :width: 3cm
 
-.. module:: blase.batoms

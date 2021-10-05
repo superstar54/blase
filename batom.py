@@ -6,7 +6,7 @@ This module defines the Batom object in the blase package.
 
 import bpy
 import bmesh
-from blase.btools import object_mode
+from blase.butils import object_mode
 from blase.data import material_styles_dict
 from blase.tools import get_atom_kind
 import numpy as np
@@ -80,9 +80,9 @@ class Batom():
                 positions = None,
                 location = np.array([0, 0, 0]),
                 element = None,
-                from_batom = None,
                 scale = 1.0, 
-                segments = 32,
+                segments = [32, 16],
+                shape = 'UV_SPHERE',
                 subdivisions = 2,
                 props = {},
                 color = None,
@@ -91,11 +91,10 @@ class Batom():
                 material_style = 'blase',
                 material = None,
                 bsdf_inputs = None,
-                draw = False, 
                  ):
         #
         self.scene = bpy.context.scene
-        if not from_batom:
+        if species:
             self.label = label
             self.species = species
             if not element:
@@ -113,17 +112,12 @@ class Batom():
             if transmit:
                 self.species_data['color'] = transmit
             self.set_material(material)
-            self.set_instancer(segments = segments, subdivisions = subdivisions)
+            self.set_instancer(segments = segments, subdivisions = subdivisions, shape = shape)
             self.set_object(positions, location)
         else:
-            self.from_batom(from_batom)
+            self.from_batom(label)
             self.species_data = get_atom_kind(self.element)
-            #todo self.radius = self.species_data['radius']
         self.radius = self.species_data['radius']
-        self.bond_data = {}
-        self.polyhedra_data = {}
-        if draw:
-            self.draw_atom()
     def set_material(self, material = None):
         name = 'material_atom_{0}_{1}'.format(self.label, self.species)
         if material:
@@ -148,12 +142,12 @@ class Batom():
         for object in bpy.data.objects:
             if object.mode == 'EDIT':
                 bpy.ops.object.mode_set(mode = 'OBJECT')
-    def set_instancer(self, segments = 32, subdivisions = 2, shape = 'UV_SPHERE', shade_smooth = True):
+    def set_instancer(self, segments = [32, 16], subdivisions = 2, shape = 'UV_SPHERE', shade_smooth = True):
         object_mode()
         name = 'instancer_atom_{0}_{1}'.format(self.label, self.species)
         if name not in bpy.data.objects:
             if shape.upper() == 'UV_SPHERE':
-                bpy.ops.mesh.primitive_uv_sphere_add(segments = segments, radius = self.species_data['radius']) #, segments=32, ring_count=16)
+                bpy.ops.mesh.primitive_uv_sphere_add(segments = segments[0], ring_count = segments[1], radius = self.species_data['radius']) #, segments=32, ring_count=16)
             if shape.upper() == 'ICO_SPHERE':
                 shade_smooth = False
                 bpy.ops.mesh.primitive_ico_sphere_add(subdivisions = subdivisions, radius = self.species_data['radius']) #, segments=32, ring_count=16)
@@ -491,7 +485,6 @@ class Batom():
                                  'vector')
         M = np.product(m)
         n = len(self)
-        
         positions = np.tile(self.local_positions, (M,) + (1,) * (len(self.local_positions.shape) - 1))
         i0 = 0
         for m0 in range(m[0]):

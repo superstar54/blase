@@ -1,14 +1,22 @@
 import pytest
+from blase.batom import Batom
 from blase.batoms import Batoms
 from blase.butils import removeAll
 import numpy as np
 
 
+def test_batom():
+    removeAll()
+    h = Batom(label = 'h2o', species = 'H', positions = [[0, -0.76, -0.2], [0, 0.76, -0.2]])
+    o = Batom(label = 'h2o', species = 'O', positions = [[0, 0, 0.40]])
+    h2o = Batoms('h2o', [h, o])
+    assert isinstance(h2o, Batoms)
+
 def test_batoms():
     """
     """
     removeAll()
-    h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+    h2o = Batoms('h2o', {'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
     assert isinstance(h2o, Batoms)
     # properties
     h2o.cell = [3, 3, 3]

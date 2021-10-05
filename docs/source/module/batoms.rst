@@ -3,8 +3,7 @@
 ===================
 The Batoms object
 ===================
-
-The :class:`Batoms` object is a collection of Batom objects. Here is how to define a H2O molecule:
+The :class:`Batoms` object is a collection of :class:`Batom` object plus :class:`Bcell` object and other derivative properties (bonds and so on). Here is how to define a H\ :sub:`2`\ O molecule:
 
 >>> from blase.batoms import Batoms
 >>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
@@ -201,6 +200,25 @@ Render the atoms, and save to a png image.
 
 >>> h2o.render(resolution_x = 1000, output_image = 'h2o.png')
 
+
+
+Collection 
+================
+The :class:`Batoms` object is a interface to a ``blase`` collection in Blender. A blase collections is organised in the following way.
+
+| label                             
+| ├── lable_atom                      
+| │   ├── atom_label_species1
+| │   ├── atom_label_species2
+| ├── label_cell          
+| │   ├── cell_label_edge
+| ├── label_bond
+| ├── label_polyhedra          
+| ├── label_instancer          
+| └── label...
+
+.. image:: ../_static/batoms_collection.png
+   :width: 8cm
 
 List of all Methods
 ===================

@@ -39,5 +39,3 @@ Search additional atoms if species1 is included in the boundary:
 
 .. image:: ../_static/search-bond-tio2-2.png
    :width: 8cm
-
-.. module:: blase.batoms

@@ -4,7 +4,7 @@ from operator import add
 import bpy
 import numpy as np
 from ase.cell import Cell
-from blase.btools import object_mode
+from blase.butils import object_mode
 
 class Bcell():
     """

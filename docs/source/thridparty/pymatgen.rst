@@ -1,5 +1,5 @@
 Pymatgen
--------
+---------------
 
 If you are not familiar with building atomic structure using Pymatgen, please read the following tutorials:
 

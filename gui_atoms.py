@@ -15,7 +15,8 @@ from bpy.props import (StringProperty,
                        PointerProperty,
                        )
 
-from blase.butils import read_batoms_collection_list, read_batoms_collection, read_atoms_list
+from blase.butils import read_batoms_collection_list, read_atoms_list
+from blase.bio import read_batoms_collection
 
 
 # The panel.

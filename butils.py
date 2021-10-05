@@ -1,7 +1,12 @@
 import bpy
-from blase.batoms import Batoms
 from ase import Atom, Atoms
 
+
+
+def object_mode():
+    for object in bpy.data.objects:
+            if object.mode == 'EDIT':
+                bpy.ops.object.mode_set(mode = 'OBJECT')
 
 def read_batoms_collection_list():
     """
@@ -19,11 +24,7 @@ def read_atoms_list(coll):
         elements.append(ele)
     return elements
         
-def read_batoms_collection(coll):
-    '''   
-    '''
-    batoms = Batoms(from_collection = coll)
-    return batoms
+
 def read_atoms_select():
     '''   
     '''

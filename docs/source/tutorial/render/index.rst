@@ -7,9 +7,18 @@ After you have created a structure, you can export nice images for publications 
 
 The :class:`Render` object controls various settings such as the viewpoint and the resolution of the generated image.
 
+
+
+viewpoint
+=============
+
+
+
+
 .. toctree::
    :maxdepth: 1
    
    render
+   viewpoint
    camera
    light
