@@ -66,6 +66,14 @@ def read_atoms_select():
     # self.atoms = atoms
     return atoms
 
+def remove_collection(name):
+        collection = bpy.data.collections.get(name)
+        for obj in collection.all_objects:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        for coll in collection.children:
+            bpy.data.collections.remove(coll)
+        bpy.data.collections.remove(collection)
+        
 def clean_objects():
     for item in bpy.data.objects:
         bpy.data.objects.remove(item)

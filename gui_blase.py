@@ -1,3 +1,4 @@
+from ase.atoms import default
 import bpy
 import bmesh
 from mathutils import Vector
@@ -49,7 +50,10 @@ class BlaseBond(bpy.types.PropertyGroup):
     min: FloatProperty(name="min", description = "min", default = 0.0)
     max: FloatProperty(name="max", description = "max", default = 2.0)
     polyhedra: BoolProperty(name="polyhedra", default=False)
-    search: BoolProperty(name="search", default=False)
+    search: IntProperty(name="search", default=0)
+    color1: FloatVectorProperty(name="color", size = 4)
+    color2: FloatVectorProperty(name="color", size = 4)
+    bondlinewidth: FloatProperty(name="bondlinewidth", default = 0.10)
     
 # The panel.
 class Blase_PT_prepare(Panel):

@@ -22,6 +22,7 @@ default_blase_settings = {
         'light_loc': [0, 0, 100],
         'light_type': 'SUN', # 'POINT', 'SUN', 'SPOT', 'AREA'
         'light_energy': 5.0,
+        'studiolight': 'Default',  # "basic", "outdoor", "paint", "rim", "studio", "blase"
         'world': False,
         'engine': 'BLENDER_WORKBENCH', #'BLENDER_EEVEE' #'BLENDER_WORKBENCH'
         'use_motion_blur': False,
@@ -241,10 +242,10 @@ class Render():
         self.scene.render.image_settings.file_format = 'PNG'
         self.scene.render.engine = self.engine.upper()
         if self.engine.upper() == 'BLENDER_WORKBENCH':
-            if 'StudioLight_blase.sl' in bpy.context.preferences.studio_lights:
-                bpy.data.scenes['Scene'].display.shading.studio_light = 'StudioLight_blase.sl'
-            else:
-                bpy.data.scenes['Scene'].display.shading.studio_light = 'paint.sl'
+            bpy.data.scenes['Scene'].display.shading.studio_light = '%s'%self.studiolight
+        if self.engine.upper() == 'BLENDER_EEVEE':
+            self.scene.eevee.taa_render_samples = self.num_samples
+            self.scene.cycles.use_denoising = True
         if self.engine.upper() == 'CYCLES':
             self.scene.cycles.samples = self.num_samples
             self.scene.cycles.use_denoising = True

@@ -156,10 +156,7 @@ class Batoms():
         else:
             raise Exception("Failed, species, atoms or coll should be provided!"%self.label)
         if not self.bondsetting:
-            self.bondsetting = Bondsetting(self.label)
-            bondtable = get_bondtable(self.species, cutoff=1.2)
-            for key, value in bondtable.items():
-                self.bondsetting[key] = value
+            self.bondsetting = Bondsetting(self.label, color_style = self.color_style)
         self.coll.blase.show_unit_cell = show_unit_cell
         if not self.render:
             self.render = Render(self.label, batoms = self)
@@ -281,7 +278,7 @@ class Batoms():
                             cell_vertices, 
                             label = self.label, 
                             celllinewidth = celllinewidth)
-    def draw_bonds(self, bondlinewidth = 0.1):
+    def draw_bonds(self):
         """
         Draw bonds.
 
@@ -294,10 +291,10 @@ class Batoms():
         object_mode()
         atoms, n1, n2, n3 = self.get_atoms_with_boundary()
         self.bondlist = build_bondlists(atoms, self.bondsetting.data)
-        self.calc_bond_data(atoms, self.bondlist)
+        self.calc_bond_data(atoms, self.bondlist, self.bondsetting)
         for species, bond_data in self.bond_kinds.items():
             draw_bond_kind(species, bond_data, label = self.label, 
-                        coll = self.coll.children['%s_bond'%self.label], bondlinewidth = bondlinewidth)
+                        coll = self.coll.children['%s_bond'%self.label])
     def draw_polyhedras(self):
         """
         Draw bonds.
@@ -415,7 +412,7 @@ class Batoms():
             self.draw_polyhedras()
         elif model_type == '3':
             self.scale = 0.01
-            self.draw_bonds(bondlinewidth = 0.02)
+            self.draw_bonds()
         if self.isosurface:
             self.draw_isosurface()
     def replace(self, species1, species2, index = []):
@@ -450,6 +447,8 @@ class Batoms():
             ba = Batom(self.label, species2, positions, segments = self.segments, shape = self.shape, material_style=self.material_style, bsdf_inputs=self.bsdf_inputs, color_style=self.color_style)
             self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
             self.coll.children['%s_instancer'%self.label].objects.link(ba.instancer)
+            for sp in self.species:
+                self.bondsetting.set_default([species2, sp])
         self.batoms[species1].delete(index)
             
     
@@ -521,12 +520,6 @@ class Batoms():
             raise SystemExit('dict not supported yet!')
     def __len__(self):
         return len(self.positions)
-    def __add__(self, other):
-        self += other
-        return self
-    def __iadd__(self, other):
-        self.extend(other)
-        return self
     def __repr__(self) -> str:
         text = []
         text.append('label={0}, '.format(self.label))
@@ -537,6 +530,12 @@ class Batoms():
         text = "".join(text)
         text = "Batoms(%s)"%text
         return text
+    def __add__(self, other):
+        self += other
+        return self
+    def __iadd__(self, other):
+        self.extend(other)
+        return self
     def extend(self, other):
         """
         Extend batoms object by appending batoms from *other*.
@@ -557,6 +556,10 @@ class Batoms():
         >>> au = au + co
 
         """
+        from blase.butils import remove_collection
+        # bond first
+        self.bondsetting.extend(other.bondsetting)
+        # atom
         for species, batom in other.batoms.items():
             if species in self.species:
                 self.batoms[species].extend(batom)
@@ -567,17 +570,7 @@ class Batoms():
                 bpy.context.view_layer.update()
                 ba.positions = ba.positions - t
                 self.coll.children['%s_atom'%self.label].objects.link(ba.batom)
-        for key, value in other.bondsetting.data.items():
-            self.bondsetting[key] = value
-        self.remove_collection(other.label)
-
-    def remove_collection(self, name):
-        collection = bpy.data.collections.get(name)
-        for obj in collection.all_objects:
-            bpy.data.objects.remove(obj, do_unlink=True)
-        for coll in collection.children:
-            bpy.data.collections.remove(coll)
-        bpy.data.collections.remove(collection)
+        remove_collection(other.label)
     def __imul__(self, m):
         """
         """
@@ -902,7 +895,7 @@ class Batoms():
             bpy.ops.object.shade_smooth()
             ball.data.materials.append(material)
             ball.show_transparent = True
-            coll_highlight.objects.link(ball)
+            self.coll_highlight.objects.link(ball)
     def load_frames(self, images = None):
         """
 
@@ -937,17 +930,17 @@ class Batoms():
         camera_data = {}
         width = canvas1[1, 0] - canvas1[0, 0]
         height = canvas1[1, 1] - canvas1[0, 1]
+        depth = canvas1[1, 1] - canvas1[0, 1]
         ortho_scale = max(width, height)
         #
         direction = direction/np.linalg.norm(direction)
-        location = camera_target + direction*20
+        location = camera_target + direction*depth
         camera_data = {'camera_loc': location, 'camera_target': camera_target,
                         'ortho_scale': ortho_scale, 'ratio': height/width}
         return camera_data
-    def calc_bond_data(self, atoms, bondlists):
+    def calc_bond_data(self, atoms, bondlists, bondsetting):
         """
         """
-        from blase.tools import get_bond_kind
         from ase.data import chemical_symbols, covalent_radii
         batoms = self.batoms
         positions = atoms.positions
@@ -955,54 +948,46 @@ class Batoms():
         if 'species' not in atoms.info:
             atoms.info['species'] = atoms.get_chemical_symbols()
         speciesarray = np.array(atoms.info['species'])
-        elementarray = np.array(atoms.get_chemical_symbols())
-        radiusarray = np.array([covalent_radii[chemical_symbols == em][0] for em in elementarray])
-        scalearray = np.array([batoms[sp].scale for sp in speciesarray])
-        specieslist = list(set(atoms.info['species']))
         bond_kinds = {}
         if len(bondlists) == 0:
-            self.bond_kinds = bond_kinds
+            self.bond_kinds = {}
             return
-        for spi in specieslist:
-            bondlists1 = bondlists[speciesarray[bondlists[:, 0]] == spi]
-            if len(bondlists1) == 0: continue
-            emi = spi.split('_')[0]
-            emj = elementarray[bondlists1[:, 1]]
-            bond_kind = get_bond_kind(emi, color_style=self.color_style)
-            if spi not in bond_kinds:
-                bond_kinds[spi] = bond_kind
-            offset = bondlists1[:, 2:5]
-            R = np.dot(offset, atoms.cell)
-            vec = positions[bondlists1[:, 0]] - (positions[bondlists1[:, 1]] + R)
-            length = np.linalg.norm(vec, axis = 1)
-            nvec = vec/length[:, None]
-            radius1 = covalent_radii[chemical_symbols ==emi][0]
-            radius2 = radiusarray[bondlists1[:, 1]]
-            scale2 = scalearray[bondlists1[:, 1]]
-            pos = [positions[bondlists1[:, 0]] - nvec*radius1*batoms[spi].scale*0.5,
-                    positions[bondlists1[:, 1]] + R + (nvec.T*radius2).T*scale2*0.5]
-            center0 = (pos[0] + pos[1])/2.0
-            vec = pos[0] - pos[1]
-            length = np.linalg.norm(vec, axis = 1)
-            nvec = vec/length[:, None]
-            nvec = nvec + 1e-8
-            # verts, faces
-            v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
-            tempv = np.einsum("ij, ij->i", v1, nvec)
-            v11 = v1 - (nvec.T*tempv).T
-            templengh = np.linalg.norm(v11, axis = 1)
-            v11 = v11/templengh[:, None]/2.828427
-            tempv = np.cross(nvec, v11)
-            v22 = (tempv.T*(length*length)).T
-            #
-            center = (center0 + pos[0])/2.0
-            bond_kinds[spi]['centers'] = center
-            bond_kinds[spi]['lengths'] = length/4.0
-            bond_kinds[spi]['normals'] = nvec
-            bond_kinds[spi]['verts'] = center + v11
-            bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center - v11, axis = 0)
-            bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center + v22, axis = 0)
-            bond_kinds[spi]['verts'] = np.append(bond_kinds[spi]['verts'], center - v22, axis = 0)
+        for (spi0, spj0), data in bondsetting.data.items():
+            for (spi, spj), color in {(spi0, spj0): data[4], (spj0, spi0):data[5]}.items():
+                bondlists1 = bondlists[(speciesarray[bondlists[:, 0]] == spi) & (speciesarray[bondlists[:, 1]] == spj)]
+                if len(bondlists1) == 0: continue
+                kind = '%s_%s_%s'%(spi, spj, spi)
+                if kind not in bond_kinds:
+                    bond_kinds[kind] = {'color': color[:3], 'verts': [], 'transmit': color[3], 'bondlinewidth': data[6]}
+                offset = bondlists1[:, 2:5]
+                R = np.dot(offset, atoms.cell)
+                vec = positions[bondlists1[:, 0]] - (positions[bondlists1[:, 1]] + R)
+                length = np.linalg.norm(vec, axis = 1)
+                nvec = vec/length[:, None]
+                pos = [positions[bondlists1[:, 0]] - nvec*batoms[spi].radius*batoms[spi].scale*0.5,
+                        positions[bondlists1[:, 1]] + R + nvec*batoms[spj].radius*batoms[spj].scale*0.5]
+                center0 = (pos[0] + pos[1])/2.0
+                vec = pos[0] - pos[1]
+                length = np.linalg.norm(vec, axis = 1)
+                nvec = vec/length[:, None]
+                nvec = nvec + 1e-8
+                # verts, faces
+                v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
+                tempv = np.einsum("ij, ij->i", v1, nvec)
+                v11 = v1 - (nvec.T*tempv).T
+                templengh = np.linalg.norm(v11, axis = 1)
+                v11 = v11/templengh[:, None]/2.828427
+                tempv = np.cross(nvec, v11)
+                v22 = (tempv.T*(length*length)).T
+                #
+                center = (center0 + pos[0])/2.0
+                bond_kinds[kind]['centers'] = center
+                bond_kinds[kind]['lengths'] = length/4.0
+                bond_kinds[kind]['normals'] = nvec
+                bond_kinds[kind]['verts'] = center + v11
+                bond_kinds[kind]['verts'] = np.append(bond_kinds[kind]['verts'], center - v11, axis = 0)
+                bond_kinds[kind]['verts'] = np.append(bond_kinds[kind]['verts'], center + v22, axis = 0)
+                bond_kinds[kind]['verts'] = np.append(bond_kinds[kind]['verts'], center - v22, axis = 0)
         self.bond_kinds = bond_kinds
     
 

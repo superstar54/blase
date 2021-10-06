@@ -37,10 +37,11 @@ def get_atom_kind(element, positions = [], color_style = "JMOL", scale = [1, 1, 
     atom_kind['balltype'] = None
     atom_kind.update(props)
     return atom_kind
-def get_bond_kind(element, color_style = "JMOL", props = {}):
+def get_bond_kind(element1, element2, color_style = "JMOL", props = {}):
     """
     """
-    bond_kind = default_element_prop(element, color_style = color_style)
+    bond_kind1 = default_element_prop(element1, color_style = color_style)
+    bond_kind2 = default_element_prop(element2, color_style = color_style)
     bond_kind['lengths'] = []
     bond_kind['centers'] = []
     bond_kind['normals'] = []
@@ -121,8 +122,9 @@ def get_canvas(atoms, direction = [0, 0 ,1], margin = 1, show_unit_cell = True):
     projxy = positions.copy()
     projx = np.zeros((len(positions), 1))
     projy = np.zeros((len(positions), 1))
+    projz = np.dot(positions[i], nz)
     for i in range(len(positions)):
-        projxy[i] = positions[i] - np.dot(positions[i], nz)*nz
+        projxy[i] = positions[i] - projz*nz
         projx[i] = np.dot(projxy[i], nx)
         projy[i] = np.dot(projxy[i], ny)
     #
@@ -144,6 +146,8 @@ def get_canvas(atoms, direction = [0, 0 ,1], margin = 1, show_unit_cell = True):
         canvas1[1, 1] = max(canvas1[1, 1], projcelly.max())
     canvas1[0, :] -= margin
     canvas1[1, :] += margin
+    canvas1[0, 2] = 0
+    canvas1[1, 2] = projz.max()
     return canvas, canvas1
 def find_cage(cell, positions, radius, step = 1.0):
     from ase.cell import Cell

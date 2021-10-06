@@ -23,7 +23,7 @@ Rendering the image
 
 
 Use blaseio to run Blender in the background
-===========================================
+==============================================
 
 >>> from ase.build import molecule
 >>> from blaseio import write_blender
@@ -35,8 +35,8 @@ Use blaseio to run Blender in the background
 |h2o|
 
 
-.. |h2o-2| image:: ../_static/h2o-2.png
+.. |h2o-2| image:: _static/h2o-2.png
    :width: 20cm
-.. |h2o| image:: ../_static/h2o.png
-   :width: 20cm
+.. |h2o| image:: _static/h2o.png
+   :width: 5cm
 

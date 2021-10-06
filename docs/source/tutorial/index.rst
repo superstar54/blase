@@ -11,6 +11,7 @@ Tutorials
    thridparty/index
    species
    animation
+   bond_polyhedra
    boundary
    cavity
    surface/index

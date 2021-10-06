@@ -98,7 +98,6 @@ def draw_bond_kind(kind,
                    label = None,
                    coll = None,
                    source = None, 
-                   bondlinewidth = 0.10,
                    bsdf_inputs = None, 
                    material_style = 'plastic'):
     if not bsdf_inputs:
@@ -110,7 +109,7 @@ def draw_bond_kind(kind,
     material.diffuse_color = np.append(datas['color'], datas['transmit'])
     material.metallic = bsdf_inputs['Metallic']
     material.roughness = bsdf_inputs['Roughness']
-    # material.blend_method = 'BLEND'
+    material.blend_method = 'BLEND'
     material.use_nodes = True
     principled_node = material.node_tree.nodes['Principled BSDF']
     principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
@@ -119,7 +118,7 @@ def draw_bond_kind(kind,
         principled_node.inputs[key].default_value = value
     datas['materials'] = material
     #
-    verts, faces = cylinder_mesh_from_instance_vec(datas['centers'], datas['normals'], datas['lengths'], bondlinewidth, source)
+    verts, faces = cylinder_mesh_from_instance_vec(datas['centers'], datas['normals'], datas['lengths'], datas['bondlinewidth'], source)
     mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
     mesh.from_pydata(verts, [], faces)  
     mesh.update()
@@ -381,34 +380,28 @@ def cylinder_mesh_from_instance_vec(centers, normals, lengths, scale, source):
     # print('cylinder_mesh_from_instance: {0:10.2f} s'.format( time.time() - tstart))
     return verts, faces
 
-    def draw_plane(location = (0, 0, -1.0), color = (0.2, 0.2, 1.0, 1.0), size = 200, bsdf_inputs = None, material_style = 'blase'):
-        """
-        Draw a plane.
-
-        location: array
-
-        color: array
-
-        size: float
-
-        bsdf_inputs: dict
-
-        material_style: str
-
-        """
-        # build materials
-        if not bsdf_inputs:
-            bsdf_inputs = material_styles_dict[material_style]
-        material = bpy.data.materials.new('plane')
-        material.name = 'plane'
-        material.diffuse_color = color
-        # material.blend_method = 'BLEND'
-        material.use_nodes = True
-        principled_node = material.node_tree.nodes['Principled BSDF']
-        principled_node.inputs['Alpha'].default_value = color[3]
-        for key, value in bsdf_inputs.items():
-                principled_node.inputs[key].default_value = value
-        # Instantiate a floor plane
-        bpy.ops.mesh.primitive_plane_add(size=size, location=location, rotation=rotation)
-        current_object = bpy.context.object
-        current_object.data.materials.append(material)
+def draw_plane(location = (0, 0, -1.0), color = (0.2, 0.2, 1.0, 1.0), size = 200, bsdf_inputs = None, material_style = 'blase'):
+    """
+    Draw a plane.
+    location: array
+    color: array
+    size: float
+    bsdf_inputs: dict
+    material_style: str
+    """
+    # build materials
+    if not bsdf_inputs:
+        bsdf_inputs = material_styles_dict[material_style]
+    material = bpy.data.materials.new('plane')
+    material.name = 'plane'
+    material.diffuse_color = color
+    # material.blend_method = 'BLEND'
+    material.use_nodes = True
+    principled_node = material.node_tree.nodes['Principled BSDF']
+    principled_node.inputs['Alpha'].default_value = color[3]
+    for key, value in bsdf_inputs.items():
+            principled_node.inputs[key].default_value = value
+    # Instantiate a floor plane
+    bpy.ops.mesh.primitive_plane_add(size=size, location=location)
+    current_object = bpy.context.object
+    current_object.data.materials.append(material)
