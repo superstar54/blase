@@ -3,7 +3,47 @@
 Building structure
 ===================
 
-Here we show how to build various structures, including molecule, crystal, surface, nanoparticles. Please read ASE document for building structures using ASE: https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=build#module-ase.build
+Here we show how to build various structures, including molecule, crystal, surface and nanoparticles. 
+The :mod:`Batoms <blase.batoms>` object is used to build structure from scratch, load structure from file or other objects (``ASE``, ``Pymatgen``).
+
+From scratch
+==============
+Build a H\ :sub:`2`\ O molecule:
+
+>>> from blase.batoms import Batoms
+>>> h2o = Batoms(label = 'h2o', {'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
+
+.. image:: ../_static/batoms-h2o.png
+   :width: 3cm
+
+
+Here is how you could define an platinum crystal structure with a lattice constant of 3.96 Å:
+
+>>> from blase.batoms import Batoms
+>>> a = 3.96
+>>> positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
+>>> pt = Batoms({'Pt': positions}, pbc = True, cell = (a, a, a))
+
+.. image:: ../_static/batoms-pt-crystal.png
+   :width: 3cm
+
+
+Import from file
+================
+``Blase`` use ``ase.io.read`` function to read file, thus it support various file formats, such as: xyz, pdb, cif, VASP, Espresso, Aims and so on. Please read: https://wiki.fysik.dtu.dk/ase/ase/io/io.html?highlight=read#ase.io.read
+
+>>> from blase.bio import read
+>>> tio2 = read('docs/source/_static/datas/tio2.cif')
+
+.. image:: ../_static/bond_tio2.png
+   :width: 5cm
+
+
+
+ASE
+================
+
+Please read ASE document for building structures using ASE: https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=build#module-ase.build
 
 
 Molecules
@@ -19,7 +59,6 @@ ASE defines a number of molecular geometries in the ``g2`` database, which can b
 
 .. image:: ../_static/build_nh3.png
    :width: 4cm
-
 
 The list of available molecules is those from the ase.collections.g2 database:
 
@@ -76,6 +115,8 @@ More complicated molecules may be obtained using the PubChem API integration. He
 Crystal
 ===========
 
+Create a bulk structure for FCC ``Au``.
+
 >>> from ase.build import bulk
 >>> au = bulk('Au', 'fcc', cubic=True)
 >>> au = Batoms(label = 'au', atoms = au)
@@ -85,3 +126,31 @@ Crystal
    :width: 5cm
 
 
+Surface
+============
+
+Create (111) surface for FCC ``Au``.
+
+>>> import numpy as np
+>>> from ase.build import fcc111
+>>> from blase.batoms import Batoms
+>>> atoms = fcc111('Au', size = (5, 5, 4), vacuum=0)
+>>> au111 = Batoms(label = 'au111', atoms = atoms)
+>>> au111.cell[2, 2] += 10
+
+.. image:: ../_static/gallery_side_view.png 
+   :width: 5cm
+
+Nanoparticle
+================
+Create a nanoparticle using ``Wulff`` method:
+
+>>> from ase.cluster import wulff_construction
+>>> from blase.batoms import Batoms
+>>> surfaces = [(1, 1, 1), (1, 0, 0)]
+>>> energies = [1.28, 1.69]
+>>> atoms = wulff_construction('Au', surfaces, energies, 5000, 'fcc')
+>>> atoms.center(vacuum=2.0)
+
+.. image:: ../_static/wulff.png 
+   :width: 5cm

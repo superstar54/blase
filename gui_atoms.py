@@ -16,7 +16,7 @@ from bpy.props import (StringProperty,
                        )
 
 from blase.butils import read_batoms_collection_list, read_atoms_list
-from blase.bio import read_batoms_collection
+from blase.batoms import Batoms
 
 
 # The panel.
@@ -122,7 +122,7 @@ class AtomsProperties(bpy.types.PropertyGroup):
 def modify_materials(collection_name, model_type, atoms = None):
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     print('drawing atoms')
     batoms.draw_atoms()
 
@@ -131,7 +131,7 @@ def modify_radius(collection_name, atoms_list, radius, batoms = None):
     # Modify atom radius (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     print('drawing atoms')
     batoms.draw_atoms(props={atoms_list:{'radius': radius,}})
 # Modifying the radius of a selected atom or stick
@@ -139,6 +139,6 @@ def modify_color(collection_name, atoms_list, color, batoms = None):
     # Modify atom radius (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     print('drawing atoms')
     batoms.draw_atoms(props={atoms_list:{'color': color,}})

@@ -22,39 +22,9 @@ from blase.gui_io import import_blase
 
 
 from blase.butils import read_batoms_collection_list
-from blase.bio import read_batoms_collection
 from blase.batoms import Batoms
 
-
-class BlaseSettings(bpy.types.PropertyGroup):
-    is_blase: BoolProperty(name="is_blase", default=False)
-    model_type: StringProperty(name="model_type", default = '0')
-    pbc: BoolVectorProperty(name="pbc", default = [False, False, False], size = 3)
-    cell: FloatVectorProperty(name="cell", default = [0, 0, 0, 0, 0, 0, 0, 0, 0], size = 9)
-    show_unit_cell: BoolProperty(name="show_unit_cell", default = True)
-    boundary: FloatVectorProperty(name="boundary", default = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0], size = 6)
-
-# class BatomSettings(bpy.types.PropertyGroup):
-#     label: StringProperty(name="label", default = '')
-#     species: StringProperty(name="species", default = 'X')
-#     element: StringProperty(name="element", default = '')
-#     scale: FloatProperty(name="scale", default = 1.0)
-
-class BlaseAtom(bpy.types.PropertyGroup):
-    symbol: StringProperty(name="symbol")
-    position: FloatVectorProperty(name="position", size = 3)
-    tag: IntProperty(name="tag")
-class BlaseBond(bpy.types.PropertyGroup):
-    symbol1: StringProperty(name="symbol1")
-    symbol2: StringProperty(name="symbol2")
-    min: FloatProperty(name="min", description = "min", default = 0.0)
-    max: FloatProperty(name="max", description = "max", default = 2.0)
-    polyhedra: BoolProperty(name="polyhedra", default=False)
-    search: IntProperty(name="search", default=0)
-    color1: FloatVectorProperty(name="color", size = 4)
-    color2: FloatVectorProperty(name="color", size = 4)
-    bondlinewidth: FloatProperty(name="bondlinewidth", default = 0.10)
-    
+   
 # The panel.
 class Blase_PT_prepare(Panel):
     bl_label       = "Blase Tools"
@@ -507,7 +477,7 @@ def render_atoms(collection_name, output_image = 'bout.png', batoms = None):
     print('Rendering atoms')
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     batoms.render(output_image = output_image)
 def load_frames(collection_name, movie, batoms = None):
     """
@@ -515,5 +485,5 @@ def load_frames(collection_name, movie, batoms = None):
     print('Rendering atoms')
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     batoms.load_frames()

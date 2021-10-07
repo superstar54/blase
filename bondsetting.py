@@ -1,5 +1,6 @@
 """
 """
+from os import name
 import bpy
 from blase.butils import object_mode
 import numpy as np
@@ -22,21 +23,19 @@ class Bondsetting():
     def __init__(self, label, cutoff = 1.3, color_style = 'JMOL') -> None:
         self.label = label
         self.cutoff = cutoff
-        self.color_style = color_style
+        self.bondcolor_style = color_style
         self.set_default(self.species, cutoff)
     def get_data(self):
         data = {}
-        coll = bpy.data.collections[self.label]
-        for b in coll.bond:
-            data[(b.symbol1, b.symbol2)] = [b.min, b.max, b.search, b.polyhedra, 
-                                            np.array(b.color1), np.array(b.color2), b.bondlinewidth]
+        coll = self.coll
+        for b in coll.blasebond:
+            data['%s-%s'%(b.symbol1, b.symbol2)] = b
         return data
-    def get_color(self):
-        color = {}
-        coll = bpy.data.collections[self.label]
-        for b in coll.bond:
-            color[(b.symbol1, b.symbol2)] = [np.array(b.color1), np.array(b.color2)]
-        return color
+    @property
+    def coll(self):
+        return self.get_coll()
+    def get_coll(self):
+        return bpy.data.collections[self.label]
     @property
     def species(self):
         return self.get_species()
@@ -52,70 +51,42 @@ class Bondsetting():
     @property
     def data(self):
         return self.get_data()
-    @property
-    def color(self):
-        return self.get_color()
-    @color.setter
-    def color(self, color):
-        self.set_color(color)
-    def set_color(self, color):
-        bond, color = color
-        data = self.data[bond]
-        data[4] = color[0]
-        data[5] = color[1]
-        self[bond] = data
-    def __repr__(self) -> str:
-        s = '-'*60 + '\n'
-        s = 'Bondpair      min     max   Search_bond    Polyhedra \n'
-        data = self.data
-        for key, value in data.items():
-            s += '{0:5s} {1:5s} {2:4.3f}   {3:4.3f}      {4:10s}   {5:10s} \n'.format(\
-                key[0], key[1], value[0], value[1], str(value[2]), str(value[3]),)
-        s += '-'*60 + '\n'
-        return s
     def __getitem__(self, index):
-        return self.data[index]
+        bond = self.find(index)
+        if bond is None:
+            raise Exception('%s not in bondsetting'%index)
+        return bond
     def __setitem__(self, index, value):
         """
         Add bondpair one by one
         """
-        coll = bpy.data.collections[self.label]
-        flag = False
-        for b in coll.bond:
-            if (b.symbol1, b.symbol2) == index:
-                b.min = value[0]
-                b.max = value[1]
-                b.search = value[2]
-                b.polyhedra = value[3]
-                if len(value) == 7:
-                    b.color1 = value[4]
-                    b.color2 = value[5]
-                    b.bondlinewidth = value[6]
-                flag = True
-        if not flag:
-            bond = coll.bond.add()
-            bond.symbol1 = index[0]
-            bond.symbol2 = index[1]
-            bond.min = value[0]
-            bond.max = value[1]
-            bond.search = value[2]
-            bond.polyhedra = value[3]
-            if len(value) == 7:
-                bond.color1 = value[4]
-                bond.color2 = value[5]
-                bond.bondlinewidth = value[6]
+        coll = self.coll
+        bond = self.find(index)
+        if bond is None:
+            bond = coll.blasebond.add()
+        bond.symbol1 = index.split('-')[0]
+        bond.symbol2 = index.split('-')[1]
+        bond.name = index
+        bond.min = value[0]
+        bond.max = value[1]
+        bond.search = value[2]
+        bond.polyhedra = value[3]
+        if len(value) == 7:
+            bond.bondcolor1 = value[4]
+            bond.bondcolor2 = value[5]
+            bond.bondlinewidth = value[6]
     def copy(self, label):
         object_mode()
         bondsetting = Bondsetting(label)
-        for key, value in self.data.items():
-            bondsetting[key] = value
+        for key, b in self.data.items():
+            bondsetting[key] = [b.min, b.max, b.search, b.polyhedra, b.bondcolor1, b.bondcolor2, b.bondlinewidth]
         return bondsetting
     def set_default(self, species, cutoff = 1.3):
         """
         """
         bondtable = get_bondtable(species, cutoff=cutoff)
         for key, value in bondtable.items():
-            self[key] = value
+            self['%s-%s'%(key[0], key[1])] = value
     def __add__(self, other):
         self += other
         return self
@@ -135,10 +106,13 @@ class Bondsetting():
                 self.set_default([sp1, sp2], self.cutoff)
     def add_bonds(self, bondpair):
         for key in bondpair:
-            bondtable.pop(key)
+            self.set_default(key)
     def remove_bonds(self, bondpair):
         for key in bondpair:
-            bondtable.pop(key)
+            name = '%s-%s'%(key[0], key[1])
+            i = self.coll.blasebond.find(name)
+            if i != -1:
+                self.coll.blasebond.remove(i)
     def hydrogen_bond(self, ):
         if self.hydrogen_bond:
             self.hydrogen_bondlist = build_bondlists(self.atoms, cutoff = {('O', 'H'): self.hydrogen_bond})
@@ -147,7 +121,27 @@ class Bondsetting():
         pass
     def add_polyhedra_dict(self, ):
         pass
-    
+    def __repr__(self) -> str:
+        s = '-'*60 + '\n'
+        s = 'Bondpair      min     max   Search_bond    Polyhedra \n'
+        for b in self.coll.blasebond:
+            s += '{0:10s} {1:4.3f}   {2:4.3f}      {3:10s}   {4:10s} \n'.format(\
+                b.name, b.min, b.max, str(b.search), str(b.polyhedra))
+        s += '-'*60 + '\n'
+        return s
+    def __iter__(self):
+        bond = self.coll.blasebond
+        for i in range(len(bond)):
+            yield bond[i]
+    def __len__(self):
+        return len(self.coll.blasebond)
+    def find(self, name):
+        i = self.coll.blasebond.find(name)
+        if i == -1:
+            return None
+        else:
+            return self.coll.blasebond[i]
+
     
 
 def get_bondtable(specieslist, cutoff = 1.3, color_style = "JMOL"):
@@ -183,12 +177,14 @@ def build_bondlists(atoms, bondsetting):
     if len(bondsetting) == 0: return {}
     cutoff_min = {}
     cutoff = {}
-    for (spi, spj), data in bondsetting.items():
+    for b in bondsetting:
+        spi = b.symbol1
+        spj = b.symbol2
         eli = spi.split('_')[0]
         elj = spj.split('_')[0]
         key = (eli, elj)
-        cutoff_min[key] = data[0]
-        cutoff[key] = data[1]
+        cutoff_min[key] = b.min
+        cutoff[key] = b.max
     #
     tstart = time()
     nli, nlj, nlS = neighbor_list('ijS', atoms, cutoff, cutoff_min, self_interaction=False)
@@ -212,8 +208,10 @@ def build_polyhedralists(atoms, bondlists, bondsetting, color_style = "JMOL", tr
         positions = atoms.positions
         polyhedra_kinds = {}
         polyhedra_dict = {}
-        for (spi, spj), data in bondsetting.items():
-            if data[3]:
+        for b in bondsetting:
+            spi = b.symbol1
+            spj = b.symbol2
+            if b.polyhedra:
                 if spi not in polyhedra_dict: polyhedra_dict[spi] = []
                 polyhedra_dict[spi].append(spj)
         # loop center atoms
@@ -285,13 +283,15 @@ def search_skin(atoms, bondsetting, bondlists, skin = []):
     for spi in specieslist:
         bondlists1 = bondlistsij[speciesarray[bondlistsij[:, 0]] == spi]
         for spj in specieslist:
-            if (spi, spj) not in bondsetting: continue
-            if bondsetting[(spi, spj)][2] > 0:
+            name = '%s-%s'%(spi, spj)
+            if not bondsetting.find(name): continue
+            if bondsetting[name].search > 0:
                 bondlists0 = np.append(bondlists0, bondlists1[speciesarray[bondlists1[:, 1]] == spj], axis = 0)
         bondlists1 = bondlistsji[speciesarray[bondlistsij[:, 0]] == spi]
         for spj in specieslist:
-            if (spj, spi) not in bondsetting: continue
-            if bondsetting[(spj, spi)][2] > 0:
+            name = '%s-%s'%(spj, spi)
+            if not bondsetting.find(name): continue
+            if bondsetting[name].search > 0:
                 bondlists0 = np.append(bondlists0, bondlists1[speciesarray[bondlists1[:, 1]] == spj], axis = 0)
     # print(bondlists0)
     ind_atom_skin = list(set(bondlists0[:, 1]) & set(skin))

@@ -22,6 +22,7 @@ from bpy.types import (Panel,
                        PropertyGroup,
                        )
 from . import (
+        custom_property,
         gui_io,  # Blase import/export
         gui_blase,  # Panel to edit atomic structure interactively.
         gui_bonds,  #
@@ -39,9 +40,10 @@ classes = [
         gui_io.IMPORT_OT_blase,
         gui_blase.Blase_PT_prepare,
         gui_blase.BlaseProperties,
-        gui_blase.BlaseSettings,
-        gui_blase.BlaseAtom,
-        gui_blase.BlaseBond,
+        custom_property.BlaseBatoms,
+        custom_property.BlaseBatom,
+        custom_property.BlaseBcell,
+        custom_property.BlaseBond,
         gui_blase.ExportAtom,
         gui_blase.SplitAtom,
         gui_blase.AddMolecule,
@@ -65,12 +67,10 @@ def register():
     scene.atpanel = bpy.props.PointerProperty(type=gui_atoms.AtomsProperties)
     scene.bopanel = bpy.props.PointerProperty(type=gui_atoms.AtomsProperties)
     scene.clpanel = bpy.props.PointerProperty(type=gui_cell.CellProperties)
-    bpy.types.Collection.is_batoms = bpy.props.BoolProperty(name = 'is_batoms')
-    bpy.types.Collection.blase = bpy.props.PointerProperty(name = 'blase', type = gui_blase.BlaseSettings)
-    bpy.types.Collection.batoms = bpy.props.CollectionProperty(name = 'batoms', type = gui_blase.BlaseAtom)
-    bpy.types.Collection.bond = bpy.props.CollectionProperty(name = 'bond', type = gui_blase.BlaseBond)
-    bpy.types.Object.is_batom = bpy.props.BoolProperty(name = 'is_batom')
-    bpy.types.Object.is_bcell = bpy.props.BoolProperty(name = 'is_bcell')
+    bpy.types.Collection.blasebatoms = bpy.props.PointerProperty(name = 'BlaseBatoms', type = custom_property.BlaseBatoms)
+    bpy.types.Collection.blasebond = bpy.props.CollectionProperty(name = 'BlaseBond', type = custom_property.BlaseBond)
+    bpy.types.Object.blasebatom = bpy.props.PointerProperty(name = 'BlaseBatom', type = custom_property.BlaseBatom)
+    bpy.types.Object.blasebcell = bpy.props.PointerProperty(name = 'BlaseBcell', type = custom_property.BlaseBcell)
     bpy.types.Object.label = bpy.props.StringProperty(name = 'label')
     bpy.types.Object.species = bpy.props.StringProperty(name = 'species')
     bpy.types.Object.element = bpy.props.StringProperty(name = 'element')

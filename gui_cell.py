@@ -16,8 +16,7 @@ from bpy.props import (StringProperty,
                        )
 
 from blase.butils import read_batoms_collection_list, read_atoms_list
-from blase.bio import read_batoms_collection
-
+from blase.batoms import Batoms
 
 # The panel.
 class Cell_PT_prepare(Panel):
@@ -125,7 +124,7 @@ def modify_cell(collection_name, cell, batoms = None):
     # Modify atom scale (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     print('drawing atoms')
     batoms.set_cell(cell)
     batoms.draw()
@@ -134,7 +133,7 @@ def modify_supercell(collection_name, supercell, batoms = None):
     # Modify atom scale (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     print('drawing atoms')
     batoms*=supercell
     batoms.draw()
@@ -142,13 +141,13 @@ def modify_pbc(collection_name, pbc, batoms = None):
     # Modify atom scale (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     batoms.atoms.pbc = pbc
 def modify_boundary(collection_name, cutoff, batoms = None):
     # Modify atom cutoff (all selected)
     coll = bpy.data.collections[collection_name]
     if not batoms:
-        batoms = read_batoms_collection(coll)
+        batoms = Batoms(coll)
     print('drawing atoms')
     batoms.coll.blase.boundary = cutoff
     # if batoms.atoms.pbc.any():

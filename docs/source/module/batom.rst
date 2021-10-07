@@ -18,13 +18,6 @@ to specify the species ``H``, and the ``positions`` keyword to
 specify their positions of the H atoms. Other possible keywords are: ``element``, ``scale``, ``color``, ``shape``, ``kind_props``, ``color_style``,
 ``material_style``, ``bsdf_inputs``, ``location`` and ``draw``.
 
-
-``location`` is the object’s origin location in global coordinates.
-
->>> from blase.batom import Batom
->>> h = Batom(label = 'h2o', species = 'H', positions = [[0, -0.76, -0.2], [0, 0.76, -0.2]], location = [2, 2, 2])
-
-
 One get the positions of all ``H`` atoms by:
 
 >>> h.positions
@@ -34,10 +27,19 @@ One set the positions of all ``H`` atoms by:
 >>> new_positions = [[2, 0, 0], [4, 0, 0]]
 >>> h.positions = new_positions
 
-One set scale by:
+One set ``scale``, ``color`` and ``shape`` by:
 
 >>> h.scale = 2
 >>> h.shape = 'CUBE'
+>>> h.color = [0.8, 0.1, 0.3, 1.0]
+
+The last value of color define the ``transparency`` of ``H`` atoms.
+
+
+``location`` is the object’s origin location in global coordinates.
+
+>>> from blase.batom import Batom
+>>> h = Batom(label = 'h2o', species = 'H', positions = [[0, -0.76, -0.2], [0, 0.76, -0.2]], location = [2, 2, 2])
 
 
 Other methods

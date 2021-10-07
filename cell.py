@@ -44,9 +44,9 @@ class Bcell():
             obj_edge = bpy.data.objects.new("cell_%s_edge"%self.label, mesh)
             obj_edge.data = mesh
             obj_edge.location = location
-            obj_edge.is_bcell = True
+            obj_edge.blasebcell.is_bcell = True
             bpy.data.collections['Collection'].objects.link(obj_edge)
-        elif hasattr(bpy.data.objects[self.name], 'is_bcell') and bpy.data.objects[self.name].is_bcell:
+        elif bpy.data.objects[self.name].blasebcell.is_bcell:
             obj_atom = bpy.data.objects[self.name]
         else:
             raise Exception("Failed, the name %s already in use and is not Bcell object!"%self.name)

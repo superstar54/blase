@@ -1,5 +1,5 @@
 Pymatgen
----------------
+================
 
 If you are not familiar with building atomic structure using Pymatgen, please read the following tutorials:
 
@@ -15,7 +15,7 @@ Molecule:
 >>> co = Molecule(["C","O"], [[0.0, 0.0, 0.0], [0.0, 0.0, 1.2]])
 >>> co = Batoms(label = 'co', structure=co)
 
-.. image:: ../_static/ase-co.png
+.. image:: ../../_static/ase-co.png
    :width: 3cm
 
 Crystal:
@@ -25,5 +25,5 @@ Crystal:
 >>> fe = Structure(Lattice.cubic(2.8), ["Fe", "Fe"], [[0, 0, 0], [0.5, 0.5, 0.5]])
 >>> fe = Batoms(label = 'fe', structure=fe)
 
-.. image:: ../_static/ase-fe.png
+.. image:: ../../_static/ase-fe.png
    :width: 3cm

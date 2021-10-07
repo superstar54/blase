@@ -2,21 +2,40 @@
 Tips
 =======
 
+The following setting will make manipulating more easy, thus are strongly suggested.
 
 
-3-button-mouse
+3-button-mouse and Numpad
 ==========================
-Enable 3-button-mouse in laptop without mouse.  please vist: https://docs.blender.org/manual/en/latest/editors/preferences/input.html
+For laptop without mouse, open preference panel and select:
+
+- Emulate Numpad
+- Emulate 3 Button Mouse
+
+After that, you can:
+
+- To rotate the view, press Alt + Left Mouse button and drag.
+- To pan the view, press Shift + Alt + Left Mouse button and drag.
+
+
+.. image:: _static/tips_keyboard.png
+   :width: 15cm
 
 
 
-
-
-Change rotation center of viewport to selected object
+Change rotation and zoom center of viewport to selected object
 ===============================================================
 
-https://blender.stackexchange.com/questions/179289/how-do-i-rotate-my-viewport-around-the-position-of-my-cursor
+Open preference panel and select:
 
+- Orbit Around Selection
+- Zoom to Mouse Position
+
+.. image:: _static/tips_navigation.png
+   :width: 15cm
+
+
+The following tips are optional.
 
 Grid setting
 =======================

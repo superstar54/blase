@@ -4,8 +4,7 @@
 The Bcell object
 ===================
 
-The :class:`Bcell` object is an object for unit cell. Here is how to cubic unit cell.
-
+The :class:`Bcell` object is an object for unit cell. Here is how to creat a cubic unit cell:
 
 >>> from blase.cell import Bcell
 >>> cell = Bcell(label = 'pt', array = [2, 2, 2])

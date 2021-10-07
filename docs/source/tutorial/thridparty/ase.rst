@@ -1,5 +1,5 @@
 ASE
--------
+=================
 
 If you are not familiar with building atomic structure using ASE, please read the following tutorials:
 
@@ -23,7 +23,7 @@ Molecule:
 >>> co = molecule('CO')
 >>> co = Batoms(label = 'co', atoms=co)
 
-.. image:: ../_static/ase-co.png
+.. image:: ../../_static/ase-co.png
    :width: 3cm
 
 Crystal:
@@ -33,5 +33,5 @@ Crystal:
 >>> fe = bulk('Fe')
 >>> fe = Batoms(label = 'fe', atoms=fe)
 
-.. image:: ../_static/ase-fe.png
+.. image:: ../../_static/ase-fe.png
    :width: 3cm

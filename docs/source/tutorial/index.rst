@@ -8,11 +8,12 @@ Tutorials
 
    buildthings
    render/index
-   thridparty/index
-   species
-   animation
    bond_polyhedra
    boundary
+   animation
+   color
+   thridparty/index
+   species
    cavity
    surface/index
    blaseio

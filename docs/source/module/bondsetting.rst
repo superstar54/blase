@@ -4,7 +4,7 @@
 The Bondsetting object
 ========================
 
-The :class:`Bondsetting` object is used to store and set all parameters related with bonds. It should always bind with a :class:`Batoms` object. 
+The :class:`Bondsetting` object is used to store and set all parameters related with bonds. It is a collection of :class:`BlaseBond` object. It should always bind with a :class:`Batoms` object. possible keywords are: ``symbol1``, ``symbol2``, ``min``, ``max``, ``search``, ``polyhedra``, ``color1``, ``color2`` and ``bondlinewidth``. 
 
 
 >>> from ase.build import molecule
@@ -29,7 +29,7 @@ Polyhedra
 
 One can change setting for a bond pair. For example, to build up coordination polyhedra, the value for ``polyhedra`` should be set to ``True``:
 
->>> ch4.bondsetting[('C', 'H')] = [0, 1.4, 1, True]
+>>> ch4.bondsetting['C-H'].polyhedra = True
 >>> ch4.model_type = 2
 
 
@@ -45,7 +45,7 @@ Search bond mode
 
 To change setting for ``Search_bond`` by:
 
->>> tio2.bondsetting[('Ti', 'O')] = [0.5, 2.5, 0, True]
+>>> tio2.bondsetting['Ti-O'].polyhedra = True
 >>> tio2.update_boundary()
 >>> tio2.model_type = 2
 
@@ -59,11 +59,12 @@ Color
 
 One can print the default color by:
 
->>> ch4.bondsetting.color
+>>> ch4.bondsetting['C-H'].color1[:]
 
 One can change color for a bond pair. 
 
->>> ch4.bondsetting.color = (('C', 'H'), [[0.8, 0.1, 0.3, 0.5], [0.1, 0.3, 0.2, 1.0]])
+>>> ch4.bondsetting['C-H'].color1 = [0.8, 0.1, 0.3, 0.5]
+>>> ch4.bondsetting['C-H'].color2 = [0.1, 0.3, 0.2, 1.0]
 >>> ch4.model_type = 1
 
 

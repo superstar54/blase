@@ -3,20 +3,11 @@
 Hydrogen bond
 ===================
 
-By defaut, we use `ase.neighborlist.neighbor_list` to get the bond paris. We use default radius for every atoms, and if two spheres overlap, atoms are connected by a bond.
+To build up hydrogen bond, the value for ``search`` should be set to ``5``. To change setting for a bond pair by:
 
-You can print the default bondsetting by:
-
-
-
-To build up coordination polyhedra, the value for ``polyhedra`` should be set to ``True``. To change setting for a bond pair by:
-
->>> tio2.bondsetting[('Ti', 'O')] = [2.5, True, False]
+>>> h2o.bondsetting['O-H'].min = 2.2
+>>> h2o.bondsetting['O-H'].max = 3.2
+>>> h2o.bondsetting['O-H'].search = 5
 
 
- Search mode:
- 
- * Search species2 bonded to species1
-
-
-
+Not supported yet.

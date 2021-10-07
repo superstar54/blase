@@ -36,6 +36,5 @@ Search additional atoms if species1 is included in the boundary:
 >>> tio2.boundary = 0.01
 >>> tio2.model_type = 2
 
-
-.. image:: ../_static/search-bond-tio2-2.png
+.. image:: ../_static/bondsetting_tio2_3.png
    :width: 8cm

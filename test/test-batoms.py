@@ -26,7 +26,7 @@ def test_batoms():
     #
     h2o_2 = h2o.copy('h2o_2')
     assert isinstance(h2o_2, Batoms)
-    h2o_3 = Batoms(from_collection='h2o_2')
+    h2o_3 = Batoms(label='h2o_2')
     #
     # delete
     del h2o_3['H'][[0]]

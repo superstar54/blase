@@ -51,8 +51,26 @@ Three engines can be used:
      -  .. image:: ../_static/render_cycles.png 
 
 
-Direction
+Viewpoint
 ===========
+The ``direction`` keyword is used to set the direction of camera.
+
+
+.. list-table::
+   :widths: 25 25 25 25
+
+   * - Top
+     - Front
+     - Right
+     - Other direction
+   * - [0, 0, 1]
+     - [1, 0, 0]
+     - [0, 1, 0]
+     - [1, -0.3, 0.1]
+   * -  .. image:: ../../_static/render_direction_top.png 
+     -  .. image:: ../../_static/render_direction_front.png 
+     -  .. image:: ../../_static/render_direction_right.png 
+     -  .. image:: ../../_static/render_direction_any.png 
 
 
 

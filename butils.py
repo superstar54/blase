@@ -88,6 +88,8 @@ def removeAll():
         bpy.data.cameras.remove(cam)
     for light in bpy.data.lights:
         bpy.data.lights.remove(light)
+    for mat in bpy.data.materials:
+        bpy.data.materials.remove(mat)
     for coll in bpy.data.collections:
         if coll.name == 'Collection': continue
         bpy.data.collections.remove(coll)

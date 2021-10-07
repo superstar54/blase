@@ -172,10 +172,10 @@ class Batom():
             mesh = bpy.data.meshes.new(self.name)
             obj_atom = bpy.data.objects.new(self.name, mesh)
             obj_atom.data.from_pydata(positions, [], [])
-            obj_atom.is_batom = True
+            obj_atom.blasebatom.is_batom = True
             obj_atom.location = location
             bpy.data.collections['Collection'].objects.link(obj_atom)
-        elif hasattr(bpy.data.objects[self.name], 'is_batom'):
+        elif bpy.data.objects[self.name].blasebatom.is_batom:
             obj_atom = bpy.data.objects[self.name]
         else:
             raise Exception("Failed, the name %s already in use and is not blase object!"%self.name)
@@ -188,7 +188,7 @@ class Batom():
     def from_batom(self, batom_name):
         if batom_name not in bpy.data.objects:
             raise Exception("%s is not a object!"%batom_name)
-        elif not bpy.data.objects[batom_name].is_batom:
+        elif not bpy.data.objects[batom_name].blasebatom.is_batom:
             raise Exception("%s is not Batom object!"%batom_name)
         ba = bpy.data.objects[batom_name]
         self.species = ba.species

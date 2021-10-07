@@ -15,6 +15,15 @@ Here, the argument specifies the type of the atoms and their positions. Other
 possible keywords are: ``pbc``, ``cell``, ``atoms``, ``model_type``, ``boundary``, ``show_unit_cell``, ``isosurface``, ``kind_props``,
 ``color``, ``add_bonds``, ``remove_bonds`` and ``draw``.
 
+
+One get and set ``model_type``, ``pbc``, ``show_unit_cell``, ``cell`` and ``boundary`` by:
+
+>>> h2o.model_type = 0
+>>> h2o.pbc = True
+>>> h2o.cell = [[3, 0, 0], [0, 3, 0], [0, 0, 3]]
+>>> h2o.show_unit_cell = False
+
+
 Here is how you could define an platinum crystal structure with a lattice constant of 3.96 Å:
 
 >>> from blase.batoms import Batoms
@@ -41,13 +50,6 @@ We can also read an structure from a file:
 
 >>> from blase.bio import read
 >>> tio2 = read('docs/source/_static/datas/tio2.cif')
-
-One get and set ``model_type``, ``pbc``, ``show_unit_cell``, ``cell`` and ``boundary`` by:
-
->>> h2o.model_type = 0
->>> h2o.pbc = True
->>> h2o.cell = [[3, 0, 0], [0, 3, 0], [0, 0, 3]]
->>> h2o.show_unit_cell = False
 
 
 Model_type

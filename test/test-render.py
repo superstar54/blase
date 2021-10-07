@@ -17,9 +17,9 @@ def test_render():
     atoms = fcc111('Au', size = (4, 4, 4), vacuum=0)
     au111 = Batoms(label = 'au111', atoms = atoms)
     au111.cell[2, 2] += 5
-    au111.render([1, 1, 1], output_image='au111')
-    au111.render([1, 1, 1], engine = 'eevee', output_image='au111-eevee')
-    au111.render([1, 1, 1], engine = 'cycles', output_image='au111-cycles')
-    print(au111.rendersetting)
+    au111.draw_cell()
+    au111.render.run([1, 1, 1], engine = 'workbench', resolution_x = 200, output='au111')
+    au111.render.run([1, 1, 1], engine = 'eevee', resolution_x = 200, output='au111-eevee')
+    au111.render.run([1, 1, 1], engine = 'cycles', resolution_x = 200, output='au111-cycles')
 
 test_render()
