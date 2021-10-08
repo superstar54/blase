@@ -37,22 +37,10 @@ def get_atom_kind(element, positions = [], color_style = "JMOL", scale = [1, 1, 
     atom_kind['balltype'] = None
     atom_kind.update(props)
     return atom_kind
-def get_bond_kind(element1, element2, color_style = "JMOL", props = {}):
-    """
-    """
-    bond_kind1 = default_element_prop(element1, color_style = color_style)
-    bond_kind2 = default_element_prop(element2, color_style = color_style)
-    bond_kind['lengths'] = []
-    bond_kind['centers'] = []
-    bond_kind['normals'] = []
-    bond_kind['verts'] = []
-    bond_kind['faces'] = []
-    bond_kind.update(props)
-    return bond_kind
 
-def get_polyhedra_kind(element, color_style = "JMOL", transmit = 0.3, props = {}):
-    polyhedra_kind = default_element_prop(element, color_style = color_style)
-    polyhedra_kind['transmit'] = transmit
+def get_polyhedra_kind(color, edgewidth = 0.01, props = {}):
+    polyhedra_kind = {'color': color[:3], 'transmit': color[3],
+                     'edgewidth': edgewidth}
     vertices = []
     edges = []
     faces = []

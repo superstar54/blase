@@ -26,7 +26,7 @@ Development topics
 
 Bond
 ------------
-- add Hydrogen bond
+
 - add different style for bond, dot and dash line, one color for all bonds.
   
 Polyhedra

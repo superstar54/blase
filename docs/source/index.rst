@@ -6,7 +6,7 @@
 =================================
 Welcome to blase's documentation!
 =================================
-Blase is a Python package for drawing and rendering atoms and molecules objects using blender.
+Blase is a Python package for drawing and rendering atoms and molecules objects using blender. A Python interface that allows for automating workflows.
 
 >>> from blase.batoms import Batoms
 >>> h2o = Batoms({'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})

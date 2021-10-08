@@ -22,7 +22,7 @@ Here is how you could define an platinum crystal structure with a lattice consta
 >>> from blase.batoms import Batoms
 >>> a = 3.96
 >>> positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
->>> pt = Batoms({'Pt': positions}, pbc = True, cell = (a, a, a))
+>>> pt = Batoms(label = 'pt', species = {'Pt': positions}, pbc = True, cell = (a, a, a))
 
 .. image:: ../_static/batoms-pt-crystal.png
    :width: 3cm
@@ -118,6 +118,7 @@ Crystal
 Create a bulk structure for FCC ``Au``.
 
 >>> from ase.build import bulk
+>>> from blase.batoms import Batoms
 >>> au = bulk('Au', 'fcc', cubic=True)
 >>> au = Batoms(label = 'au', atoms = au)
 >>> au.render.run(direction = [1, -0.3, 0.1], resolution_x = 200, output = 'au.png')

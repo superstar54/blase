@@ -67,10 +67,10 @@ The ``direction`` keyword is used to set the direction of camera.
      - [1, 0, 0]
      - [0, 1, 0]
      - [1, -0.3, 0.1]
-   * -  .. image:: ../../_static/render_direction_top.png 
-     -  .. image:: ../../_static/render_direction_front.png 
-     -  .. image:: ../../_static/render_direction_right.png 
-     -  .. image:: ../../_static/render_direction_any.png 
+   * -  .. image:: ../_static/render_direction_top.png 
+     -  .. image:: ../_static/render_direction_front.png 
+     -  .. image:: ../_static/render_direction_right.png 
+     -  .. image:: ../_static/render_direction_any.png 
 
 
 

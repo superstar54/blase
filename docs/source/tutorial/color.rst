@@ -8,17 +8,18 @@ Color in ``Blase`` is float array of 4 items in [0, 1]. The four values are repr
 Batom and Batoms
 =====================
 
-The :class:`Batom` object has a ``color`` attribute. One set the ``color`` by:
+Let's take CH\ :sub:`4`\  molecule as a example.
 
 >>> from ase.build import molecule
 >>> from blase.batoms import Batoms
 >>> ch4 = molecule('CH4')
 >>> ch4 = Batoms(label = 'ch4', atoms = ch4)
->>> ch4.render.run([1, 0.5, 0], engine = 'eevee', resolution_x = 200, output = 'color_ch4_0.png')
+>>> ch4.render.run([1, 1, 4], engine = 'eevee', resolution_x = 200, output = 'color_ch4_0.png')
 
 .. image:: ../_static/color_ch4_0.png
    :width: 5cm
 
+The :class:`Batom` object has a ``color`` attribute. One set the ``color`` by:
 
 >>> ch4['H'].color = [0, 0, 0.8, 1.0]
 >>> ch4['C'].color = [0.8, 0, 0, 1.0]
@@ -26,13 +27,12 @@ The :class:`Batom` object has a ``color`` attribute. One set the ``color`` by:
 .. image:: ../_static/color_ch4_1.png
    :width: 5cm
 
-Transparency for ``H`` atoms:
+Make transparency for ``H`` atoms by setting ``Alpha`` value ``< 1``:
 
->>> ch4['H'].color = [0, 0, 0.8, 0.2]
+>>> ch4['H'].color[3] = 0.2
 
 .. image:: ../_static/color_ch4_2.png
    :width: 5cm
-
 
 Bond
 ===================
@@ -49,11 +49,48 @@ One can change color for bond pair ``C-H`` by:
 
 ``color1`` is for the first species in the bond pair (``C``), and ``color2`` is for the second species (``H``).
 
-.. image:: ../_static/color_ch4_4.png
-   :width: 5cm
+.. list-table::
+   :widths: 50 50
 
-
+   * -  |color3|
+     -  |color4|
 
 
 Polyhedra
 ================
+
+One can print the default color by:
+
+
+>>> ch4.polyhedrasetting['C'].color[:]
+
+One can change color for Polyhedra ``C`` by:
+
+>>> ch4.polyhedrasetting['C'].color = [0.8, 0.1, 0.3, 0.8]
+>>> ch4.bondsetting['C-H'].polyhedra = True
+>>> ch4.model_type = 2
+
+.. list-table::
+   :widths: 50 50
+
+   * -  |color5|
+     -  |color6|
+
+
+.. image:: 
+   :width: 5cm
+
+.. |color0|  image:: ../_static/color_ch4_0.png
+   :width: 5cm
+.. |color1|  image:: ../_static/color_ch4_1.png
+   :width: 5cm
+.. |color2|  image:: ../_static/color_ch4_2.png
+   :width: 5cm
+.. |color3|  image:: ../_static/color_ch4_3.png
+   :width: 5cm
+.. |color4|  image:: ../_static/color_ch4_4.png
+   :width: 5cm
+.. |color5|  image:: ../_static/color_ch4_5.png
+   :width: 5cm
+.. |color6|  image:: ../_static/color_ch4_6.png
+   :width: 5cm

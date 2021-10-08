@@ -4,6 +4,9 @@ This module defines the Batom object in the blase package.
 
 """
 
+from operator import pos
+from os import name
+from time import time
 import bpy
 import bmesh
 from blase.butils import object_mode
@@ -55,11 +58,13 @@ class Batom():
     Then, a Batom object is linked to this main collection in Blender. 
 
     Parameters:
+
     label: str
         Name of the batom
     species: str
         species of the atoms.
     positions: array
+        positions
     locations: array
         The object’s origin location in global coordinates.
     element: str
@@ -68,9 +73,11 @@ class Batom():
         "JMOL", "ASE", "VESTA"
 
     Examples:
+
     >>> from blase.batom import Batom
     >>> c = Batom('C', [[0, 0, 0], [1.2, 0, 0]])
     >>> c.draw_atom()
+
     """
     
 
@@ -114,10 +121,12 @@ class Batom():
             self.set_material(material)
             self.set_instancer(segments = segments, subdivisions = subdivisions, shape = shape)
             self.set_object(positions, location)
+            self.batom.blasebatom.species = self.species
+            self.batom.blasebatom.element = self.element
+            self.batom.blasebatom.radius = self.species_data['radius']
         else:
             self.from_batom(label)
-            self.species_data = get_atom_kind(self.element)
-        self.radius = self.species_data['radius']
+        
     def set_material(self, material = None):
         name = 'material_atom_{0}_{1}'.format(self.label, self.species)
         if material:
@@ -222,6 +231,11 @@ class Batom():
             scale = [scale]*3
         self.instancer.scale = scale
     @property
+    def radius(self):
+        return self.get_radius()
+    def get_radius(self):
+        return np.array(self.batom.blasebatom.radius)
+    @property
     def size(self):
         return self.get_size()
     @size.setter
@@ -241,15 +255,17 @@ class Batom():
     def local_positions(self):
         return self.get_local_positions()
     def get_local_positions(self):
-        return np.array([self.batom.data.vertices[i].co for i in range(len(self))])
+        """
+        using foreach_get and foreach_set to improve performance.
+        """
+        n = len(self)
+        positions = np.empty(n*3, dtype=np.float64)
+        self.batom.data.vertices.foreach_get('co', positions)  
+        positions = positions.reshape((n, 3))
+        return positions
     @property
     def positions(self):
         return self.get_positions()
-    def get_positions(self):
-        """
-        Get array of positions.
-        """
-        return np.array([self.batom.matrix_world @ self.batom.data.vertices[i].co for i in range(len(self))])
     @positions.setter
     def positions(self, positions):
         self.set_positions(positions)
@@ -257,7 +273,12 @@ class Batom():
         """
         Get array of positions.
         """
-        return np.array([self.batom.matrix_world @ self.batom.data.vertices[i].co for i in range(len(self))])
+        local_positions = self.local_positions
+        n = len(local_positions)
+        local_positions = np.append(local_positions, np.ones((n, 1)), axis = 1)
+        mat= np.array(self.batom.matrix_world)
+        positions = mat.dot(local_positions.T).T
+        return positions[:, :3]
     def set_positions(self, positions):
         """
         Set positions
@@ -266,8 +287,10 @@ class Batom():
         if len(positions) != natom:
             raise ValueError('positions has wrong shape %s != %s.' %
                                 (len(positions), natom))
-        for i in range(natom):
-            self.batom.data.vertices[i].co = np.array(positions[i]) - np.array(self.batom.location)
+        positions = positions - np.array(self.batom.location)
+        positions = positions.reshape((natom*3, 1))
+        self.batom.data.vertices.foreach_set('co', positions)
+        self.batom.data.update()
     def get_scaled_positions(self, cell):
         """
         Get array of scaled_positions.
@@ -287,7 +310,7 @@ class Batom():
         """
         self.set_color(color)
     def get_color(self):
-        return self.materials.diffuse_color
+        return self.material.diffuse_color
     def set_color(self, color):
         if isinstance(color, float) or isinstance(color, int):
             color = [color]*3
@@ -390,8 +413,10 @@ class Batom():
     
     def load_frames(self, images = []):
         """
+
         images: list
             list of positions
+        
         >>> from blase import Batom
         >>> import numpy as np
         >>> positions = np.array([[0, 0 ,0], [1.52, 0, 0]])

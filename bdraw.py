@@ -178,7 +178,7 @@ def draw_polyhedra_kind(kind,
         principled_node.inputs['Alpha'].default_value = datas['transmit']
         for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
-        verts, faces = cylinder_mesh_from_instance_vec(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], 0.01, source)
+        verts, faces = cylinder_mesh_from_instance_vec(datas['edge_cylinder']['centers'], datas['edge_cylinder']['normals'], datas['edge_cylinder']['lengths'], datas['edgewidth'], source)
         # print(verts)
         mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
         mesh.from_pydata(verts, [], faces)  
@@ -194,60 +194,31 @@ def draw_polyhedra_kind(kind,
         coll.objects.link(obj_edge)
         # print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 
-def draw_isosurface(coll_isosurface, volume, cell = None, level = None,
-                    closed_edges = False, gradient_direction = 'descent',
-                    color=(0.85, 0.80, 0.25) , icolor = None, transmit=0.4,
-                    verbose = False, step_size = 1, 
+
+def draw_isosurface(coll_isosurface, verts, faces, color,
                     bsdf_inputs = None, material_style = 'blase'):
     """Computes an isosurface from a volume grid.
     
-    Parameters:     
+    Parameters:
+
+    
     """
-    from skimage import measure
-    colors = [(1, 1, 0), (0.0, 0.0, 1.0)]
-    if icolor:
-        color = colors[icolor]
-    cell_vertices = get_cell_vertices(cell)
-    cell_vertices.shape = (2, 2, 2, 3)
-    cell_origin = cell_vertices[0,0,0]
-    #
-    spacing = tuple(1.0/np.array(volume.shape))
-    mlevel = np.mean(volume)
-    if not level:
-        level = mlevel*10
-    print('iso level: {0:1.9f}, iso mean: {1:1.9f}'.format(level, mlevel))
-    scaled_verts, faces, normals, values = measure.marching_cubes_lewiner(volume, level = level,
-                    spacing=spacing,gradient_direction=gradient_direction , 
-                    allow_degenerate = False, step_size=step_size)
-    #
-    scaled_verts = list(scaled_verts)
-    nverts = len(scaled_verts)
-    # transform
-    for i in range(nverts):
-        scaled_verts[i] = scaled_verts[i].dot(cell)
-        scaled_verts[i] -= cell_origin
-    faces = list(faces)
-    print('Draw isosurface...')
-    # print('verts: ', scaled_verts[0:5])
-    # print('faces: ', faces[0:5])
     #material
     if not bsdf_inputs:
         bsdf_inputs = material_styles_dict[material_style]
     material = bpy.data.materials.new('isosurface')
     material.name = 'isosurface'
-    material.diffuse_color = color + (transmit,)
-    # material.alpha_threshold = 0.2
-    # material.blend_method = 'BLEND'
+    material.diffuse_color = color
+    material.blend_method = 'BLEND'
     material.use_nodes = True
     principled_node = material.node_tree.nodes['Principled BSDF']
-    principled_node.inputs['Base Color'].default_value = color + (transmit,)
-    principled_node.inputs['Alpha'].default_value = transmit
+    principled_node.inputs['Base Color'].default_value = color
+    principled_node.inputs['Alpha'].default_value = color[3]
     for key, value in bsdf_inputs.items():
             principled_node.inputs[key].default_value = value
-    #
     # create new mesh structure
     isosurface = bpy.data.meshes.new("isosurface")
-    isosurface.from_pydata(scaled_verts, [], faces)  
+    isosurface.from_pydata(verts, [], faces)  
     isosurface.update()
     for f in isosurface.polygons:
         f.use_smooth = True
@@ -256,15 +227,6 @@ def draw_isosurface(coll_isosurface, volume, cell = None, level = None,
     iso_object.data.materials.append(material)
     bpy.ops.object.shade_smooth()
     coll_isosurface.objects.link(iso_object)
-
-def clean_default():
-    if 'Camera' in bpy.data.cameras:
-        bpy.data.cameras.remove(bpy.data.cameras['Camera'])
-    if 'Light' in bpy.data.lights:
-        bpy.data.lights.remove(bpy.data.lights['Light'])
-    if 'Cube' in bpy.data.objects:
-        bpy.data.objects.remove(bpy.data.objects['Cube'])
-
 
 
 # draw bonds

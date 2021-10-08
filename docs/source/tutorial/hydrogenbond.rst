@@ -3,11 +3,21 @@
 Hydrogen bond
 ===================
 
-To build up hydrogen bond, the value for ``search`` should be set to ``5``. To change setting for a bond pair by:
+To build up hydrogen bond for ``X-H -- Y``. Set the minimum and maximum distances of ``H-Y``, and set the ``bondlinewdith`` to a small value.
 
->>> h2o.bondsetting['O-H'].min = 2.2
->>> h2o.bondsetting['O-H'].max = 3.2
->>> h2o.bondsetting['O-H'].search = 5
+>>> from ase.build import molecule
+>>> from blase.batoms import Batoms
+>>> h2o = molecule('H2O')
+>>> h2o2 = molecule('H2O')
+>>> h2o2.rotate(90, 'x')
+>>> h2o2.translate([0, 0, 3])
+>>> h2o = h2o + h2o2
+>>> h2o = Batoms(label = 'h2o', atoms = h2o)
+>>> h2o.bondsetting['H-O'].min = 2.0
+>>> h2o.bondsetting['H-O'].max = 3.0
+>>> h2o.bondsetting['H-O'].bondlinewidth = 0.01
+>>> h2o.model_type = 1
+>>> h2o.render([1, 0 ,0], engine = 'eevee')
 
-
-Not supported yet.
+.. image:: ../_static/hydrogen_bond.png
+   :width: 5cm

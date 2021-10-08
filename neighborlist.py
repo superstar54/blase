@@ -334,13 +334,13 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff, cutoff_min
                     numbers[first_at_neightuple_n] == atomic_number1,
                     numbers[secnd_at_neightuple_n] == atomic_number2)
             else:
-                mask = np.logical_or(
-                    np.logical_and(
+                # mask = np.logical_or(
+                mask = np.logical_and(
                         numbers[first_at_neightuple_n] == atomic_number1,
-                        numbers[secnd_at_neightuple_n] == atomic_number2),
-                    np.logical_and(
-                        numbers[first_at_neightuple_n] == atomic_number2,
-                        numbers[secnd_at_neightuple_n] == atomic_number1))
+                        numbers[secnd_at_neightuple_n] == atomic_number2)
+                    # np.logical_and(
+                        # numbers[first_at_neightuple_n] == atomic_number2,
+                        # numbers[secnd_at_neightuple_n] == atomic_number1))
             per_pair_cutoff_n[mask] = c
             per_pair_cutoff_n_min[mask] = c_min
         mask1 = abs_distance_vector_n < per_pair_cutoff_n

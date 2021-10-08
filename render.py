@@ -32,7 +32,7 @@ default_blase_settings = {
         'frame': 0,
         'functions': [],
         'run_render': True,
-        'output': 'blase.png',
+        'output': None,
         'animation': False,
         'save_to_blend': False,
         'queue': None,
@@ -43,6 +43,7 @@ default_blase_settings = {
 class Render():
     """
     Object to render atomic structure.
+
     """
     #
     def __init__(self, label, batoms = None, **kwargs):
@@ -61,9 +62,13 @@ class Render():
     def set_parameters(self, parameters):
         for k, v in parameters.items():
             setattr(self, k, v)
-    def clean_default(self):
+    def clean_default(self, camera = False, light = True):
         if 'Cube' in bpy.data.objects:
             bpy.data.objects.remove(bpy.data.objects["Cube"], do_unlink=True)
+        if camera and 'Camera' in bpy.data.cameras:
+            bpy.data.cameras.remove(bpy.data.cameras['Camera'])
+        if light and 'Light' in bpy.data.lights:
+            bpy.data.lights.remove(bpy.data.lights['Light'])
     def set_coll(self):
         name = "%s_render"%self.label
         if name not in bpy.data.collections:
@@ -115,12 +120,14 @@ class Render():
         node_tree.links.new(rgb_node.outputs["Color"], node_tree.nodes["Background"].inputs["Color"])
     def set_camera(self, camera_type = None, camera_lens = None,):
         '''
+
         camera_type: str
             * PERSP
             * ORTHO
         camera_lens: float
+            
         # todo lock camera to view
-
+        
         '''
         if not camera_type:
             camera_type = self.camera_type
@@ -146,13 +153,16 @@ class Render():
         bpy.context.scene.camera = camera
     def set_light(self):
         '''
+
         light_type: str
             * POINT, Omnidirectional point light source.
             * SUN, Constant direction parallel ray light source.
             * SPOT, Directional cone light source.
             * AREA, Directional area light source.
         light_energy: float
+
         # track to camera
+
         '''
         # check light exist or not
         if self.light_name in bpy.data.objects:
@@ -236,6 +246,8 @@ class Render():
             bpy.ops.render.render(write_still = 1, animation = self.animation)
     def prepare(self, ):
         self.scene.frame_set(self.frame)
+        if self.output is None:
+            self.output = self.batoms.label
         self.directory = os.path.split(self.output)[0]
         if self.directory and not os.path.exists(self.directory):
             os.makedirs(self.directory)

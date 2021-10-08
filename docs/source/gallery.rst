@@ -65,15 +65,15 @@ Cavity
 Isosurface
 ============
 
-.. image:: _static/cube.png
+.. image:: _static/volume_h2o.png
    :width: 6cm
 
-:download:`cube.py <_static/cube.py>`
+:download:`volume_h2o.py <_static/volume_h2o.py>`
 
 Animation
 ============
 
-.. image:: _static/animation.gif
+.. image:: _static/animation_c2h6so.gif
    :width: 6cm
 
 :download:`animation.py <_static/animation.py>`
@@ -86,7 +86,6 @@ Motion blur
    :width: 6cm
 
 :download:`motion_blur_h2o.py <_static/motion_blur_h2o.py>`
-
 
 
 Monolayer

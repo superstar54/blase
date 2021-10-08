@@ -47,7 +47,7 @@ class Bcell():
             obj_edge.blasebcell.is_bcell = True
             bpy.data.collections['Collection'].objects.link(obj_edge)
         elif bpy.data.objects[self.name].blasebcell.is_bcell:
-            obj_atom = bpy.data.objects[self.name]
+            print('%s exist and is bcell, use it.'%self.name)
         else:
             raise Exception("Failed, the name %s already in use and is not Bcell object!"%self.name)
         bpy.context.view_layer.update()

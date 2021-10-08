@@ -44,6 +44,9 @@ classes = [
         custom_property.BlaseBatom,
         custom_property.BlaseBcell,
         custom_property.BlaseBond,
+        custom_property.BlasePolyhedra,
+        custom_property.BlaseIsosurface,
+        custom_property.BlaseVolume,
         gui_blase.ExportAtom,
         gui_blase.SplitAtom,
         gui_blase.AddMolecule,
@@ -69,11 +72,11 @@ def register():
     scene.clpanel = bpy.props.PointerProperty(type=gui_cell.CellProperties)
     bpy.types.Collection.blasebatoms = bpy.props.PointerProperty(name = 'BlaseBatoms', type = custom_property.BlaseBatoms)
     bpy.types.Collection.blasebond = bpy.props.CollectionProperty(name = 'BlaseBond', type = custom_property.BlaseBond)
+    bpy.types.Collection.blasepolyhedra = bpy.props.CollectionProperty(name = 'BlasePolyhedra', type = custom_property.BlasePolyhedra)
+    bpy.types.Collection.blaseisosurface = bpy.props.CollectionProperty(name = 'BlaseIsosurface', type = custom_property.BlaseIsosurface)
     bpy.types.Object.blasebatom = bpy.props.PointerProperty(name = 'BlaseBatom', type = custom_property.BlaseBatom)
     bpy.types.Object.blasebcell = bpy.props.PointerProperty(name = 'BlaseBcell', type = custom_property.BlaseBcell)
-    bpy.types.Object.label = bpy.props.StringProperty(name = 'label')
-    bpy.types.Object.species = bpy.props.StringProperty(name = 'species')
-    bpy.types.Object.element = bpy.props.StringProperty(name = 'element')
+    bpy.types.Object.blasevolume = bpy.props.PointerProperty(name = 'BlaseVolume', type = custom_property.BlaseVolume)
     
 
 def unregister():

@@ -22,6 +22,15 @@ def test_batom():
     h3=Batom('atom_h2o_H_2')
     assert isinstance(h3, Batom)
 
+def test_positions():
+    from blase.batom import Batom
+    import numpy as np
+    positions = np.array([[0, 0, 0], [1.52, 0, 0]])
+    h = Batom('h2o', 'H', positions = positions)
+    npositions = positions - np.array([0, 0, 5])
+    h.positions = npositions
+
+
 def test_batom_animation():
     positions = np.array([[0, 0 ,0], [1.52, 0, 0]])
     o = Batom('co2', 'O', positions)
@@ -33,5 +42,6 @@ def test_batom_animation():
 
 if __name__ == '__main__':
     test_batom()
+    test_positions()
     test_batom_animation()
     print('\n Batom: All pass! \n')

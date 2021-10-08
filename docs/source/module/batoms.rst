@@ -24,15 +24,15 @@ One get and set ``model_type``, ``pbc``, ``show_unit_cell``, ``cell`` and ``boun
 >>> h2o.show_unit_cell = False
 
 
-Here is how you could define an platinum crystal structure with a lattice constant of 3.96 Å:
+Here is how you could define an gold crystal structure with a lattice constant of 4.08 Å:
 
 >>> from blase.batoms import Batoms
->>> a = 3.96
+>>> a = 4.08
 >>> positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
->>> pt = Batoms({'Pt': positions}, pbc = True, cell = (a, a, a))
+>>> au = Batoms(label = 'au', species = {'Au': positions}, pbc = True, cell = (a, a, a))
 
-.. image:: ../_static/batoms-pt-crystal.png
-   :width: 3cm
+.. image:: ../_static/build_bulk_au.png
+   :width: 5cm
 
 We can also use an ``Atoms`` object from ``ASE``. 
 
@@ -55,31 +55,47 @@ We can also read an structure from a file:
 Model_type
 ===================
 
+One set the model_type by:
+
+>>> h2o.model_type = 1
+
 Here, four models are supported.
 
 .. list-table::
    :widths: 25 25 25 25
 
-   * - Space-filling
-     - Ball-and-stick
-     - Polyhedral
-     - Wireframe
+   * - ``0``, Space-filling
+     - ``1``, Ball-and-stick
+     - ``2``, Polyhedral
+     - ``3``, Wireframe
    * -  .. image:: ../_static/batoms_model_type_0.png 
      -  .. image:: ../_static/batoms_model_type_1.png 
      -  .. image:: ../_static/batoms_model_type_2.png 
      -  .. image:: ../_static/batoms_model_type_3.png 
 
-One set the model_type by:
 
->>> h2o = Batoms(atoms = atoms, model_type = '1')
 
-or,
+Polyhedra_type
+===================
 
->>> h2o.model_type = '1'
+One set the polyhedra_type by:
 
-.. image:: ../_static/h2o.png
-   :width: 3cm
+>>> h2o.polyhedra_type = 1
 
+Here, four polyhedra model are supported.
+
+.. list-table::
+   :widths: 25 25 25 25
+
+   * - ``0``
+     - ``1``
+     - ``2``
+     - ``3``
+   * -  .. image:: ../_static/batoms_polyhedra_type_0.png 
+     -  .. image:: ../_static/batoms_polyhedra_type_1.png 
+     -  .. image:: ../_static/batoms_polyhedra_type_2.png 
+     -  .. image:: ../_static/batoms_polyhedra_type_3.png
+  
 Materials_style
 ===================
 

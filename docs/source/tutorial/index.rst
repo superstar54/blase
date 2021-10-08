@@ -9,6 +9,7 @@ Tutorials
    buildthings
    render/index
    bond_polyhedra
+   volumetric
    boundary
    animation
    color

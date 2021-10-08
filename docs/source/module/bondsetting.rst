@@ -4,7 +4,7 @@
 The Bondsetting object
 ========================
 
-The :class:`Bondsetting` object is used to store and set all parameters related with bonds. It is a collection of :class:`BlaseBond` object. It should always bind with a :class:`Batoms` object. possible keywords are: ``symbol1``, ``symbol2``, ``min``, ``max``, ``search``, ``polyhedra``, ``color1``, ``color2`` and ``bondlinewidth``. 
+The :class:`Bondsetting` object is used to store and set all parameters related with bonds. It is a collection of :class:`BlaseBond` object. It should always bind with a :class:`Batoms` object. Possible keywords are: ``symbol1``, ``symbol2``, ``min``, ``max``, ``search``, ``polyhedra``, ``color1``, ``color2`` and ``bondlinewidth``. 
 
 
 >>> from ase.build import molecule

@@ -11,7 +11,9 @@ Quick links:
 
   * - :mod:`Batom <blase.batom>`
   * - :mod:`Batoms <blase.batoms>`
-  * - :mod:`Bondsetting <blase.bondsetting>`
   * - :mod:`Bcell <blase.cell>`
+  * - :mod:`Bondsetting <blase.bondsetting>`
+  * - :mod:`Polyhedrasetting <blase.polyhedrasetting>`
+  * - :mod:`Isosurfacesetting <blase.isosurfacesetting>`
   * - :mod:`Render <blase.render>`
 
