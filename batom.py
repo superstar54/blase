@@ -121,12 +121,9 @@ class Batom():
             self.set_material(material)
             self.set_instancer(segments = segments, subdivisions = subdivisions, shape = shape)
             self.set_object(positions, location)
-            self.batom.blasebatom.species = self.species
-            self.batom.blasebatom.element = self.element
             self.batom.blasebatom.radius = self.species_data['radius']
         else:
             self.from_batom(label)
-        
     def set_material(self, material = None):
         name = 'material_atom_{0}_{1}'.format(self.label, self.species)
         if material:
@@ -181,28 +178,28 @@ class Batom():
             mesh = bpy.data.meshes.new(self.name)
             obj_atom = bpy.data.objects.new(self.name, mesh)
             obj_atom.data.from_pydata(positions, [], [])
-            obj_atom.blasebatom.is_batom = True
             obj_atom.location = location
+            obj_atom.blasebatom.is_batom = True
+            obj_atom.blasebatom.species = self.species
+            obj_atom.blasebatom.element = self.element
+            obj_atom.blasebatom.label = self.label
             bpy.data.collections['Collection'].objects.link(obj_atom)
         elif bpy.data.objects[self.name].blasebatom.is_batom:
             obj_atom = bpy.data.objects[self.name]
         else:
             raise Exception("Failed, the name %s already in use and is not blase object!"%self.name)
-        obj_atom.species = self.species
-        obj_atom.element = self.element
-        obj_atom.label = self.label
         self.instancer.parent = obj_atom
         obj_atom.instance_type = 'VERTS'
         bpy.context.view_layer.update()
-    def from_batom(self, batom_name):
-        if batom_name not in bpy.data.objects:
-            raise Exception("%s is not a object!"%batom_name)
-        elif not bpy.data.objects[batom_name].blasebatom.is_batom:
-            raise Exception("%s is not Batom object!"%batom_name)
-        ba = bpy.data.objects[batom_name]
-        self.species = ba.species
-        self.label = ba.label
-        self.element = ba.element
+    def from_batom(self, label):
+        if label not in bpy.data.objects:
+            raise Exception("%s is not a object!"%label)
+        elif not bpy.data.objects[label].blasebatom.is_batom:
+            raise Exception("%s is not Batom object!"%label)
+        ba = bpy.data.objects[label]
+        self.species = ba.blasebatom.species
+        self.label = ba.blasebatom.label
+        self.element = ba.blasebatom.element
     @property
     def batom(self):
         return self.get_batom()
@@ -310,10 +307,14 @@ class Batom():
         """
         self.set_color(color)
     def get_color(self):
-        return self.material.diffuse_color
+        Viewpoint_color = self.material.diffuse_color
+        principled_node = self.material.node_tree.nodes['Principled BSDF']
+        BSDF_color = [principled_node.inputs['Base Color'].default_value]
+        Alpha = principled_node.inputs['Alpha'].default_value
+        return Viewpoint_color, BSDF_color, Alpha
     def set_color(self, color):
-        if isinstance(color, float) or isinstance(color, int):
-            color = [color]*3
+        if len(color) == 3:
+            color = [color[0], color[1], color[2], 1]
         self.material.diffuse_color = color
         self.material.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = color
         self.material.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value = color[3]
@@ -395,6 +396,8 @@ class Batom():
         >>> h.delete([1])
 
         """
+        if isinstance(index, int):
+            index = [index]
         self.delete_verts(index)
     def __delitem__(self, index):
         """

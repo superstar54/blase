@@ -1,10 +1,12 @@
 import pytest
 from blase.batom import Batom
 import numpy as np
+from blase.butils import removeAll
 
 def test_batom():
     """
     """
+    removeAll()
     positions = np.array([[0, 0, 0], [1.52, 0, 0]])
     h = Batom('h2o', 'H', positions = positions)
     assert isinstance(h, Batom)
@@ -25,6 +27,7 @@ def test_batom():
 def test_positions():
     from blase.batom import Batom
     import numpy as np
+    removeAll()
     positions = np.array([[0, 0, 0], [1.52, 0, 0]])
     h = Batom('h2o', 'H', positions = positions)
     npositions = positions - np.array([0, 0, 5])
@@ -32,6 +35,9 @@ def test_positions():
 
 
 def test_batom_animation():
+    from blase.batom import Batom
+    import numpy as np
+    removeAll()
     positions = np.array([[0, 0 ,0], [1.52, 0, 0]])
     o = Batom('co2', 'O', positions)
     images = []

@@ -1,45 +1,69 @@
 
-==========================================
-Vacancy on surface
-==========================================
+==============================================
+Create and visualize vacancy site on surface
+==============================================
 
-Build a Pt (111) surface.
+Build a Au (111) surface.
 
 >>> from ase.build import fcc111
 >>> from blase.batoms import Batoms
->>> atoms = fcc111('Pt', size = (8, 8, 4), vacuum=0)
->>> pt111 = Batoms(label = 'pt111', atoms = atoms)
->>> pt111.cell[2, 2] += 10
+>>> atoms = fcc111('Au', size = (5, 5, 4), vacuum=0)
+>>> au111 = Batoms(label = 'au111', atoms = atoms)
+>>> au111.cell[2, 2] += 10
+>>> au111.draw_cell()
 
 
-Choose the index of the vacancy atom in `Edit` mode. Set the vacancy atom to a new species ``Pt_1``.
+Select gold atoms, press ``Tab`` key to switch to ``Edit`` mode. Choose the index of atom for the vacancy.
 
->>> pt111.replace('Pt', 'Pt_1', [219])
-
-Then set a different color for ``Pt_1`` species, and make it a little transparent.
-
->>> pt111['Pt_1'].color = [0.8, 0.1, 0.3, 0.2]
+.. image:: ../../_static/vacancy-edit.png
+   :width: 20cm
 
 
-.. image:: ../../_static/pt111-vacancy.png
+
+
+Set the vacancy atom to a ghost species ``X``.
+
+>>> au111.replace('Au', 'X', [87])
+
+Then increase the size and set a different color for ``X`` species, and make it a little transparent.
+
+>>> au111['X'].scale = 6
+>>> au111['X'].color = [0.8, 0.0, 0.8, 0.2]
+
+Save structure to file, and renering the image:
+
+>>> au111.write('POSCAR')
+>>> au111.render.run([1, -0.4, 0.4], engine = 'eevee', output = 'au111-vacancy.png')
+
+
+.. image:: ../../_static/vacancy-au111.png
    :width: 8cm
 
 
 .. note::
 
-    Use ``Cycles`` render engine, and set Principled BSDF node to get a better image.
+    We use ``X`` only for visualization. The ghost species ``X`` will not save to file, thus we make a real vacancy for the surface in the saved file.
+    
+    Others ways to create a real vacancy is deleting the atom: 
 
-    .. image:: ../../_static/pt111-vacancy-cycles.png
-        :width: 8cm
+    You can:
 
+    >>> del au111['Au'][87]
+
+    Or in the ``Edit`` mode, selet the atom, press ``X`` key and delete ``vertices``.
 
 .. note::
 
-    Above only for visualization, and will not make a real vacancy for your structure. 
+    Use ``Cycles`` render engine to get a better image.
     
-    To create a real vacancy, please use 
+    >>> au111.render.light_energy = 25
+    >>> au111.render.run([1, -0.4, 0.4], engine = 'cycles', num_samples = 64, output = 'au111-vacancy-cycles.png')
 
-    >>> del pt111['Pt'][[219]]
+    .. image:: ../../_static/vacancy-au111-cycles.png
+        :width: 12cm
+
+
+
 
     
 

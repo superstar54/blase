@@ -141,7 +141,9 @@ class Isosurfacesetting():
 def calc_isosurface(volume, cell, level,
                     gradient_direction = 'descent',
                     step_size = 1):
-    """Computes an isosurface from a volume grid.
+    """
+    
+    Computes an isosurface from a volume grid.
     
     Parameters:
     
@@ -157,11 +159,10 @@ def calc_isosurface(volume, cell, level,
     mlevel = np.mean(volume)
     if not level:
         level = mlevel*10
-    print('iso level: {0:1.9f}, iso mean: {1:1.9f}'.format(level, mlevel))
-    scaled_verts, faces, normals, values = measure.marching_cubes_lewiner(volume, level = level,
+    # print('iso level: {0:1.9f}, iso mean: {1:1.9f}'.format(level, mlevel))
+    scaled_verts, faces, normals, values = measure.marching_cubes(volume, level = level,
                     spacing=spacing,gradient_direction=gradient_direction , 
                     allow_degenerate = False, step_size=step_size)
-    # transform
     scaled_verts = scaled_verts.dot(cell)
     scaled_verts -= cell_origin
     faces = list(faces)

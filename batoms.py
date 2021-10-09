@@ -8,9 +8,8 @@ import bpy
 from ase import Atoms
 from blase.batom import Batom
 from blase.bondsetting import Bondsetting, build_bondlists, search_skin, \
-                              get_bondtable
 from blase.polyhedrasetting import Polyhedrasetting, build_polyhedralists
-from blase.isosurfacesetting import Isosurfacesetting, calc_isosurface
+from blase.isosurfacesetting import Isosurfacesetting
 from blase.cell import Bcell
 from blase.render import Render   
 from blase.boundary import search_boundary
@@ -852,7 +851,7 @@ class Batoms():
         """
         species = []
         for ba in self.coll_atom.objects:
-            species.append(ba.species)
+            species.append(ba.blasebatom.species)
         return species
     @property
     def batoms(self):
@@ -860,7 +859,7 @@ class Batoms():
     def get_batoms(self):
         batoms = {}
         for ba in self.coll_atom.objects:
-            batoms[ba.species] = Batom(ba.name)
+            batoms[ba.blasebatom.species] = Batom(ba.name)
         return batoms
     @property
     def batoms_boundary(self):
@@ -868,7 +867,7 @@ class Batoms():
     def get_batoms_boundary(self):
         batoms_boundary = {}
         for ba in self.coll_boundary.objects:
-            batoms_boundary[ba.species] = Batom(ba.name)
+            batoms_boundary[ba.blasebatom.species] = Batom(ba.name)
         return batoms_boundary
     @property
     def batoms_skin(self):
@@ -876,7 +875,7 @@ class Batoms():
     def get_batoms_skin(self):
         batoms_skin = {}
         for ba in self.coll_skin.objects:
-            batoms_skin[ba.species] = Batom(ba.name)
+            batoms_skin[ba.blasebatom.species] = Batom(ba.name)
         return batoms_skin
     def batoms2atoms(self, batoms, local = False):
         object_mode()
@@ -885,6 +884,8 @@ class Batoms():
         symbols = []
         positions = []
         for species, batom in batoms.items():
+            # ghost site will not save 
+            if batom.element == 'X': continue
             if species[-9:] == '_boundary': species = species[0:-9]
             if species[-5:] == '_skin': species = species[0:-5]
             species_list.extend([species]*len(batom))

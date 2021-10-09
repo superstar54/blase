@@ -40,6 +40,7 @@ class BlaseBatom(bpy.types.PropertyGroup):
     """
     """
     is_batom: BoolProperty(name="is_batom", default=False)
+    label: StringProperty(name="species", default = 'X')
     species: StringProperty(name="species", default = 'X')
     element: StringProperty(name="element", default = '')
     radius: FloatProperty(name="radius")
@@ -48,12 +49,7 @@ class BlaseBcell(bpy.types.PropertyGroup):
     """
     is_bcell: BoolProperty(name="is_bcell", default=False)
     label: StringProperty(name="label", default = '')
-class BlaseAtom(bpy.types.PropertyGroup):
-    """
-    """
-    symbol: StringProperty(name="symbol")
-    position: FloatVectorProperty(name="position", size = 3)
-    tag: IntProperty(name="tag")
+
 class BlaseBond(bpy.types.PropertyGroup):
     """
     """

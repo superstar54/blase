@@ -46,7 +46,7 @@ def test_hydrogen_bond():
     h2o.bondsetting['H-O'].max = 3.0
     h2o.bondsetting['H-O'].bondlinewidth = 0.01
     h2o.model_type = 1
-    h2o.render([1, 0 ,0], engine = 'eevee')
+    h2o.render.run([1, 0 ,0], engine = 'eevee')
 
 
 

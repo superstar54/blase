@@ -43,7 +43,7 @@ class Setting():
         species = {}
         coll_atom = bpy.data.collections['%s_atom'%self.label]
         for ba in coll_atom.objects:
-            species[ba.species] = {'color': ba.children[0].data.materials[0].diffuse_color,'radius': ba.blasebatom.radius}
+            species[ba.blasebatom.species] = {'color': ba.children[0].data.materials[0].diffuse_color,'radius': ba.blasebatom.radius}
         return species
     @property
     def data(self):
@@ -64,7 +64,7 @@ class Setting():
         object_mode()
         bondsetting = self.__class__(label)
         for key, b in self.data.items():
-            bondsetting[key] = b.as_list
+            bondsetting[key] = b.as_list()
         return bondsetting
     def __add__(self, other):
         self += other
@@ -168,7 +168,7 @@ class Bondsetting(Setting):
 def get_bondtable(speciesdict, cutoff = 1.3):
     """
     """
-    from blase.default_data import default_bonds
+    from blase.data import default_bonds
     bondtable = {}
     for species1 in speciesdict:
         element1 = species1.split('_')[0]
