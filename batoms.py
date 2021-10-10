@@ -7,7 +7,7 @@ from numpy.core.fromnumeric import shape
 import bpy
 from ase import Atoms
 from blase.batom import Batom
-from blase.bondsetting import Bondsetting, build_bondlists, search_skin, \
+from blase.bondsetting import Bondsetting, build_bondlists, search_skin
 from blase.polyhedrasetting import Polyhedrasetting, build_polyhedralists
 from blase.isosurfacesetting import Isosurfacesetting
 from blase.cell import Bcell
@@ -999,29 +999,41 @@ class Batoms():
             length = np.linalg.norm(vec, axis = 1)
             nvec = vec/length[:, None]
             nvec = nvec + 1e-8
-            # verts, faces
-            v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
-            tempv = np.einsum("ij, ij->i", v1, nvec)
-            v11 = v1 - (nvec.T*tempv).T
-            templengh = np.linalg.norm(v11, axis = 1)
-            v11 = v11/templengh[:, None]/2.828427
-            tempv = np.cross(nvec, v11)
-            v22 = (tempv.T*(length*length)).T
+            # verts, faces, for instancing
+            # v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
+            # tempv = np.einsum("ij, ij->i", v1, nvec)
+            # v11 = v1 - (nvec.T*tempv).T
+            # templengh = np.linalg.norm(v11, axis = 1)
+            # v11 = v11/templengh[:, None]/2.828427
+            # tempv = np.cross(nvec, v11)
+            # v22 = (tempv.T*(length*length)).T
             #
             kinds = [('%s_%s_%s'%(spi, spj, spi), b.color1), ('%s_%s_%s'%(spi, spj, spj), b.color2)]
             for kind, color in kinds:
                 if kind not in bond_kinds:
                     bond_kinds[kind] = {'color': color[:3], 'verts': [], 'transmit': color[3], 'bondlinewidth': b.bondlinewidth}
             center0 = (pos[0] + pos[1])/2.0
-            for i in range(2):
-                center = (center0 + pos[i])/2.0
-                bond_kinds[kinds[i][0]]['centers'] = center
-                bond_kinds[kinds[i][0]]['lengths'] = length/4.0
-                bond_kinds[kinds[i][0]]['normals'] = nvec
-                bond_kinds[kinds[i][0]]['verts'] = center + v11
-                bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center - v11, axis = 0)
-                bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center + v22, axis = 0)
-                bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center - v22, axis = 0)
+            length = length/2.0
+            if b.style == '0':
+                for i in range(2):
+                    center = (center0 + pos[i])/2.0
+                    bond_kinds[kinds[i][0]]['centers'] = center
+                    bond_kinds[kinds[i][0]]['lengths'] = length
+                    bond_kinds[kinds[i][0]]['normals'] = nvec
+                    # bond_kinds[kinds[i][0]]['verts'] = center + v11
+                    # bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center - v11, axis = 0)
+                    # bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center + v22, axis = 0)
+                    # bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center - v22, axis = 0)
+            if b.style == '1':
+                for i in range(2):
+                    # d = 0.1
+                    nc = 10
+                    offset = np.linspace(-length/2.0, length/2.0, 10)*nvec
+                    center = (center0 + pos[i])/2.0
+                    center = center + offset
+                    bond_kinds[kinds[i][0]]['centers'] = center
+                    bond_kinds[kinds[i][0]]['lengths'] = length/10
+                    bond_kinds[kinds[i][0]]['normals'] = nvec
         self.bond_kinds = bond_kinds
     
 

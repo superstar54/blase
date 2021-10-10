@@ -230,8 +230,8 @@ def draw_isosurface(coll_isosurface, verts, faces, color,
 
 
 # draw bonds
-def bond_source(vertices = 12):
-    bpy.ops.mesh.primitive_cylinder_add(vertices = vertices)
+def bond_source(vertices = 12, depth = 1.0):
+    bpy.ops.mesh.primitive_cylinder_add(vertices = vertices, depth = depth)
     cyli = bpy.context.view_layer.objects.active
     me = cyli.data
     verts = []

@@ -22,7 +22,7 @@ class BlaseBatoms(bpy.types.PropertyGroup):
                ('1',"Ball-and-stick", "Use ball and stick"),
                ('2',"Polyhedral","Use polyhedral"),
                ('3',"Wireframe", "Use wireframe")),
-               default=0)
+               default='0')
     polyhedra_type: EnumProperty(
         name="polyhedra_type",
         description="Polhhedra models",
@@ -30,7 +30,7 @@ class BlaseBatoms(bpy.types.PropertyGroup):
                ('1',"atoms, polyhedra", "atoms, polyhedra"),
                ('2',"central atoms, polyhedra","central atoms, polyhedra"),
                ('3',"polyhedra", "polyhedra")),
-               default=0)
+               default='0')
     pbc: BoolVectorProperty(name="pbc", default = [False, False, False], size = 3)
     cell: FloatVectorProperty(name="cell", default = [0, 0, 0, 0, 0, 0, 0, 0, 0], size = 9)
     show_unit_cell: BoolProperty(name="show_unit_cell", default = True)
@@ -63,8 +63,14 @@ class BlaseBond(bpy.types.PropertyGroup):
     color1: FloatVectorProperty(name="color1", size = 4)
     color2: FloatVectorProperty(name="color1", size = 4)
     bondlinewidth: FloatProperty(name="bondlinewidth", default = 0.10)
+    style: EnumProperty(
+        name="style",
+        description="bond style",
+        items=(('0',"default", ""),
+               ('1',"dotted line", "dotted")),
+               default='0')
     def as_list(self) -> list:
-        return [self.min, self.max, self.search, self.polyhedra, self.color1, self.color2, self.bondlinewidth]
+        return [self.min, self.max, self.search, self.polyhedra, self.color1, self.color2, self.bondlinewidth, self.style]
     def __repr__(self) -> str:
         s = '-'*60 + '\n'
         s = 'Bondpair      min     max   Search_bond    Polyhedra \n'

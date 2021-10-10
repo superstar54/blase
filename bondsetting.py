@@ -123,10 +123,11 @@ class Bondsetting(Setting):
         bond.max = value[1]
         bond.search = value[2]
         bond.polyhedra = value[3]
-        if len(value) == 7:
+        if len(value) == 8:
             bond.color1 = value[4]
             bond.color2 = value[5]
             bond.bondlinewidth = value[6]
+            bond.style = value[7]
     def set_default(self, species, cutoff = 1.3):
         """
         """
@@ -181,7 +182,7 @@ def get_bondtable(speciesdict, cutoff = 1.3):
             color2 = speciesdict[species2]['color']
             radius2 = cutoff * speciesdict[species2]['radius']
             bondmax = radius1 + radius2
-            bondtable[(species1, species2)] = [0.5, bondmax, default_bonds[pair][0], default_bonds[pair][1], color1, color2, 0.10]
+            bondtable[(species1, species2)] = [0.5, bondmax, default_bonds[pair][0], default_bonds[pair][1], color1, color2, 0.10, '0']
     return bondtable
 
 def build_bondlists(atoms, bondsetting):
