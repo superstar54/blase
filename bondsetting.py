@@ -126,7 +126,7 @@ class Bondsetting(Setting):
         if len(value) == 8:
             bond.color1 = value[4]
             bond.color2 = value[5]
-            bond.bondlinewidth = value[6]
+            bond.width = value[6]
             bond.style = value[7]
     def set_default(self, species, cutoff = 1.3):
         """
@@ -151,6 +151,8 @@ class Bondsetting(Setting):
             species = {sp: self.species[sp] for sp in key}
             self.set_default(species)
     def remove_bonds(self, bondpair):
+        if isinstance(bondpair[0], str):
+            bondpair = [bondpair]
         for key in bondpair:
             name = '%s-%s'%(key[0], key[1])
             i = self.collection.find(name)
@@ -158,13 +160,25 @@ class Bondsetting(Setting):
                 self.collection.remove(i)
     def __repr__(self) -> str:
         s = '-'*60 + '\n'
-        s = 'Bondpair      min     max   Search_bond    Polyhedra \n'
+        s = 'Bondpair      min     max   Search_bond    Polyhedra style\n'
         for b in self.collection:
-            s += '{0:10s} {1:4.3f}   {2:4.3f}      {3:10s}   {4:10s} \n'.format(\
-                b.name, b.min, b.max, str(b.search), str(b.polyhedra))
+            s += '{0:10s} {1:4.3f}   {2:4.3f}      {3:10s}   {4:10s}  {5:4s} \n'.format(\
+                b.name, b.min, b.max, str(b.search), str(b.polyhedra), b.style)
         s += '-'*60 + '\n'
         return s
-
+    @property
+    def cutoff_dict(self):
+        cutoff_dict = {}
+        for b in self.collection:
+            cutoff_dict[(b.symbol1, b.symbol2)] = [b.min, b.max]
+        return cutoff_dict
+    @property
+    def maxcutoff(self):
+        maxcutoff = 2
+        for bl in self.cutoff_dict.values():
+            if bl[1] > maxcutoff:
+                maxcutoff = bl[1]
+        return maxcutoff
 
 def get_bondtable(speciesdict, cutoff = 1.3):
     """
@@ -182,79 +196,134 @@ def get_bondtable(speciesdict, cutoff = 1.3):
             color2 = speciesdict[species2]['color']
             radius2 = cutoff * speciesdict[species2]['radius']
             bondmax = radius1 + radius2
-            bondtable[(species1, species2)] = [0.5, bondmax, default_bonds[pair][0], default_bonds[pair][1], color1, color2, 0.10, '0']
+            bondtable[(species1, species2)] = [0.5, bondmax, default_bonds[pair][0], default_bonds[pair][1], color1, color2, 0.10, '1']
     return bondtable
 
-def build_bondlists(atoms, bondsetting):
+def build_bondlists(atoms, cutoff):
     """
     The default bonds are stored in 'default_bonds'
     Get all pairs of bonding atoms
     remove_bonds
     """
     from blase.neighborlist import neighbor_list
-    if len(bondsetting) == 0: return {}
-    cutoff_min = {}
-    cutoff = {}
-    for b in bondsetting:
-        spi = b.symbol1
-        spj = b.symbol2
-        eli = spi.split('_')[0]
-        elj = spj.split('_')[0]
-        key = (eli, elj)
-        cutoff_min[key] = b.min
-        cutoff[key] = b.max
+    if len(cutoff) == 0: return {}
     #
     tstart = time()
-    nli, nlj, nlS = neighbor_list('ijS', atoms, cutoff, cutoff_min, self_interaction=False)
+    nli, nlj, nlS = neighbor_list('ijS', atoms, cutoff, self_interaction=False)
     bondlists = np.append(np.array([nli, nlj], dtype=int).T, np.array(nlS, dtype=int), axis = 1)
     # print('build_bondlists: {0:10.2f} s'.format(time() - tstart))
     return bondlists
 
+def calc_bond_data(batoms, bondlists, bondsetting):
+        """
+        """
+        from ase.data import chemical_symbols
+        atoms = batoms.get_atoms_with_boundary()
+        positions = atoms.positions
+        chemical_symbols = np.array(chemical_symbols)
+        if 'species' not in atoms.info:
+            atoms.info['species'] = atoms.get_chemical_symbols()
+        speciesarray = np.array(atoms.info['species'])
+        bond_kinds = {}
+        if len(bondlists) == 0:
+            bond_kinds = {}
+            return
+        for b in bondsetting:
+            spi = b.symbol1
+            spj = b.symbol2
+            bondlists1 = bondlists[(speciesarray[bondlists[:, 0]] == spi) & (speciesarray[bondlists[:, 1]] == spj)]
+            if len(bondlists1) == 0: continue
+            offset = bondlists1[:, 2:5]
+            R = np.dot(offset, atoms.cell)
+            vec = positions[bondlists1[:, 0]] - (positions[bondlists1[:, 1]] + R)
+            length = np.linalg.norm(vec, axis = 1)
+            nvec = vec/length[:, None]
+            pos = [positions[bondlists1[:, 0]] - nvec*batoms[spi].size*0.5,
+                    positions[bondlists1[:, 1]] + R + nvec*batoms[spj].size*0.5]
+            vec = pos[0] - pos[1]
+            length = np.linalg.norm(vec, axis = 1)
+            nvec = vec/length[:, None]
+            nvec = nvec + 1e-8
+            # verts, faces, for instancing
+            # v1 = nvec + np.array([1.2323, 0.493749, 0.5604937284])
+            # tempv = np.einsum("ij, ij->i", v1, nvec)
+            # v11 = v1 - (nvec.T*tempv).T
+            # templengh = np.linalg.norm(v11, axis = 1)
+            # v11 = v11/templengh[:, None]/2.828427
+            # tempv = np.cross(nvec, v11)
+            # v22 = (tempv.T*(length*length)).T
+            #
+            kinds = [('%s_%s'%(spi, spj), b.color1), 
+                     ('%s_%s_%s'%(spi, spj, spi), b.color1), 
+                     ('%s_%s_%s'%(spi, spj, spj), b.color2),
+                    ]
+            for kind, color in kinds:
+                if kind not in bond_kinds:
+                    bond_kinds[kind] = {'color': color[:3], 'verts': [], 'transmit': color[3], 
+                                        'width': b.width,
+                                        'centers': [],
+                                        'lengths': [],
+                                        'normals': [], 
+                                        'style': b.style}
+            center0 = (pos[0] + pos[1])/2.0
+            # Unicolor cylinder
+            if b.style == '0':
+                    bond_kinds[kinds[0][0]]['centers'] = center0
+                    bond_kinds[kinds[0][0]]['lengths'] = length
+                    bond_kinds[kinds[0][0]]['normals'] = nvec
+            # Bicolor cylinder
+            elif b.style == '1':
+                length = length/2.0
+                for i in range(1, 3):
+                    center = (center0 + pos[i - 1])/2.0
+                    bond_kinds[kinds[i][0]]['centers'] = center
+                    bond_kinds[kinds[i][0]]['lengths'] = length
+                    bond_kinds[kinds[i][0]]['normals'] = nvec
+                    # bond_kinds[kinds[i][0]]['verts'] = center + v11
+                    # bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center - v11, axis = 0)
+                    # bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center + v22, axis = 0)
+                    # bond_kinds[kinds[i][0]]['verts'] = np.append(bond_kinds[kinds[i][0]]['verts'], center - v22, axis = 0)
+            # Dashed line
+            elif b.style == '2':
+                length = length/4.0
+                for i in range(1, 3):
+                    bond_kinds[kinds[i][0]]['centers'] = []
+                    bond_kinds[kinds[i][0]]['lengths'] = []
+                    bond_kinds[kinds[i][0]]['normals'] = []
+                    step = 0.1
+                    maxlength = length.max()
+                    center = (center0 + pos[i - 1])/2.0
+                    for d in np.arange(-maxlength, maxlength, step):
+                        # offset0 = np.linspace(-2, 2, nc)
+                        # np.where(offset0>-length/2.0 & offset<length/2.0)
+                        offset = nvec*d
+                        center1 = center + offset
+                        ind = np.where( (d>-length) & (d<length))[0]
+                        bond_kinds[kinds[i][0]]['centers'].extend(center1[ind])
+                        bond_kinds[kinds[i][0]]['lengths'].extend([step/2]*len(ind))
+                        bond_kinds[kinds[i][0]]['normals'].extend(nvec[ind])
+            # Dotted line
+            elif b.style == '3':
+                length = length/4.0
+                for i in range(1, 3):
+                    bond_kinds[kinds[i][0]]['centers'] = []
+                    bond_kinds[kinds[i][0]]['lengths'] = []
+                    bond_kinds[kinds[i][0]]['normals'] = []
+                    step = 0.05
+                    maxlength = length.max()
+                    center = (center0 + pos[i - 1])/2.0
+                    for d in np.arange(-maxlength, maxlength, step):
+                        # offset0 = np.linspace(-2, 2, nc)
+                        # np.where(offset0>-length/2.0 & offset<length/2.0)
+                        offset = nvec*d
+                        center1 = center + offset
+                        ind = np.where( (d>-length) & (d<length))[0]
+                        bond_kinds[kinds[i][0]]['centers'].extend(center1[ind])
+                        bond_kinds[kinds[i][0]]['lengths'].extend([step/4]*len(ind))
+                        bond_kinds[kinds[i][0]]['normals'].extend(nvec[ind])
+        return bond_kinds
 
-def search_skin(atoms, bondsetting, bondlists, skin = []):
-    """
-    The default bonds are stored in 'default_bonds'
-    Get all pairs of bonding atoms
-    remove_bonds
-    """
-    from ase import Atoms
-    tstart = time()
-    atoms_skin = Atoms()
-    atoms_skin.info['species'] = []
-    if len(bondsetting) == 0: return atoms_skin
-    if 'species' not in atoms.info:
-        atoms.info['species'] = atoms.get_chemical_symbols()
-    speciesarray = np.array(atoms.info['species'])
-    specieslist = list(set(atoms.info['species']))
-    ncore = len(atoms) - len(skin)
-    ind1 = bondlists[:, 0] < ncore
-    ind2 = bondlists[:, 1] < ncore
-    ind3 = bondlists[:, 0] > ncore
-    ind4 = bondlists[:, 1] > ncore
-    bondlists0 = bondlists[ind1&ind2]
-    bondlistsij = bondlists[ind1&ind4]
-    bondlistsji = bondlists[ind2&ind3]
-    for spi in specieslist:
-        bondlists1 = bondlistsij[speciesarray[bondlistsij[:, 0]] == spi]
-        for spj in specieslist:
-            name = '%s-%s'%(spi, spj)
-            if not bondsetting.find(name): continue
-            if bondsetting[name].search > 0:
-                bondlists0 = np.append(bondlists0, bondlists1[speciesarray[bondlists1[:, 1]] == spj], axis = 0)
-        bondlists1 = bondlistsji[speciesarray[bondlistsji[:, 0]] == spi]
-        for spj in specieslist:
-            name = '%s-%s'%(spj, spi)
-            if not bondsetting.find(name): continue
-            if bondsetting[name].search > 0:
-                bondlists0 = np.append(bondlists0, bondlists1[speciesarray[bondlists1[:, 1]] == spj], axis = 0)
-    # print(bondlists0)
-    ind_atom_skin = list(set(bondlists0[:, 1]) & set(skin))
-    if len(ind_atom_skin) == 0:
-        return atoms_skin
-    atoms_skin = atoms[ind_atom_skin]
-    atoms_skin.info['species'] = speciesarray[ind_atom_skin]
-    # print('search skin : {0:10.2f} s'.format(time() - tstart))
-    return atoms_skin
+
 
 
 
@@ -272,5 +341,4 @@ if __name__ == "__main__":
     # positions1, offsets1, positions2, offsets2 = search_boundary(atoms.positions, atoms.cell, boundary=[[-0.6, 1.6], [-0.6, 1.6], [-0.6, 1.6]])
     bondsetting = {('Ti', 'O'): [0, 2.5, True, False], ('O', 'O'): [0, 1.5, False, False]}
     bondlists = build_bondlists(atoms, bondsetting)
-    datas = build_polyhedralists(atoms, bondlists, bondsetting)
     

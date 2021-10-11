@@ -62,15 +62,17 @@ class BlaseBond(bpy.types.PropertyGroup):
     polyhedra: BoolProperty(name="polyhedra", default=False)
     color1: FloatVectorProperty(name="color1", size = 4)
     color2: FloatVectorProperty(name="color1", size = 4)
-    bondlinewidth: FloatProperty(name="bondlinewidth", default = 0.10)
+    width: FloatProperty(name="width", default = 0.10)
     style: EnumProperty(
         name="style",
         description="bond style",
-        items=(('0',"default", ""),
-               ('1',"dotted line", "dotted")),
-               default='0')
+        items=(('0',"Unicolor cylinder", ""),
+               ('1',"Bicolor cylinder", ""),
+               ('2',"Dashed line", ""),
+               ('3',"Dotted line", "")),
+               default='1')
     def as_list(self) -> list:
-        return [self.min, self.max, self.search, self.polyhedra, self.color1, self.color2, self.bondlinewidth, self.style]
+        return [self.min, self.max, self.search, self.polyhedra, self.color1, self.color2, self.width, self.style]
     def __repr__(self) -> str:
         s = '-'*60 + '\n'
         s = 'Bondpair      min     max   Search_bond    Polyhedra \n'

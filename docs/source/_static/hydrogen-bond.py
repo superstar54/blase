@@ -1,10 +1,10 @@
-# from blase.build import molecule
 from ase.build import molecule
-from ase.visualize import view
+from blase.batoms import Batoms
 ch3choh = molecule('CH3CH2OH')
-ch3choh[1].x += 0.4
-ch3choh[4].x -= 0.4
-ch3choh.write('datas/ch3ch2oh.xyz')
-# view(ch3choh)
-# from blase.batoms import Batoms
-# ch3choh = Batoms('ch3ch2oh', atoms = ch3choh)
+ch3choh = Batoms('ch3ch2oh', atoms = ch3choh)
+ch3choh.bondsetting['H-O'].min = 2.0
+ch3choh.bondsetting['H-O'].max = 3.0
+ch3choh.bondsetting['H-O'].width = 0.01
+ch3choh.bondsetting['H-O'].style = '1'
+ch3choh.model_type = 1
+

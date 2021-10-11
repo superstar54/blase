@@ -17,25 +17,25 @@ def test_replace():
     co.replace('C', 'C_1', [5])
     co.model_type = 1
     
-
-def test_boundary():
-    a = 3.96
-    positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
-    pt = Batoms('pt', {'Pt': positions}, pbc = True, cell = (a, a, a))
-    pt.boundary = 0.01
-
-
 def test_polyhedra():
+    from blase.bio import read
+    from blase.butils import removeAll
+    removeAll()
     tio2 = read('../docs/source/_static/datas/tio2.cif')
     tio2.model_type = 2
 
 def test_search_bond():
+    from blase.bio import read
+    from blase.butils import removeAll
+    removeAll()
     pk = read('../docs/source/_static/datas/perovskite.cif')
     pk.model_type = 2
 
 def test_hydrogen_bond():
     from ase.build import molecule
     from blase.batoms import Batoms
+    from blase.butils import removeAll
+    removeAll()
     h2o = molecule('H2O')
     h2o2 = molecule('H2O')
     h2o2.rotate(90, 'x')
@@ -44,7 +44,8 @@ def test_hydrogen_bond():
     h2o = Batoms(label = 'h2o', atoms = h2o)
     h2o.bondsetting['H-O'].min = 2.0
     h2o.bondsetting['H-O'].max = 3.0
-    h2o.bondsetting['H-O'].bondlinewidth = 0.01
+    h2o.bondsetting['H-O'].width = 0.01
+    h2o.bondsetting['H-O'].style = '2'
     h2o.model_type = 1
     h2o.render.run([1, 0 ,0], engine = 'eevee')
 
@@ -52,7 +53,6 @@ def test_hydrogen_bond():
 
 if __name__ == '__main__':
     test_replace()
-    test_boundary()
     test_polyhedra()
     test_hydrogen_bond()
     print('\n Bondsetting: All pass! \n')

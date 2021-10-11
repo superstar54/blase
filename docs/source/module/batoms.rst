@@ -216,7 +216,7 @@ Show the index of atoms. Please change to ``Edit`` mode.
 
 Render the atoms, and save to a png image.
 
->>> h2o.render(resolution_x = 1000, output_image = 'h2o.png')
+>>> h2o.render.run(resolution_x = 1000, output_image = 'h2o.png')
 
 
 

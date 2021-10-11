@@ -3,8 +3,37 @@ Gallery
 =========
 
 Crystal
-=============
+============
 
+Perovskite
+-------------------
+
+
+.. list-table::
+   :widths: 25 25
+
+   * -  |catio30|
+     -  |catio31|
+   * -  |catio32|
+     -  |catio33|
+
+.. |catio30|  image:: _static/gallery_catio3_ball.png
+   :width: 8cm
+.. |catio31|  image:: _static/gallery_catio3_bond.png
+   :width: 8cm
+.. |catio32|  image:: _static/gallery_catio3_polyhedra.png
+   :width: 8cm
+.. |catio33|  image:: _static/gallery_catio3_polyhedra_2.png
+   :width: 8cm
+
+
+:download:`gallery_crystal.py <_static/gallery_catio3.py>`
+
+
+
+
+Model type
+------------
 
 .. list-table::
    :widths: 25 25 25 25

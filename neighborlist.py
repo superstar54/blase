@@ -1,6 +1,13 @@
 """
 From ASE
 https://wiki.fysik.dtu.dk/ase/_modules/ase/neighborlist.html#neighbor_list
+
+Modified to support:
+
+1) species instead of element
+2) add a bondlengt range
+    e.g cutoff = {('Ti_1', 'O'):[0.5, 3.0] }
+
 """
 
 import numpy as np
@@ -8,8 +15,8 @@ import numpy as np
 from ase.data import atomic_numbers
 from ase.geometry import complete_cell
 
-def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff, cutoff_min = None,
-                            numbers=None, self_interaction=False,
+def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff,
+                            species=None, self_interaction=False,
                             use_scaled_positions=False, max_nbins=1e6):
     """Compute a neighbor list for an atomic configuration.
 
@@ -113,7 +120,7 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff, cutoff_min
                             1 / l3 if l3 > 0 else 1])
 
     if isinstance(cutoff, dict):
-        max_cutoff = max(cutoff.values())
+        max_cutoff = np.array([x for x in cutoff.values()]).max()
     else:
         if np.isscalar(cutoff):
             max_cutoff = cutoff
@@ -314,35 +321,18 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff, cutoff_min
     distance_vector_nc = distance_vector_nc[mask]
     abs_distance_vector_n = abs_distance_vector_n[mask]
 
-    if isinstance(cutoff, dict) and numbers is not None:
+    if isinstance(cutoff, dict) and species is not None:
         # If cutoff is a dictionary, then the cutoff radii are specified per
         # element pair. We now have a list up to maximum cutoff.
+        species = np.array(species)
         per_pair_cutoff_n = np.zeros_like(abs_distance_vector_n)
         per_pair_cutoff_n_min = np.zeros_like(abs_distance_vector_n)
-        for (atomic_number1, atomic_number2), c in cutoff.items():
-            c_min = cutoff_min[(atomic_number1, atomic_number2)]
-            try:
-                atomic_number1 = atomic_numbers[atomic_number1]
-            except KeyError:
-                pass
-            try:
-                atomic_number2 = atomic_numbers[atomic_number2]
-            except KeyError:
-                pass
-            if atomic_number1 == atomic_number2:
-                mask = np.logical_and(
-                    numbers[first_at_neightuple_n] == atomic_number1,
-                    numbers[secnd_at_neightuple_n] == atomic_number2)
-            else:
-                # mask = np.logical_or(
-                mask = np.logical_and(
-                        numbers[first_at_neightuple_n] == atomic_number1,
-                        numbers[secnd_at_neightuple_n] == atomic_number2)
-                    # np.logical_and(
-                        # numbers[first_at_neightuple_n] == atomic_number2,
-                        # numbers[secnd_at_neightuple_n] == atomic_number1))
-            per_pair_cutoff_n[mask] = c
-            per_pair_cutoff_n_min[mask] = c_min
+        for (sp1, sp2), c in cutoff.items():
+            mask = np.logical_and(
+                    species[first_at_neightuple_n] == sp1,
+                    species[secnd_at_neightuple_n] == sp2)
+            per_pair_cutoff_n_min[mask] = c[0]
+            per_pair_cutoff_n[mask] = c[1]
         mask1 = abs_distance_vector_n < per_pair_cutoff_n
         mask2 = abs_distance_vector_n > per_pair_cutoff_n_min
         mask = mask1 & mask2
@@ -385,7 +375,7 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff, cutoff_min
 
 
 
-def neighbor_list(quantities, a, cutoff, cutoff_min, self_interaction=False,
+def neighbor_list(quantities, a, cutoff, self_interaction=False,
                   max_nbins=1e6):
     """Compute a neighbor list for an atomic configuration.
 
@@ -494,7 +484,7 @@ def neighbor_list(quantities, a, cutoff, cutoff_min, self_interaction=False,
     """
     return primitive_neighbor_list(quantities, a.pbc,
                                    a.get_cell(complete=True),
-                                   a.positions, cutoff, cutoff_min, numbers=a.numbers,
+                                   a.positions, cutoff, species=a.info['species'],
                                    self_interaction=self_interaction,
                                    max_nbins=max_nbins)
 
@@ -505,10 +495,11 @@ if __name__ == "__main__":
     from ase.visualize import view
     from ase import Atom, Atoms
     atoms = read('docs/source/_static/datas/tio2.cif')
+    atoms.info['species'] = atoms.get_chemical_symbols()
     # atoms = read('docs/source/_static/datas/mof-5.cif')
-    cutoff = {('Ti', 'O'): 2.5, ('O', 'O'):1.5}
-    cutoff_min = {('Ti', 'O'): .5, ('O', 'O'):0.5}
-    i, j, S = neighbor_list('ijS', atoms, cutoff, cutoff_min)
+    atoms.info['species'][0] = 'Ti_1'
+    cutoff = {('Ti', 'O'): [0.5, 2.5], ('O', 'O'):[0.5, 1.5]}
+    i, j, S = neighbor_list('ijS', atoms, cutoff)
     print(i)
     print(j)
     print(S)

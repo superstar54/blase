@@ -39,8 +39,7 @@ def search_boundary(positions, cell, boundary = [[0, 1], [0, 1], [0, 1]], skin =
                 & (npositions[:, 1] > boundary[1][0]) & (npositions[:, 1] < boundary[1][1]) \
                 & (npositions[:, 2] > boundary[2][0]) & (npositions[:, 2] < boundary[2][1]))
     #
-    # boundary with skin
-    npositions = np.append(npositions, positions, axis = 0)
+    # boundary
     ind2 =  np.where((npositions[:, 0] > boundary_skin[0][0]) & (npositions[:, 0] < boundary_skin[0][1]) \
                 & (npositions[:, 1] > boundary_skin[1][0]) & (npositions[:, 1] < boundary_skin[1][1])  #\
                 & (npositions[:, 2] > boundary_skin[2][0]) & (npositions[:, 2] < boundary_skin[2][1]))
@@ -53,6 +52,20 @@ def search_boundary(positions, cell, boundary = [[0, 1], [0, 1], [0, 1]], skin =
     npositions2 = np.dot(npositions2, cell)
     # print('search boundary: {0:10.2f} s'.format(time() - tstart))
     return npositions1, npositions2
+
+def search_skin(atoms, bondsetting):
+    from blase.bondsetting import build_bondlists
+    from ase import Atoms
+    cutoff = {}
+    for b in bondsetting:
+        if b.search > 0:
+            cutoff[(b.symbol1, '%s_skin'%b.symbol2)] = [b.min, b.max]
+    bondlist = build_bondlists(atoms, cutoff)
+    if len(bondlist) == 0: return Atoms()
+    index = bondlist[:, 1]
+    atoms_skin = atoms[index]
+    atoms_skin.info['species'] = np.array(atoms.info['species'])[index]
+    return atoms_skin
 
 
 class Boundary:
@@ -163,7 +176,7 @@ if __name__ == "__main__":
     # atoms = read('docs/source/_static/datas/tio2.cif')
     # atoms = read('docs/source/_static/datas/mof-5.cif')
     # atoms.positions -= atoms.get_center_of_mass()
-    positions1, offsets1, positions2, offsets2 = search_boundary(atoms.positions, atoms.cell, boundary=[[-0.6, 1.6], [-0.6, 1.6], [-0.6, 1.6]])
+    positions1, positions2 = search_boundary(atoms.positions, atoms.cell, boundary=[[-0.6, 1.6], [-0.6, 1.6], [-0.6, 1.6]])
     skin = Atoms('Au'*len(positions2), positions = positions2)
     view(atoms + skin)
     # bondsetting = {('Ti', 'O'): [0, 2.5, False, False], ('O', 'O'): [0, 1.5, False, False]}

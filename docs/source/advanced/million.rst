@@ -12,7 +12,7 @@ Here we creat a system with 1 million of gold atoms.
 >>> au = Batoms(label = 'au', atoms = au, segments = [6, 6])
 >>> au.repeat([10, 10, 20])
 >>> au.repeat([5, 5, 5])
->>> au.render(direction = [1, 0, 0])
+>>> au.render.run(direction = [1, 0, 0])
 
 .. image:: ../_static/million_au.png
    :width: 8cm

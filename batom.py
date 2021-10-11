@@ -308,9 +308,8 @@ class Batom():
         self.set_color(color)
     def get_color(self):
         Viewpoint_color = self.material.diffuse_color
-        principled_node = self.material.node_tree.nodes['Principled BSDF']
-        BSDF_color = [principled_node.inputs['Base Color'].default_value]
-        Alpha = principled_node.inputs['Alpha'].default_value
+        BSDF_color = self.bsdf['Base bsdf'].default_value
+        Alpha = self.bsdf['Alpha'].default_value
         return Viewpoint_color, BSDF_color, Alpha
     def set_color(self, color):
         if len(color) == 3:
@@ -318,6 +317,17 @@ class Batom():
         self.material.diffuse_color = color
         self.material.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = color
         self.material.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value = color[3]
+    @property
+    def bsdf(self):
+        return self.get_bsdf()
+    @bsdf.setter
+    def bsdf(self, bsdf):
+        self.set_bsdf(bsdf)
+    def get_bsdf(self):
+        return self.material.node_tree.nodes['Principled BSDF'].inputs
+    def set_bsdf(self, bsdf):
+        for key, value in bsdf.items():
+            self.material.node_tree.nodes['Principled BSDF'].inputs[key].default_value = value
     @property
     def segments(self):
         return self.get_segments()
@@ -396,6 +406,8 @@ class Batom():
         >>> h.delete([1])
 
         """
+        if isinstance(index[0], (bool, np.bool_)):
+            index = np.where(index)[0]
         if isinstance(index, int):
             index = [index]
         self.delete_verts(index)

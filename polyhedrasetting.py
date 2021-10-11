@@ -67,7 +67,6 @@ def build_polyhedralists(atoms, bondlists, bondsetting, polyhedrasetting):
         if 'species' not in atoms.info:
             atoms.info['species'] = atoms.get_chemical_symbols()
         speciesarray = np.array(atoms.info['species'])
-        speciesarray_bondlist = speciesarray[bondlists[:, 0]]
         positions = atoms.positions
         polyhedra_kinds = {}
         polyhedra_dict = {}

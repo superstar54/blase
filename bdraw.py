@@ -100,9 +100,14 @@ def draw_bond_kind(kind,
                    source = None, 
                    bsdf_inputs = None, 
                    material_style = 'plastic'):
+    if len(datas['centers']) == 0:
+        return
     if not bsdf_inputs:
         bsdf_inputs = material_styles_dict[material_style]
-    vertices = 16
+    if datas['style'] in ['0', '1']:
+        vertices = 16
+    elif datas['style'] in ['2', '3']:
+        vertices = 6
     source = bond_source(vertices = vertices)
     tstart = time.time()
     material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
@@ -118,7 +123,7 @@ def draw_bond_kind(kind,
         principled_node.inputs[key].default_value = value
     datas['materials'] = material
     #
-    verts, faces = cylinder_mesh_from_instance_vec(datas['centers'], datas['normals'], datas['lengths'], datas['bondlinewidth'], source)
+    verts, faces = cylinder_mesh_from_instance_vec(datas['centers'], datas['normals'], datas['lengths'], datas['width'], source)
     mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
     mesh.from_pydata(verts, [], faces)  
     mesh.update()
@@ -342,7 +347,7 @@ def cylinder_mesh_from_instance_vec(centers, normals, lengths, scale, source):
     # print('cylinder_mesh_from_instance: {0:10.2f} s'.format( time.time() - tstart))
     return verts, faces
 
-def draw_plane(location = (0, 0, -1.0), color = (0.2, 0.2, 1.0, 1.0), size = 200, bsdf_inputs = None, material_style = 'blase'):
+def draw_plane(location = (0, 0, -0.01), color = (0.2, 0.2, 1.0, 1.0), size = 200, bsdf_inputs = None, material_style = 'blase'):
     """
     Draw a plane.
     location: array

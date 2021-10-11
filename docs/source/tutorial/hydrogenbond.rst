@@ -16,8 +16,9 @@ To build up hydrogen bond for ``X-H -- Y``. Set the minimum and maximum distance
 >>> h2o.bondsetting['H-O'].min = 2.0
 >>> h2o.bondsetting['H-O'].max = 3.0
 >>> h2o.bondsetting['H-O'].bondlinewidth = 0.01
+>>> h2o.bondsetting['H-O'].style = '1'
 >>> h2o.model_type = 1
->>> h2o.render([1, 0 ,0], engine = 'eevee')
+>>> h2o.render.run([1, 0 ,0], engine = 'eevee', output = 'hydrogen-bond.png')
 
-.. image:: ../_static/hydrogen_bond.png
+.. image:: ../_static/hydrogen-bond.png
    :width: 5cm

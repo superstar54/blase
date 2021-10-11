@@ -4,7 +4,7 @@
 The Bondsetting object
 ========================
 
-The :class:`Bondsetting` object is used to store and set all parameters related with bonds. It is a collection of :class:`BlaseBond` object. It should always bind with a :class:`Batoms` object. Possible keywords are: ``symbol1``, ``symbol2``, ``min``, ``max``, ``search``, ``polyhedra``, ``color1``, ``color2`` and ``bondlinewidth``. 
+The :class:`Bondsetting` object is used to store and set all parameters related with bonds. It is a collection of :class:`BlaseBond` object. It should always bind with a :class:`Batoms` object. Possible keywords are: ``symbol1``, ``symbol2``, ``min``, ``max``, ``search``, ``polyhedra``, ``color1``, ``color2``, ``bondlinewidth``, ``style``. 
 
 
 >>> from ase.build import molecule
@@ -23,6 +23,28 @@ You can print the default bondsetting by:
    :width: 15cm
 
 By defaut, we use default radius (``ase.data.covalent_radii``) for every atoms, and the maximum bondlength is the sum of two radius and then scaled by a default cutoff (1.3). The minimum bondlength is 0.5.
+
+
+Style
+===========
+One set the bond style by:
+
+>>> ch4.bondsetting['C-H'].style = '0'
+
+Here, four polyhedra model are supported.
+
+.. list-table::
+   :widths: 25 25 25 25
+
+   * - ``0``
+     - ``1``
+     - ``2``
+     - ``3``
+   * -  .. image:: ../_static/bondsetting_style_0.png 
+     -  .. image:: ../_static/bondsetting_style_1.png 
+     -  .. image:: ../_static/bondsetting_style_2.png 
+     -  .. image:: ../_static/bondsetting_style_3.png 
+  
 
 Polyhedra
 ==================

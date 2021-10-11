@@ -12,6 +12,7 @@ default_blase_settings = {
         'resolution_x': 1000,
         'resolution_y': None,  # 
         'lock_camera_to_view': True,
+        'lock_light_to_camera': True,
         'camera_loc': [0, 0, 100],  # x, y is the image plane, z is *out* of the screen
         'camera_target': [0, 0, 0], #
         'camera_type': 'ORTHO',  #  ['PERSP', 'ORTHO']
@@ -110,12 +111,12 @@ class Render():
         self.set_light(light)
     def get_light(self):
         return bpy.data.objects[self.light_name]
-    def set_world(self, ):
+    def set_world(self, color = [0.9, 0.9, 0.9, 1.0]):
         world = self.scene.world
         world.use_nodes = True
         node_tree = world.node_tree
         rgb_node = node_tree.nodes.new(type="ShaderNodeRGB")
-        rgb_node.outputs["Color"].default_value = (1, 1, 1, 1)
+        rgb_node.outputs["Color"].default_value = color
         node_tree.nodes["Background"].inputs["Strength"].default_value = 1.0
         node_tree.links.new(rgb_node.outputs["Color"], node_tree.nodes["Background"].inputs["Color"])
     def set_camera(self, camera_type = None, camera_lens = None,):
@@ -179,10 +180,14 @@ class Render():
         light.location = Vector(self.camera_loc)
         light.data.use_nodes = True
         light.data.node_tree.nodes['Emission'].inputs['Strength'].default_value = 0.1
-        light.constraints.new(type = 'COPY_LOCATION')
-        light.constraints["Copy Location"].target = self.camera
-        light.constraints.new(type = 'COPY_ROTATION')
-        light.constraints["Copy Rotation"].target = self.camera
+        if self.lock_light_to_camera:
+            light.constraints.new(type = 'COPY_LOCATION')
+            light.constraints["Copy Location"].target = self.camera
+            light.constraints.new(type = 'COPY_ROTATION')
+            light.constraints["Copy Rotation"].target = self.camera
+        else:
+            light.location = Vector(self.light_loc)
+            self.look_at(light, self.camera_target)
     def look_at(self, obj, target, roll=0):
         """
         Rotate obj to look at target
@@ -217,7 +222,7 @@ class Render():
         """
         from blase.tools import get_canvas
         batoms = self.batoms
-        atoms, n1, n2, n3 = batoms.get_atoms_with_boundary()
+        atoms = batoms.get_atoms_with_boundary()
         if not margin:
             sizes = [ba.size.max() for ba in batoms.batoms.values()]
             margin = max(sizes) + 0.5

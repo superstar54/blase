@@ -109,9 +109,9 @@ def get_canvas(atoms, direction = [0, 0 ,1], margin = 1, show_unit_cell = True):
     projxy = positions.copy()
     projx = np.zeros((len(positions), 1))
     projy = np.zeros((len(positions), 1))
-    projz = np.dot(positions[i], nz)
+    projz = np.dot(positions, nz)
     for i in range(len(positions)):
-        projxy[i] = positions[i] - projz*nz
+        projxy[i] = positions[i] - projz[i]*nz
         projx[i] = np.dot(projxy[i], nx)
         projy[i] = np.dot(projxy[i], ny)
     #
