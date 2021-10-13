@@ -19,7 +19,7 @@ class Polyhedrasetting(Setting):
     def __init__(self, label) -> None:
         Setting.__init__(self, label)
         self.name = 'blasepolyhedra'
-        self.set_default()
+        self.set_default(self.species)
     def __setitem__(self, index, value):
         """
         Add polyhedra one by one
@@ -31,17 +31,16 @@ class Polyhedrasetting(Setting):
         p.name = index
         p.color = value[0]
         p.edgewidth = value[1]
-    def set_default(self):
+    def set_default(self, species):
         """
         """
-        for sp, data in self.species.items():
+        for sp, data in species.items():
             self[sp] = [np.append(data['color'][:3], 0.3), 0.005]
-    def add_polyhedras(self, polyhedrapair):
-        for key in polyhedrapair:
-            self.set_default(key)
-    def remove_polyhedras(self, polyhedrapair):
-        for key in polyhedrapair:
-            name = '%s-%s'%(key[0], key[1])
+    def add_polyhedras(self, polyhedras):
+        species = {sp: self.species[sp] for sp in polyhedras}
+        self.set_default(species)
+    def remove_polyhedras(self, polyhedras):
+        for name in polyhedras:
             i = self.collection.find(name)
             if i != -1:
                 self.collection.remove(i)

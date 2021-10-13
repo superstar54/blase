@@ -61,8 +61,19 @@ def test_batoms_animation():
     c2h6so.load_frames()
     # c2h6so.render(animation = True)
 
+def test_cavity():
+    from blase.bio import read
+    from blase.butils import removeAll
+    removeAll()
+    mof = read('docs/source/_static/datas/mof-5.cif')
+    mof.draw_cavity(9.0, boundary = [[0.2, 0.8], [0.2, 0.8], [0.2, 0.8]])
+    mof.model_type = 2
+    mof.draw_cell()
+    mof.render.light_energy = 30
+    mof.render.run([1, 0, 0], engine = 'eevee')
 
 if __name__ == '__main__':
     test_batoms()
     test_batoms_animation()
+    test_cavity()
     print('\n Batoms: All pass! \n')

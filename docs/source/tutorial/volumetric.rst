@@ -25,5 +25,5 @@ One add a isosurfacesetting by:
 The first value ``-0.002`` is the level for the isosurface, the second value ``[0, 0, 0.8, 0.5]`` is the color. The last value of the color ``0.5`` is used to set the ``transparency``.
 
 .. image:: ../_static/volume_h2o.png
-   :width: 5cm
+   :width: 10cm
 

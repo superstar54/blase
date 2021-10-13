@@ -52,7 +52,6 @@ class Render():
         self.batoms = batoms
         self.camera_name = 'camera_%s'%self.label
         self.light_name = 'light_%s'%self.label
-        self.scene = bpy.context.scene
         default_blase_settings.update(kwargs)
         self.set_parameters(default_blase_settings)
         self.clean_default()
@@ -75,6 +74,11 @@ class Render():
         if name not in bpy.data.collections:
             coll = bpy.data.collections.new(name)
             self.scene.collection.children.link(coll)
+    @property
+    def scene(self):
+        return self.get_scene()
+    def get_scene(self):
+        return bpy.data.scenes['Scene']
     @property
     def coll(self):
         return self.get_coll()
@@ -228,6 +232,8 @@ class Render():
             margin = max(sizes) + 0.5
         if not canvas:
             canvas, canvas1 = get_canvas(atoms = atoms, direction = direction, margin = margin)
+        else:
+            canvas1 = canvas
         camera_data = batoms.calc_camera_data(canvas, canvas1, direction = direction)
         self.set_parameters(camera_data)
     def run(self, direction = None, canvas = None, **kwargs):

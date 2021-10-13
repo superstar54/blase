@@ -29,10 +29,11 @@ The :class:`Batom` object has a ``color`` attribute. One set the ``color`` by:
 
 Make transparency for ``H`` atoms by setting ``Alpha`` value ``< 1``:
 
->>> ch4['H'].color[3] = 0.2
+>>> ch4['H'].color = [0, 0, 0.8, 0.2]
 
 .. image:: ../_static/color_ch4_2.png
    :width: 5cm
+
 
 Bond
 ===================
@@ -54,6 +55,8 @@ One can change color for bond pair ``C-H`` by:
 
    * -  |color3|
      -  |color4|
+
+
 
 
 Polyhedra

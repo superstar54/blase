@@ -54,3 +54,4 @@ cto.model_type = 1
 cto['O'].scale = 0.2
 draw_plane(location = [0, 0, -cto['Ti'].size[0]], size = 200, color = (0.9, 0.9, 0.9, 1))
 cto.render.run([1, -0.3, 0.3], engine = 'eevee',  output = 'gallery_catio3_bond.png')
+

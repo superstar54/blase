@@ -1,30 +1,60 @@
+from ase import Atoms
 import numpy as np
 from time import time
 
-def search_boundary(positions, cell, boundary = [[0, 1], [0, 1], [0, 1]], skin = 3.0):
+
+def search_boundary(atoms, boundary = [[0, 1], [0, 1], [0, 1]], skin = 3):
     """
-    boundarys: float or list
+    search atoms in the boundary
+
+    Parameters:
+
+    atoms: ASE Atoms object
+
+    boundary: list
+
+    skin: float
+        Could be the maximum cutoff.
+
+    Return:
+
+    atoms_boundary: ASE Atoms object
+        atoms inside the boudary, not include the core
+    offsets_skin: numpy array
+        atoms close to boundary with a skin distance. 
+        Used to search bond outside the boundary.
+        index and offset
+
     """
     from ase.cell import Cell
     from math import floor, ceil
     tstart = time()
-    cell = Cell(cell)
-    par = cell.cellpar()
-    skin = np.array([skin/par[0], skin/par[1], skin/par[2]])
     if isinstance(boundary, float):
         boundary = [[-boundary, 1 + boundary], [-boundary, 1+boundary], [-boundary, 1+boundary]]
     boundary = np.array(boundary)
     boundary_skin = boundary.copy()
-    boundary_skin[:, 0] -= skin
-    boundary_skin[:, 1] += skin
+    # skin to scaled distance in cell
+    par = atoms.cell.cellpar()
+    skin = np.array([skin/par[0], skin/par[1], skin/par[2]])
+    # skin region
+    boundary_skin[:, 0] += skin
+    boundary_skin[:, 1] -= skin
+    # find supercell
     f = np.floor(boundary)
     c = np.ceil(boundary)
     ib = np.array([f[:, 0], c[:, 1]]).astype(int)
     M = np.product(ib[1] - ib[0] + 1)
-    positions = cell.scaled_positions(positions)
+    positions = atoms.get_scaled_positions()
     n = len(positions)
     npositions = np.tile(positions, (M - 1,) + (1,) * (len(positions.shape) - 1))
     i0 = 0
+    # index
+    offsets = np.zeros((M*n, 4), dtype=int)
+    ind0 = np.arange(n).reshape(-1, 1)
+    symbols0 = atoms.get_chemical_symbols()
+    species0 = atoms.info['species']
+    symbols = []
+    species = []
     # repeat the positions so that
     # it completely covers the boundary
     for m0 in range(ib[0, 0], ib[1, 0] + 1):
@@ -33,39 +63,104 @@ def search_boundary(positions, cell, boundary = [[0, 1], [0, 1], [0, 1]], skin =
                 if m0 == 0 and m1 == 0 and m2 == 0: continue
                 i1 = i0 + n
                 npositions[i0:i1] += (m0, m1, m2)
+                offsets[i0:i1] = np.append(ind0, np.array([[m0, m1, m2]]*n), axis = 1)
+                symbols.extend(symbols0)
+                species.extend(species0)
                 i0 = i1
-    # boundary
+    # boundary condition
     ind1 =  np.where((npositions[:, 0] > boundary[0][0]) & (npositions[:, 0] < boundary[0][1]) \
                 & (npositions[:, 1] > boundary[1][0]) & (npositions[:, 1] < boundary[1][1]) \
                 & (npositions[:, 2] > boundary[2][0]) & (npositions[:, 2] < boundary[2][1]))
-    #
-    # boundary
-    ind2 =  np.where((npositions[:, 0] > boundary_skin[0][0]) & (npositions[:, 0] < boundary_skin[0][1]) \
+    # build atoms inside the boundary
+    ind1 = list(set(ind1[0]))
+    npositions1 = npositions[ind1]
+    npositions1 = np.dot(npositions1, atoms.cell)
+    symbols = np.array(symbols)[ind1]
+    species = np.array(species)[ind1]
+    atoms_boundary = Atoms(symbols, npositions1)
+    atoms_boundary.info['species'] = species
+    # build atoms inside the skin region
+    # could be the atoms from core, thus add core
+    npositions = np.append(npositions, positions, axis = 0)
+    ind2 = np.append(ind1, i0 + ind0).astype(int)
+    offsets[i0:i0+n] = np.append(ind0, np.array([[0, 0, 0]]*n), axis = 1)
+    # atoms not belong to the skin region
+    ind3 =  np.where((npositions[:, 0] > boundary_skin[0][0]) & (npositions[:, 0] < boundary_skin[0][1]) \
                 & (npositions[:, 1] > boundary_skin[1][0]) & (npositions[:, 1] < boundary_skin[1][1])  #\
                 & (npositions[:, 2] > boundary_skin[2][0]) & (npositions[:, 2] < boundary_skin[2][1]))
-    ind1 = list(set(ind1[0]))
-    ind2 = list(set(ind2[0]))
-    ind2 = list(set(ind2) - set(ind1))
-    npositions1 = npositions[ind1]
-    npositions1 = np.dot(npositions1, cell)
-    npositions2 = npositions[ind2]
-    npositions2 = np.dot(npositions2, cell)
+    ind3 = list(set(ind3[0]))
+    ind3 = list(set(ind2) - set(ind3))
+    offsets_skin = offsets[ind3]
     # print('search boundary: {0:10.2f} s'.format(time() - tstart))
-    return npositions1, npositions2
+    return atoms_boundary, offsets_skin
 
-def search_skin(atoms, bondsetting):
-    from blase.bondsetting import build_bondlists
-    from ase import Atoms
-    cutoff = {}
-    for b in bondsetting:
-        if b.search > 0:
-            cutoff[(b.symbol1, '%s_skin'%b.symbol2)] = [b.min, b.max]
-    bondlist = build_bondlists(atoms, cutoff)
-    if len(bondlist) == 0: return Atoms()
-    index = bondlist[:, 1]
-    atoms_skin = atoms[index]
-    atoms_skin.info['species'] = np.array(atoms.info['species'])[index]
-    return atoms_skin
+def search_bond(positions0, offsets_skin, bondlists, boundary, recursive = False, previous = None):
+    """
+    Search bonded atoms of sp1 or sp2 recursively.
+
+    Parameters:
+
+    positions0: array
+        positions of original atoms, the core atoms
+    offsets_skin: array
+        index and offset of atoms of sp1 or sp2
+    bondlists: array
+        bondlist of the core atoms
+    boundary: array
+    recursive: bool
+        recursive or not, for search mode 1 or 2
+    previous: array
+        offsets_skin of previous search. 
+        The index should be remove from the result of this search.
+    
+    Return:
+
+    offset_new: array
+        index and offset of atoms which bond to sp1 or sp2
+    
+    """
+    neighbors = np.array([]).reshape(-1, 4)
+    if len(offsets_skin) == 0: return neighbors
+    # build bonded atoms using offset_skin and bondlists
+    sites = set(offsets_skin[:, 0])
+    for i in sites:
+        ind = np.where(bondlists[:, 0] == i)[0]
+        if len(ind) == 0: continue
+        neighbor = bondlists[ind][:, 1:]
+        sitei = np.where(offsets_skin[:, 0] == i)[0]
+        for j in sitei:
+            temp = neighbor.copy()
+            temp[:, 1:4] = temp[:, 1:4] + offsets_skin[j][1:4]
+            neighbors = np.append(neighbors, temp, axis = 0)
+    # choose index by two pricinple
+    # 1, outside the boundary
+    # 2, not from preious index
+    # rebuild the positions, and check boundary
+    neighbors = neighbors.astype(int)
+    npositions = positions0[neighbors[:, 0]] + neighbors[:, 1:4]
+    index =  np.where((npositions[:, 0] > boundary[0][0]) & (npositions[:, 0] < boundary[0][1]) \
+                & (npositions[:, 1] > boundary[1][0]) & (npositions[:, 1] < boundary[1][1]) \
+                & (npositions[:, 2] > boundary[2][0]) & (npositions[:, 2] < boundary[2][1]))
+    #
+    mask = np.ones(npositions.shape[0], dtype=bool)
+    mask[index] = False
+    offset_new = neighbors[mask]
+    # offset_new = np.unique(offset_new, axis=0)
+    # remove previous index, and remove duplicate
+    if previous is not None:
+        __, indices = np.unique(np.concatenate([previous, offset_new]), return_index=True, axis=0)
+        indices = indices[indices >= len(previous)] - len(previous)
+        offset_new = offset_new[indices]
+    if len(offset_new) == 0: return np.array([]).reshape(-1, 4)
+    # recursive search
+    if recursive:
+        offset_new1 = search_bond(positions0, offset_new, bondlists, boundary, recursive = True, previous = offsets_skin)
+        # save
+        if offset_new1 is not None:
+            offset_new = np.append(offset_new, offset_new1, axis = 0)
+    else:
+        return offset_new
+    return offset_new
 
 
 class Boundary:
@@ -156,7 +251,20 @@ class Boundary:
         a, b, c = normal
         # d = np.dot(normal, points[2])
         return normal    
-
+def build_bondlists(atoms, cutoff):
+    """
+    The default bonds are stored in 'default_bonds'
+    Get all pairs of bonding atoms
+    remove_bonds
+    """
+    from neighborlist import neighbor_list
+    if len(cutoff) == 0: return {}
+    #
+    tstart = time()
+    nli, nlj, nlS = neighbor_list('ijS', atoms, cutoff, self_interaction=False)
+    bondlists = np.append(np.array([nli, nlj], dtype=int).T, np.array(nlS, dtype=int), axis = 1)
+    # print('build_bondlists: {0:10.2f} s'.format(time() - tstart))
+    return bondlists
 
 
 if __name__ == "__main__":
@@ -169,16 +277,28 @@ if __name__ == "__main__":
     # cl = Boundary(atoms, boundary_list = [{'d': 10.0, 'index': [2, 2, 1]}])
     # atoms = cl.build()
     # view(atoms)
-    atoms = bulk('Pt', cubic = True)
-    atoms.write('pt.in')
+    # atoms = bulk('Pt', cubic = True)
+    # atoms.write('pt.in')
     # view(atoms)
     # atoms = atoms*[3, 3, 3]
-    # atoms = read('docs/source/_static/datas/tio2.cif')
+    atoms = read('docs/source/_static/datas/tio2.cif')
+    atoms.info['species'] = atoms.get_chemical_symbols()
     # atoms = read('docs/source/_static/datas/mof-5.cif')
     # atoms.positions -= atoms.get_center_of_mass()
-    positions1, positions2 = search_boundary(atoms.positions, atoms.cell, boundary=[[-0.6, 1.6], [-0.6, 1.6], [-0.6, 1.6]])
-    skin = Atoms('Au'*len(positions2), positions = positions2)
-    view(atoms + skin)
+    # positions1, positions2, offset2 = search_boundary(atoms.positions, atoms.cell, boundary=[[0., 1.], [0., 1.], [0., 1.]])
+    #positions1, positions2, offset2 = search_boundary(atoms.positions, atoms.cell, boundary=[[-2.6, 1.6], [-2.6, 1.6], [-2.6, 1.6]])
+    cutoff = {('Ti', 'O'): [0, 3.0]}
+    bondlists = build_bondlists(atoms, cutoff)
+    print(bondlists)
+    skins = np.array([[1, 4, 1, 1]])
+    bondsetting = [('Ti', 'O')]
+    boundary = np.array([[-0.6, 1.6], [-0.6, 1.6], [-0.6, 1.6]])
+    # bondlists, only search bond
+    # skins, only search atoms
+    skins = search_bond(atoms.positions, skins, bondlists, boundary)
+    print(skins)
+    # skin = Atoms('Au'*len(positions2), positions = positions2)
+    # view(atoms + skin)
     # bondsetting = {('Ti', 'O'): [0, 2.5, False, False], ('O', 'O'): [0, 1.5, False, False]}
     # bondpairs_boundary = search_skin(atoms, bondsetting, boundary=[[-0.6, 1.6], [-0.6, 1.6], [-0.6, 1.6]])
     # print(bondpairs_boundary)

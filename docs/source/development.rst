@@ -22,11 +22,7 @@ Development topics
 =====================
 
 
-Bond
-------------
 
-- add different style for bond, dot and dash line, one color for all bonds.
-  
 Polyhedra
 ----------------
   
@@ -51,5 +47,4 @@ Algorithm
 - Find high order bond for aromatics. (eg. using CSD Python API, https://downloads.ccdc.cam.ac.uk/documentation/API/descriptive_docs/substructure_searching.html#)
 - Add 2D slices of volumetric data in their 3D image.
 - Faster bond-search algorithm
-- Search additional atoms recursively, molecule crystal
-
+- Cavity

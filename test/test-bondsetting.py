@@ -22,14 +22,56 @@ def test_polyhedra():
     from blase.butils import removeAll
     removeAll()
     tio2 = read('../docs/source/_static/datas/tio2.cif')
-    tio2.model_type = 2
+    tio2.boundary = 0.01
+
 
 def test_search_bond():
     from blase.bio import read
     from blase.butils import removeAll
     removeAll()
     pk = read('../docs/source/_static/datas/perovskite.cif')
+    pk.repeat([2, 2, 2])
+    pk.boundary = 0.01
     pk.model_type = 2
+    pk.draw_cell()
+    pk.render.run([0, 1, 0], engine = 'eevee', output = 'perovskite.png')
+
+
+def test_search_bond_2():
+    from blase.bio import read
+    from blase.butils import removeAll
+    removeAll()
+    mol = read('../docs/source/_static/datas/anthraquinone.cif')
+    mol.boundary = 0.01
+    mol.draw_cell()
+    mol.model_type = 1
+    mol.render.run([1, -0.3, 0.1], engine = 'eevee', output = 'anthraquinone.png')
+
+def test_search_bond_urea():
+    from blase.bio import read
+    from blase.butils import removeAll
+    removeAll()
+    mol = read('../docs/source/_static/datas/urea.cif')
+    mol.boundary = 2
+    mol.draw_cell()
+    mol.model_type = 1
+    mol.render.run([1, -0.3, 0.1], engine = 'eevee', output = 'urea.png')
+
+
+def test_search_bond_3():
+    """
+    Big system
+    """
+    from blase.bio import read
+    from blase.butils import removeAll
+    removeAll()
+    mof = read('../docs/source/_static/datas/mof-5.cif')
+    mof.boundary = 0.01
+    mof.bondsetting[('Zn-O')].polyhedra = True
+    mof.render.run([0, 1, 0], engine = 'eevee', output = 'mof-5.png')
+
+
+
 
 def test_hydrogen_bond():
     from ase.build import molecule
@@ -52,7 +94,10 @@ def test_hydrogen_bond():
 
 
 if __name__ == '__main__':
-    test_replace()
-    test_polyhedra()
-    test_hydrogen_bond()
+    # test_replace()
+    # test_polyhedra()
+    # test_hydrogen_bond()
+    # test_search_bond()
+    # test_search_bond_2()
+    test_search_bond_3()
     print('\n Bondsetting: All pass! \n')

@@ -2,6 +2,26 @@
 Gallery
 =========
 
+Molecule
+=============
+
+
+.. list-table::
+   :widths: 25 25
+
+   * -  |h2o0|
+     -  |h2o1|
+
+.. |h2o0|  image:: _static/gallery_h2o_ball.png
+   :width: 8cm
+.. |h2o1|  image:: _static/gallery_h2o_bond.png
+   :width: 8cm
+
+
+:download:`gallery_molecule.py <_static/gallery_molecule.py>`
+
+
+
 Crystal
 ============
 
@@ -29,6 +49,15 @@ Perovskite
 
 :download:`gallery_crystal.py <_static/gallery_catio3.py>`
 
+
+
+Cavity
+==========
+
+.. image:: _static/gallery_cavity.png
+   :width: 15cm
+
+:download:`cavity.py <_static/cavity.py>`
 
 
 
@@ -81,14 +110,6 @@ Nanoparticle
    * -  .. image:: _static/wulff.png 
    * - :download:`wulff.py <_static/wulff.py>`
 
-
-Cavity
-==========
-
-.. image:: _static/cavity.png
-   :width: 6cm
-
-:download:`cavity.py <_static/cavity.py>`
 
 
 Isosurface

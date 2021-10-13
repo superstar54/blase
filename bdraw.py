@@ -57,7 +57,7 @@ def draw_cell_cylinder(coll_cell, cell_vertices, label = None, celllinewidth = 0
             length = np.linalg.norm(vec)
             nvec = vec/length
             # print(center, nvec, length)
-            cell_edges['lengths'].append(length/2.0)
+            cell_edges['lengths'].append(length)
             cell_edges['centers'].append(center)
             cell_edges['normals'].append(nvec)
         #

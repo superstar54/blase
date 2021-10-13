@@ -17,15 +17,15 @@ Build a H\ :sub:`2`\ O molecule:
    :width: 3cm
 
 
-Here is how you could define an platinum crystal structure with a lattice constant of 3.96 Å:
+Here is how you could define an gold crystal structure with a lattice constant of 4.08 Å:
 
 >>> from blase.batoms import Batoms
->>> a = 3.96
+>>> a = 4.08
 >>> positions = [[0, 0, 0], [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2]]
->>> pt = Batoms(label = 'pt', species = {'Pt': positions}, pbc = True, cell = (a, a, a))
+>>> au = Batoms(label = 'au', species = {'Au': positions}, pbc = True, cell = (a, a, a))
 
-.. image:: ../_static/batoms-pt-crystal.png
-   :width: 3cm
+.. image:: ../_static/build_bulk_au.png
+   :width: 5cm
 
 
 Import from file

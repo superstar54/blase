@@ -11,14 +11,7 @@ def test_build():
     assert isinstance(pt111, Batoms)
 
 
-def cavity():
-    from blase.bio import read
-    mof = read('docs/source/_static/datas/mof-5.cif')
-    mof.bondsetting[('Zn', 'O')] = [0, 2.5, True, False]
-    mof.bondsetting[('C', 'H')] = [0, 1.4, False, False]
-    mof.boundary = 0.2
-    mof.draw_cavity(9.0)
-    mof.model_type = 2
+
 
 
 

@@ -15,6 +15,9 @@ import numpy as np
 from ase.data import atomic_numbers
 from ase.geometry import complete_cell
 
+
+import time
+
 def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff,
                             species=None, self_interaction=False,
                             use_scaled_positions=False, max_nbins=1e6):
@@ -93,6 +96,7 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff,
     #     n: (Linear) neighbor index
 
     # Return empty neighbor list if no atoms are passed here
+    tstart = time.time()
     if len(positions) == 0:
         empty_types = dict(i=(int, (0, )),
                            j=(int, (0, )),
@@ -230,6 +234,10 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff,
     #                                     binz_xyz)).ravel()
     #     assert (b_b == np.arange(np.prod(nbins_c))).all()
 
+
+    # print('neighborlist 0: {0:10.2f} s'.format( time.time() - tstart))
+    tstart = time.time()
+
     # First atoms in pair.
     _first_at_neightuple_n = atoms_in_bin_ba[:, atom_pairs_pn[0]]
     for dz in range(-neigh_search_z, neigh_search_z+1):
@@ -320,7 +328,9 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff,
     cell_shift_vector_n = cell_shift_vector_n[mask]
     distance_vector_nc = distance_vector_nc[mask]
     abs_distance_vector_n = abs_distance_vector_n[mask]
+    # print('neighborlist 1: {0:10.2f} s'.format( time.time() - tstart))
 
+    tstart = time.time()
     if isinstance(cutoff, dict) and species is not None:
         # If cutoff is a dictionary, then the cutoff radii are specified per
         # element pair. We now have a list up to maximum cutoff.
@@ -352,7 +362,7 @@ def primitive_neighbor_list(quantities, pbc, cell, positions, cutoff,
         cell_shift_vector_n = cell_shift_vector_n[mask]
         distance_vector_nc = distance_vector_nc[mask]
         abs_distance_vector_n = abs_distance_vector_n[mask]
-
+    # print('neighborlist 2: {0:10.2f} s'.format( time.time() - tstart))
     # Assemble return tuple.
     retvals = []
     for q in quantities:
