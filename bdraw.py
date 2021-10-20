@@ -136,6 +136,47 @@ def draw_bond_kind(kind,
     coll.objects.link(obj_bond)
     # print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
     
+def draw_cavity(kind, 
+                   datas, 
+                   label = None,
+                   coll = None,
+                   source = None, 
+                   bsdf_inputs = None, 
+                   material_style = 'plastic'):
+    if len(datas['edges']) == 0:
+        return
+    if not bsdf_inputs:
+        bsdf_inputs = material_styles_dict[material_style]
+    tstart = time.time()
+    material = bpy.data.materials.new('bond_kind_{0}'.format(kind))
+    material.diffuse_color = np.append(datas['color'], datas['transmit'])
+    material.metallic = bsdf_inputs['Metallic']
+    material.roughness = bsdf_inputs['Roughness']
+    material.blend_method = 'BLEND'
+    material.use_nodes = True
+    principled_node = material.node_tree.nodes['Principled BSDF']
+    principled_node.inputs['Base Color'].default_value = np.append(datas['color'], datas['transmit'])
+    principled_node.inputs['Alpha'].default_value = datas['transmit']
+    for key, value in bsdf_inputs.items():
+        principled_node.inputs[key].default_value = value
+    datas['materials'] = material
+    #
+    mesh = bpy.data.meshes.new("mesh_kind_{0}".format(kind))
+    mesh.from_pydata(datas['vertices'], datas['edges'], [])
+    mesh.update()
+    name = "cavity_{0}_{1}".format(label, kind)
+    obj_bond = bpy.data.objects.new(name, mesh)
+    obj_bond.data = mesh
+    obj_bond.data.materials.append(material)
+    coll.objects.link(obj_bond)
+    bpy.context.view_layer.objects.active = bpy.context.scene.objects.get(name)
+    bpy.ops.object.mode_set(mode = 'EDIT')
+    # fill edge with face
+    bpy.ops.mesh.edge_face_add()
+    bpy.ops.object.mode_set(mode = 'OBJECT')
+    bpy.ops.object.shade_smooth()
+    # print('bonds: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
+    
 
 
 def draw_polyhedra_kind(kind, 
@@ -143,11 +184,11 @@ def draw_polyhedra_kind(kind,
                         label = None,
                         coll = None,
                         source = None, 
+                        show_edge = True,
                         bsdf_inputs = None, 
                         material_style = 'blase'):
         """
         """
-        source = bond_source(vertices=6)
         if not bsdf_inputs:
             bsdf_inputs = material_styles_dict[material_style]
         tstart = time.time()
@@ -168,12 +209,16 @@ def draw_polyhedra_kind(kind,
         mesh.from_pydata(datas['vertices'], [], datas['faces'])  
         mesh.update()
         for f in mesh.polygons:
-            f.use_smooth = True
+            f.use_smooth = False
         obj_polyhedra = bpy.data.objects.new("polyhedra_{0}_{1}_face".format(label, kind), mesh)
         obj_polyhedra.data = mesh
         obj_polyhedra.data.materials.append(material)
-        bpy.ops.object.shade_smooth()
+        # bpy.ops.object.shade_smooth()
+        # bpy.ops.object.shade_flat()
+        coll.objects.link(obj_polyhedra)
         #---------------------------------------------------
+        if not show_edge: return
+        source = bond_source(vertices=6)
         material = bpy.data.materials.new('polyhedra_edge_kind_{0}'.format(kind))
         material.diffuse_color = np.append(datas['edge_cylinder']['color'], datas['edge_cylinder']['transmit'])
         # material.blend_method = 'BLEND'
@@ -195,7 +240,6 @@ def draw_polyhedra_kind(kind,
         obj_edge.data.materials.append(material)
         bpy.ops.object.shade_smooth()
         # STRUCTURE.append(obj_polyhedra)
-        coll.objects.link(obj_polyhedra)
         coll.objects.link(obj_edge)
         # print('polyhedras: {0}   {1:10.2f} s'.format(kind, time.time() - tstart))
 

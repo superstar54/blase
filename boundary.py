@@ -33,6 +33,8 @@ def search_boundary(atoms, boundary = [[0, 1], [0, 1], [0, 1]], skin = 3):
         boundary = [[-boundary, 1 + boundary], [-boundary, 1+boundary], [-boundary, 1+boundary]]
     boundary = np.array(boundary)
     boundary_skin = boundary.copy()
+    # important to make all atoms inside cell
+    # atoms.wrap()
     # skin to scaled distance in cell
     par = atoms.cell.cellpar()
     skin = np.array([skin/par[0], skin/par[1], skin/par[2]])

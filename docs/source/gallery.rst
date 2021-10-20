@@ -51,18 +51,70 @@ Perovskite
 
 
 
-Cavity
-==========
+MOF
+-------------------
 
 .. image:: _static/gallery_cavity.png
    :width: 15cm
 
-:download:`cavity.py <_static/cavity.py>`
+:download:`gallery_cavity.py <_static/gallery_cavity.py>`
+
+
+Nano
+==========
+
+C60
+-------------------
+
+.. image:: _static/gallery_c60.png
+   :width: 15cm
+
+:download:`gallery_c60.py <_static/gallery_c60.py>`
+
+
+
+Nanoparticle
+---------------------
+
+.. list-table::
+   :widths: 10
+
+   * - Wulff
+   * -  .. image:: _static/gallery_wulff.png 
+   * - :download:`gallery_wulff.py <_static/gallery_wulff.py>`
+
+
+Surface
+==============
+
+
+Oxide surface
+-----------------
+
+
+
+
+View
+----------------
+
+.. list-table::
+   :widths: 25 25 25
+
+   * - Top View
+     - Side View
+     - Perspective View
+   * -  |surface1|
+     -  |surface2|
+     -  |surface3|
+
+
+
+:download:`surface.py <_static/surface.py>`
 
 
 
 Model type
-------------
+==========
 
 .. list-table::
    :widths: 25 25 25 25
@@ -78,37 +130,6 @@ Model type
 
 
 :download:`cyrstal.py <_static/batoms_model_type.py>`
-
-
-Surface
-==============
-
-.. list-table::
-   :widths: 25 25 25
-
-   * - Top View
-     - Side View
-     - Perspective View
-   * -  |surface1|
-     -  |surface2|
-     -  |surface3|
-
-
-
-
-:download:`surface.py <_static/surface.py>`
-
-
-
-Nanoparticle
-==============
-
-.. list-table::
-   :widths: 25
-
-   * - Wulff
-   * -  .. image:: _static/wulff.png 
-   * - :download:`wulff.py <_static/wulff.py>`
 
 
 
@@ -130,7 +151,7 @@ Animation
 
 
 Motion blur
-============
+-------------
 
 .. image:: _static/motion_blur_h2o.png
    :width: 6cm
@@ -138,7 +159,7 @@ Motion blur
 :download:`motion_blur_h2o.py <_static/motion_blur_h2o.py>`
 
 
-Monolayer
+Others
 ============
 
 .. image:: _static/monolayer.png

@@ -19,6 +19,17 @@ def test_boundary():
 
 
 def test_bond_search():
+from blase.butils import removeAll
+from blase.batoms import Batoms
+from blase.bio import read
+removeAll()
+mol = read('docs/source/_static/datas/c2h6so.xyz')
+mol.cell = [4, 4, 4]
+mol.pbc = True
+mol.boundary = 0.01
+mol.model_type = 1
+
+def test_wrap():
     from blase.butils import removeAll
     from blase.batoms import Batoms
     from blase.bio import read
@@ -28,7 +39,6 @@ def test_bond_search():
     tio2.model_type = 2
     atoms = tio2.get_atoms_with_boundary()
     assert len(atoms) == 55
-
 
 
 

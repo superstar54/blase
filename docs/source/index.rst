@@ -6,22 +6,25 @@
 =================================
 Welcome to blase's documentation!
 =================================
-Blase is a Python package for drawing and rendering atoms and molecules objects using blender. A Python interface that allows for automating workflows.
+Blase is a Python package for editing and rendering atoms and molecules objects using blender. A Python interface that allows for automating workflows.
 
 >>> from blase.batoms import Batoms
 >>> h2o = Batoms('h2o', {'O': [[0, 0, 0.40]], 'H': [[0, -0.76, -0.2], [0, 0.76, -0.2]]})
 
-
-
 |logo|
 
-Support features:
+Features:
 
-* Model: space-filling, ball-stick, polyhedral, cavity
+
+* Model: space-filling, ball-stick, polyhedral, cavity and so on.
 * File type: cif, xyz, cube, pdb, json, VASP-out and so on.
-* Isosurface
+* Volumetric data (Isosurface)
 * Animation
 * GUI
+* ``Flexible``: Python script, run interactively or in background.
+* ``High quality rendering``:  3D models
+* ``Free, Open Source``: Easy to download and install.
+* ``Cross-platform``: (Linux, Windows, macOS)
 
 
 .. toctree::

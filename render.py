@@ -230,9 +230,11 @@ class Render():
         if not margin:
             sizes = [ba.size.max() for ba in batoms.batoms.values()]
             margin = max(sizes) + 0.5
-        if not canvas:
+        if canvas is None:
             canvas, canvas1 = get_canvas(atoms = atoms, direction = direction, margin = margin)
         else:
+            if isinstance(canvas, (int, float)):
+                canvas = np.array([[0, 0, 0], [canvas, canvas, canvas]])
             canvas1 = canvas
         camera_data = batoms.calc_camera_data(canvas, canvas1, direction = direction)
         self.set_parameters(camera_data)

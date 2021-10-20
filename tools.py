@@ -136,6 +136,22 @@ def get_canvas(atoms, direction = [0, 0 ,1], margin = 1, show_unit_cell = True):
     canvas1[0, 2] = 0
     canvas1[1, 2] = projz.max()
     return canvas, canvas1
+def find_cage_sphere(cell, positions, radius, step = 1.0, boundary = [[0, 1], [0, 1], [0, 1]]):
+    from ase.cell import Cell
+    from scipy.spatial import distance
+
+    cell = Cell(cell)
+    a, b, c, alpha, beta, gamma = cell.cellpar()
+    na, nb, nc = int(a/step),int(b/step), int(c/step)
+    x = np.linspace(boundary[0][0], boundary[0][1], na)
+    y = np.linspace(boundary[1][0], boundary[1][1], nb)
+    z = np.linspace(boundary[2][0], boundary[2][1], nc)
+    positions_v = np.vstack(np.meshgrid(x, y, z)).reshape(3,-1).T
+    positions_v = np.dot(positions_v, cell)
+    dists = distance.cdist(positions_v, positions)
+    # dists<3.0
+    flag = np.min(dists, axis = 1) >radius
+    return positions_v[flag]
 def find_cage(cell, positions, radius, step = 1.0, boundary = [[0, 1], [0, 1], [0, 1]]):
     from ase.cell import Cell
     from scipy.spatial import distance

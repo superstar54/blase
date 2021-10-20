@@ -27,18 +27,11 @@ Optional:
 
 
 
-Install Python
-=====================
-
-On Windows, suggest to install Python with ``Anaconda``, https://docs.anaconda.com/anaconda/install/windows/
-
-
-
 
 Install ASE
 ======================
 
-.. highlight:: bash
+On Windows, suggest to install Python with ``Anaconda``, https://docs.anaconda.com/anaconda/install/windows/
 
 First install ASE on your computer. On Windows, open Anaconda Prompt, on Linux, open a terminal, and run::
     
@@ -53,8 +46,6 @@ Install ASE_ and scikit-image_ inside Blender::
     $ ./pip3 install --upgrade ase
     
     $ ./pip3 install scikit-image
-
-
 
 On Windows, start Blender, open a Python console and run the following code::
 

@@ -391,6 +391,7 @@ class Batom():
         bmesh.ops.delete(bm, geom=verts_select, context='VERTS')
         if len(bm.verts) == 0:
             bpy.data.objects.remove(obj)
+            bpy.data.objects.remove(self.instancer)
         else:
             bm.to_mesh(obj.data)
     def delete(self, index = []):

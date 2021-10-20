@@ -4,7 +4,7 @@ Definition of the Batoms class in the blase package.
 """
 
 import bpy
-from ase import Atoms, atoms
+from ase import Atoms, atoms, data
 from blase.batom import Batom
 from blase.bondsetting import Bondsetting, build_bondlists, calc_bond_data
 from blase.polyhedrasetting import Polyhedrasetting, build_polyhedralists
@@ -311,7 +311,7 @@ class Batoms():
         for species, bond_data in bond_kinds.items():
             draw_bond_kind(species, bond_data, label = self.label, 
                         coll = self.coll.children['%s_bond'%self.label])
-    def draw_polyhedras(self, bondlist = None):
+    def draw_polyhedras(self, bondlist = None, show_edge = True):
         """
         Draw bonds.
         Parameters:
@@ -321,14 +321,14 @@ class Batoms():
         """
         object_mode()
         self.clean_blase_objects('polyhedra')
-        atoms = self.get_atoms_with_boundary()
+        atoms = self.get_atoms_with_boundary(X = True)
         if bondlist is None:
             bondlist = build_bondlists(atoms, self.bondsetting.cutoff_dict)
         polyhedra_kinds = build_polyhedralists(atoms, bondlist, 
                           self.bondsetting, self.polyhedrasetting)
         for species, polyhedra_data in polyhedra_kinds.items():
             draw_polyhedra_kind(species, polyhedra_data, label = self.label,
-                        coll = self.coll.children['%s_polyhedra'%self.label])
+                        coll = self.coll.children['%s_polyhedra'%self.label], show_edge = show_edge)
     def draw_isosurface(self):
         """
         Draw bonds.
@@ -344,17 +344,17 @@ class Batoms():
         for verts, faces, color in isosurface:
             draw_isosurface(self.coll.children['%s_volume'%self.label],
                             verts, faces, color = color)
-    def draw_cavity(self, radius, boundary = [[0, 1], [0, 1], [0, 1]]):
+    def draw_cavity_sphere(self, radius, boundary = [[0, 1], [0, 1], [0, 1]]):
         """
         cavity
         for porous materials
         >>> from ase.io import read
         >>> atoms = read('docs/source/_static/datas/mof-5.cif')
         """
-        from blase.tools import find_cage
+        from blase.tools import find_cage_sphere
         object_mode()
         self.clean_blase_objects('ghost')
-        positions = find_cage(self.cell, self.atoms.positions, radius, boundary = boundary)
+        positions = find_cage_sphere(self.cell, self.atoms.positions, radius, boundary = boundary)
         ba = Batom(self.label, 'X', positions, scale = radius*0.9, 
                    material_style='blase', bsdf_inputs=self.bsdf_inputs, 
                    color_style=self.color_style)
@@ -362,6 +362,41 @@ class Batoms():
         # ba.color = [ba.color[0], ba.color[1], ba.color[2], 0.8]
         self.coll.children['%s_ghost'%self.label].objects.link(ba.batom)
         self.coll.children['%s_ghost'%self.label].objects.link(ba.instancer)
+    def draw_cavity(self, bondlists = None):
+        """
+        cavity
+        for porous materials
+        >>> from ase.io import read
+        >>> atoms = read('docs/source/_static/datas/mof-5.cif')
+        """
+        from blase.tools import find_cage
+        from blase.bdraw import draw_cavity
+        object_mode()
+        self.clean_blase_objects('ghost')
+        atoms = self.get_atoms_with_boundary()
+        positions = atoms.positions
+        if bondlists is None:
+            bondlists = build_bondlists(atoms, self.bondsetting.cutoff_dict)
+        # calc data
+        vertices = []
+        edges = []
+        # offset = bondlists[:, 2:5]
+        # R = np.dot(offset, atoms.cell)
+        # pos1 = positions[bondlists[:, 0]]
+        # pos2 = positions[bondlists[:, 1]] + R
+        # n = len(pos1)
+        # vertices = np.append(pos1, pos2, axis = 0)
+        # index1 = np.array(range(n)).reshape(-1, 1)
+        # index2 = np.array(range(n)).reshape(-1, 1) + n
+        # edges = np.append(index1, index2, axis = 1)
+        edges = bondlists[:, [0, 1]]
+        edges.astype(int)
+        edges = edges.tolist()
+        # draw edge based on bonds
+        kind = 'cavity'
+        datas = {'vertices': positions, 'edges': edges, 'color': [0.4, 0.4, 0.1], 'transmit': 1.0}
+        draw_cavity(kind, datas, self.label, coll = self.coll.children['%s_polyhedra'%self.label])
+        
     def clean_blase_objects(self, coll, names = None):
         """
         remove all bond object in the bond collection
@@ -841,28 +876,24 @@ class Batoms():
     def set_show_unit_cell(self, show_unit_cell):
         self.coll.blasebatoms.show_unit_cell = show_unit_cell
         self.draw_cell()
+    def get_atoms(self, batoms):
+        return self.batoms2atoms(batoms)
     @property
     def atoms(self):
-        return self.get_atoms()
-    def get_atoms(self):
-        return self.batoms2atoms(self.batoms)
+        return self.get_atoms(self.batoms)
     @property
     def atoms_boundary(self):
-        return self.get_atoms_boundary()
-    def get_atoms_boundary(self):
-        return self.batoms2atoms(self.batoms_boundary)
+        return self.get_atoms(self.batoms_boundary)
     @property
     def atoms_skin(self):
-        return self.get_atoms_skin()
-    def get_atoms_skin(self):
-        return self.batoms2atoms(self.batoms_skin)
-    def get_atoms_with_boundary(self):
+        return self.get_atoms(self.batoms_skin)
+    def get_atoms_with_boundary(self, X = False):
         """
         build ASE atoms from batoms dict.
         """
-        atoms = self.atoms
-        atoms_boundary = self.atoms_boundary
-        atoms_skin = self.atoms_skin
+        atoms = self.batoms2atoms(self.batoms, X = X)
+        atoms_boundary = self.batoms2atoms(self.batoms_boundary, X = X)
+        atoms_skin = self.batoms2atoms(self.batoms_skin, X = X)
         species = atoms.info['species'] + atoms_boundary.info['species'] + atoms_skin.info['species']
         atoms = atoms + atoms_boundary + atoms_skin
         atoms.info['species'] = species
@@ -910,7 +941,7 @@ class Batoms():
         for ba in self.coll_skin.objects:
             batoms_skin[ba.blasebatom.species] = Batom(ba.name)
         return batoms_skin
-    def batoms2atoms(self, batoms, local = False):
+    def batoms2atoms(self, batoms, local = False, X = False):
         object_mode()
         atoms = Atoms()
         species_list = []
@@ -918,7 +949,7 @@ class Batoms():
         positions = []
         for species, batom in batoms.items():
             # ghost site will not save 
-            if batom.element == 'X': continue
+            if not X and batom.element == 'X': continue
             if species[-9:] == '_boundary': species = species[0:-9]
             if species[-5:] == '_skin': species = species[0:-5]
             species_list.extend([species]*len(batom))
@@ -1045,3 +1076,9 @@ class Batoms():
             cell = self.cell
             pbc = self.pbc
         return get_angles([v12], [v32], cell=cell, pbc=pbc)
+    def get_center_of_mass(self, scaled=False):
+        """Get the center of mass.
+
+        If scaled=True the center of mass in scaled coordinates
+        is returned."""
+        return self.atoms.get_center_of_mass(scaled = scaled)
