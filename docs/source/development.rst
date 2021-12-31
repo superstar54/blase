@@ -10,7 +10,7 @@ In Blender, when the undo/redo operation system (ctrl+z / ctrl+shift+z) is perfo
 IDE
 =======
 
-``VS Code`` with ``Blender Development`` extenstion is highly recommended to used . Please read : https://marketplace.visualstudio.com/items?itemName=JacquesLucke.blender-development
+``VS Code`` with ``Blender Development`` extension is highly recommended to used . Please read : https://marketplace.visualstudio.com/items?itemName=JacquesLucke.blender-development
 
 Known bugs
 ===================
